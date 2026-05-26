@@ -1,0 +1,9 @@
+[submodule "amneziawg-go"]
+	path = amneziawg-go
+	url = https://github.com/amnezia-vpn/amneziawg-go.git
+[submodule "wireguard-go"]
+	path = wireguard-go
+	url = https://github.com/WireGuard/wireguard-go.git
+[submodule "wg-portal"]
+	path = wg-portal
+	url = https://github.com/h44z/wg-portal.git
