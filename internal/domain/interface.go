@@ -83,16 +83,17 @@ type Interface struct {
 	// Self-provisioning access control
 	LdapAllowedUsers map[string][]UserIdentifier `gorm:"serializer:json"` // Materialised during LDAP sync, keyed by ProviderName
 
-	// AmneziaWG obfuscation parameters — generated once, stored, not exposed in UI
-	AWGJc  int    `gorm:"column:awg_jc"`
-	AWGJmin int   `gorm:"column:awg_jmin"`
-	AWGJmax int   `gorm:"column:awg_jmax"`
-	AWGS1 int     `gorm:"column:awg_s1"`
-	AWGS2 int     `gorm:"column:awg_s2"`
-	AWGH1 uint32  `gorm:"column:awg_h1"`
-	AWGH2 uint32  `gorm:"column:awg_h2"`
-	AWGH3 uint32  `gorm:"column:awg_h3"`
-	AWGH4 uint32  `gorm:"column:awg_h4"`
+	// AmneziaWG obfuscation — per-interface flag and parameters
+	AWGEnabled bool   `gorm:"column:awg_enabled"`
+	AWGJc      int    `gorm:"column:awg_jc"`
+	AWGJmin    int    `gorm:"column:awg_jmin"`
+	AWGJmax    int    `gorm:"column:awg_jmax"`
+	AWGS1      int    `gorm:"column:awg_s1"`
+	AWGS2      int    `gorm:"column:awg_s2"`
+	AWGH1      uint32 `gorm:"column:awg_h1"`
+	AWGH2      uint32 `gorm:"column:awg_h2"`
+	AWGH3      uint32 `gorm:"column:awg_h3"`
+	AWGH4      uint32 `gorm:"column:awg_h4"`
 }
 
 // GetAWGParams returns the AmneziaWG obfuscation parameters stored in the interface.

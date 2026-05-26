@@ -167,15 +167,16 @@ type PeerInterfaceConfig struct {
 	PostDown ConfigOption[string] `gorm:"embedded;embeddedPrefix:iface_post_down_"` // action that is executed after the device is down
 
 	// AmneziaWG obfuscation parameters — for client config generation
-	AWGJc  int    `gorm:"column:awg_jc"`
-	AWGJmin int   `gorm:"column:awg_jmin"`
-	AWGJmax int   `gorm:"column:awg_jmax"`
-	AWGS1 int     `gorm:"column:awg_s1"`
-	AWGS2 int     `gorm:"column:awg_s2"`
-	AWGH1 uint32  `gorm:"column:awg_h1"`
-	AWGH2 uint32  `gorm:"column:awg_h2"`
-	AWGH3 uint32  `gorm:"column:awg_h3"`
-	AWGH4 uint32  `gorm:"column:awg_h4"`
+	AWGEnabled bool   `gorm:"column:awg_enabled"`
+	AWGJc      int    `gorm:"column:awg_jc"`
+	AWGJmin    int    `gorm:"column:awg_jmin"`
+	AWGJmax    int    `gorm:"column:awg_jmax"`
+	AWGS1      int    `gorm:"column:awg_s1"`
+	AWGS2      int    `gorm:"column:awg_s2"`
+	AWGH1      uint32 `gorm:"column:awg_h1"`
+	AWGH2      uint32 `gorm:"column:awg_h2"`
+	AWGH3      uint32 `gorm:"column:awg_h3"`
+	AWGH4      uint32 `gorm:"column:awg_h4"`
 }
 
 func (p *PeerInterfaceConfig) AddressStr() string {

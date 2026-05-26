@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"strings"
 
 	"github.com/vishvananda/netlink"
 	"golang.zx2c4.com/wireguard/wgctrl"
@@ -241,17 +240,21 @@ func (r *WgRepo) getInterface(id domain.InterfaceIdentifier) (*domain.PhysicalIn
 }
 
 func (r *WgRepo) createLowLevelInterface(id domain.InterfaceIdentifier) error {
+	// If amneziawg-go is available, let it create the interface — it also
+	// sets up the UAPI socket under /var/run/amneziawg/ and creates a
+	// compat symlink at /var/run/wireguard/ so wgctrl can find it.
+	if err := lowlevel.StartAWGProcess(string(id)); err == nil {
+		return nil // amneziawg-go owns this interface
+	}
+
+	// Fallback: vanilla netlink create (kernel module or wireguard-go)
 	link := &netlink.GenericLink{
 		LinkAttrs: netlink.LinkAttrs{
 			Name: string(id),
 		},
 		LinkType: "wireguard",
 	}
-	err := r.nl.LinkAdd(link)
-	if err != nil {
-		if os.IsExist(err) || strings.Contains(err.Error(), "file exists") {
-			return nil // amneziawg-go already created the interface
-		}
+	if err := r.nl.LinkAdd(link); err != nil {
 		return fmt.Errorf("link add failed: %w", err)
 	}
 
@@ -362,6 +365,9 @@ func (r *WgRepo) DeleteInterface(_ context.Context, id domain.InterfaceIdentifie
 }
 
 func (r *WgRepo) deleteLowLevelInterface(id domain.InterfaceIdentifier) error {
+	// Stop amneziawg-go process (best-effort)
+	_ = lowlevel.StopAWGProcess(string(id))
+
 	link, err := r.nl.LinkByName(string(id))
 	if err != nil {
 		var linkNotFoundError netlink.LinkNotFoundError

@@ -53,7 +53,7 @@ PreDown = {{ .Interface.PreDown }}
 PostDown = {{ .Interface.PostDown }}
 {{- end}}
 
-{{- if ne .Interface.AWGJc 0}}
+{{- if .Interface.AWGEnabled}}
 # AmneziaWG obfuscation parameters
 Jc = {{ .Interface.AWGJc }}
 Jmin = {{ .Interface.AWGJmin }}

@@ -407,12 +407,18 @@ func (m Manager) PrepareInterface(ctx context.Context) (*domain.Interface, error
 		PeerDefPostDown:            "",
 	}
 
-	// Генерировать AWG-параметры один раз; идемпотентно
-	if freshInterface.AWGJc == 0 && freshInterface.AWGH1 == 0 {
+	// Генерировать AWG-параметры один раз, если включена обфускация
+	if freshInterface.AWGEnabled && freshInterface.AWGJc == 0 && freshInterface.AWGH1 == 0 {
 		if p, err := lowlevel.GenerateAWGParams(); err == nil {
-			freshInterface.AWGJc, freshInterface.AWGJmin, freshInterface.AWGJmax = p.Jc, p.Jmin, p.Jmax
-			freshInterface.AWGS1, freshInterface.AWGS2 = p.S1, p.S2
-			freshInterface.AWGH1, freshInterface.AWGH2, freshInterface.AWGH3, freshInterface.AWGH4 = p.H1, p.H2, p.H3, p.H4
+			freshInterface.AWGJc = p.Jc
+			freshInterface.AWGJmin = p.Jmin
+			freshInterface.AWGJmax = p.Jmax
+			freshInterface.AWGS1 = p.S1
+			freshInterface.AWGS2 = p.S2
+			freshInterface.AWGH1 = p.H1
+			freshInterface.AWGH2 = p.H2
+			freshInterface.AWGH3 = p.H3
+			freshInterface.AWGH4 = p.H4
 		}
 	}
 
@@ -1044,6 +1050,7 @@ func (m Manager) importPeer(ctx context.Context, in *domain.Interface, p *domain
 	peer.Interface.PostDown = domain.NewConfigOption(in.PeerDefPostDown, true)
 
 	// Propagate AmneziaWG obfuscation parameters
+	peer.Interface.AWGEnabled = in.AWGEnabled
 	peer.Interface.AWGJc = in.AWGJc
 	peer.Interface.AWGJmin = in.AWGJmin
 	peer.Interface.AWGJmax = in.AWGJmax

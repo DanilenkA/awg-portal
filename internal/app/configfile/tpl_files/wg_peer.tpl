@@ -72,7 +72,7 @@ PresharedKey = {{ .Peer.PresharedKey }}
 PersistentKeepalive = {{ .Peer.PersistentKeepalive.GetValue }}
 {{- end}}
 
-{{- if ne .Peer.Interface.AWGJc 0}}
+{{- if .Peer.Interface.AWGEnabled}}
 # AmneziaWG obfuscation parameters
 Jc = {{ .Peer.Interface.AWGJc }}
 Jmin = {{ .Peer.Interface.AWGJmin }}
