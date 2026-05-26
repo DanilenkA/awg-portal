@@ -14,6 +14,7 @@ import (
 	"github.com/h44z/wg-portal/internal/app/audit"
 	"github.com/h44z/wg-portal/internal/config"
 	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/h44z/wg-portal/internal/lowlevel"
 )
 
 // GetInterface returns the interface for the given interface identifier.
@@ -404,6 +405,15 @@ func (m Manager) PrepareInterface(ctx context.Context) (*domain.Interface, error
 		PeerDefPostUp:              "",
 		PeerDefPreDown:             "",
 		PeerDefPostDown:            "",
+	}
+
+	// Генерировать AWG-параметры один раз; идемпотентно
+	if freshInterface.AWGJc == 0 && freshInterface.AWGH1 == 0 {
+		if p, err := lowlevel.GenerateAWGParams(); err == nil {
+			freshInterface.AWGJc, freshInterface.AWGJmin, freshInterface.AWGJmax = p.Jc, p.Jmin, p.Jmax
+			freshInterface.AWGS1, freshInterface.AWGS2 = p.S1, p.S2
+			freshInterface.AWGH1, freshInterface.AWGH2, freshInterface.AWGH3, freshInterface.AWGH4 = p.H1, p.H2, p.H3, p.H4
+		}
 	}
 
 	return freshInterface, nil
@@ -1032,6 +1042,17 @@ func (m Manager) importPeer(ctx context.Context, in *domain.Interface, p *domain
 	peer.Interface.PostUp = domain.NewConfigOption(in.PeerDefPostUp, true)
 	peer.Interface.PreDown = domain.NewConfigOption(in.PeerDefPreDown, true)
 	peer.Interface.PostDown = domain.NewConfigOption(in.PeerDefPostDown, true)
+
+	// Propagate AmneziaWG obfuscation parameters
+	peer.Interface.AWGJc = in.AWGJc
+	peer.Interface.AWGJmin = in.AWGJmin
+	peer.Interface.AWGJmax = in.AWGJmax
+	peer.Interface.AWGS1 = in.AWGS1
+	peer.Interface.AWGS2 = in.AWGS2
+	peer.Interface.AWGH1 = in.AWGH1
+	peer.Interface.AWGH2 = in.AWGH2
+	peer.Interface.AWGH3 = in.AWGH3
+	peer.Interface.AWGH4 = in.AWGH4
 
 	var displayName string
 	switch in.Type {

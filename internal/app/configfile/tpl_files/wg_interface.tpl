@@ -53,6 +53,19 @@ PreDown = {{ .Interface.PreDown }}
 PostDown = {{ .Interface.PostDown }}
 {{- end}}
 
+{{- if ne .Interface.AWGJc 0}}
+# AmneziaWG obfuscation parameters
+Jc = {{ .Interface.AWGJc }}
+Jmin = {{ .Interface.AWGJmin }}
+Jmax = {{ .Interface.AWGJmax }}
+S1 = {{ .Interface.AWGS1 }}
+S2 = {{ .Interface.AWGS2 }}
+H1 = {{ .Interface.AWGH1 }}
+H2 = {{ .Interface.AWGH2 }}
+H3 = {{ .Interface.AWGH3 }}
+H4 = {{ .Interface.AWGH4 }}
+{{- end}}
+
 #
 # Peers
 #

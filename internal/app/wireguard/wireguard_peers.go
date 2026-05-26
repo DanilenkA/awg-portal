@@ -199,6 +199,10 @@ func (m Manager) PreparePeer(ctx context.Context, id domain.InterfaceIdentifier)
 			PostUp:            domain.NewConfigOption(iface.PeerDefPostUp, true),
 			PreDown:           domain.NewConfigOption(iface.PeerDefPreDown, true),
 			PostDown:          domain.NewConfigOption(iface.PeerDefPostDown, true),
+			// Propagate AmneziaWG obfuscation parameters
+			AWGJc: iface.AWGJc, AWGJmin: iface.AWGJmin, AWGJmax: iface.AWGJmax,
+			AWGS1: iface.AWGS1, AWGS2: iface.AWGS2,
+			AWGH1: iface.AWGH1, AWGH2: iface.AWGH2, AWGH3: iface.AWGH3, AWGH4: iface.AWGH4,
 		},
 	}
 	freshPeer.GenerateDisplayName("")

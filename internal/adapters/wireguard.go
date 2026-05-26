@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/vishvananda/netlink"
 	"golang.zx2c4.com/wireguard/wgctrl"
@@ -248,6 +249,9 @@ func (r *WgRepo) createLowLevelInterface(id domain.InterfaceIdentifier) error {
 	}
 	err := r.nl.LinkAdd(link)
 	if err != nil {
+		if os.IsExist(err) || strings.Contains(err.Error(), "file exists") {
+			return nil // amneziawg-go already created the interface
+		}
 		return fmt.Errorf("link add failed: %w", err)
 	}
 
@@ -330,6 +334,15 @@ func (r *WgRepo) updateWireGuardInterface(pi *domain.PhysicalInterface) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	// Apply AmneziaWG obfuscation params via direct UAPI write
+	if awgParams, ok := pi.GetAWGParams(); ok {
+		if err := lowlevel.ApplyAWGParams(string(pi.Identifier), awgParams); err != nil {
+			r.log.Warn("failed to apply AWG params, obfuscation may be inactive",
+				"iface", pi.Identifier, "error", err)
+			// не возвращаем ошибку — интерфейс всё равно функционирует как обычный WireGuard
+		}
 	}
 
 	return nil

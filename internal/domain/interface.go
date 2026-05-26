@@ -14,6 +14,7 @@ import (
 
 	"github.com/h44z/wg-portal/internal"
 	"github.com/h44z/wg-portal/internal/config"
+	"github.com/h44z/wg-portal/internal/lowlevel"
 )
 
 const (
@@ -81,6 +82,32 @@ type Interface struct {
 
 	// Self-provisioning access control
 	LdapAllowedUsers map[string][]UserIdentifier `gorm:"serializer:json"` // Materialised during LDAP sync, keyed by ProviderName
+
+	// AmneziaWG obfuscation parameters — generated once, stored, not exposed in UI
+	AWGJc  int    `gorm:"column:awg_jc"`
+	AWGJmin int   `gorm:"column:awg_jmin"`
+	AWGJmax int   `gorm:"column:awg_jmax"`
+	AWGS1 int     `gorm:"column:awg_s1"`
+	AWGS2 int     `gorm:"column:awg_s2"`
+	AWGH1 uint32  `gorm:"column:awg_h1"`
+	AWGH2 uint32  `gorm:"column:awg_h2"`
+	AWGH3 uint32  `gorm:"column:awg_h3"`
+	AWGH4 uint32  `gorm:"column:awg_h4"`
+}
+
+// GetAWGParams returns the AmneziaWG obfuscation parameters stored in the interface.
+func (i *Interface) GetAWGParams() lowlevel.AWGParams {
+	return lowlevel.AWGParams{
+		Jc:   i.AWGJc,
+		Jmin: i.AWGJmin,
+		Jmax: i.AWGJmax,
+		S1:   i.AWGS1,
+		S2:   i.AWGS2,
+		H1:   i.AWGH1,
+		H2:   i.AWGH2,
+		H3:   i.AWGH3,
+		H4:   i.AWGH4,
+	}
 }
 
 // IsUserAllowed returns true if the interface has no filter, or if the user is in the allowed list.
@@ -271,6 +298,14 @@ type PhysicalInterface struct {
 	BytesDownload uint64
 
 	backendExtras any // additional backend-specific extras, e.g., domain.MikrotikInterfaceExtras
+
+	awgParams lowlevel.AWGParams // AmneziaWG obfuscation parameters
+}
+
+func (p *PhysicalInterface) SetAWGParams(params lowlevel.AWGParams) { p.awgParams = params }
+
+func (p *PhysicalInterface) GetAWGParams() (lowlevel.AWGParams, bool) {
+	return p.awgParams, !p.awgParams.IsZero()
 }
 
 func (p *PhysicalInterface) GetExtras() any {
@@ -366,6 +401,7 @@ func MergeToPhysicalInterface(pi *PhysicalInterface, i *Interface) {
 	pi.FirewallMark = i.FirewallMark
 	pi.DeviceUp = !i.IsDisabled()
 	pi.Addresses = i.Addresses
+	pi.SetAWGParams(i.GetAWGParams())
 
 	switch pi.ImportSource {
 	case ControllerTypeMikrotik:

@@ -71,3 +71,16 @@ PresharedKey = {{ .Peer.PresharedKey }}
 {{- if and (ne .Peer.PersistentKeepalive.GetValue 0) (eq .Peer.Interface.Type "client")}}
 PersistentKeepalive = {{ .Peer.PersistentKeepalive.GetValue }}
 {{- end}}
+
+{{- if ne .Peer.Interface.AWGJc 0}}
+# AmneziaWG obfuscation parameters
+Jc = {{ .Peer.Interface.AWGJc }}
+Jmin = {{ .Peer.Interface.AWGJmin }}
+Jmax = {{ .Peer.Interface.AWGJmax }}
+S1 = {{ .Peer.Interface.AWGS1 }}
+S2 = {{ .Peer.Interface.AWGS2 }}
+H1 = {{ .Peer.Interface.AWGH1 }}
+H2 = {{ .Peer.Interface.AWGH2 }}
+H3 = {{ .Peer.Interface.AWGH3 }}
+H4 = {{ .Peer.Interface.AWGH4 }}
+{{- end}}
