@@ -1,6 +1,6 @@
 # awg-portal build system
 GOCMD      := go
-MODULE     := github.com/h44z/wg-portal
+MODULE     := github.com/DanilenkA/awg-portal
 NPMCMD     := npm
 BUILDDIR   := dist
 VERSION    := $(shell git describe --tags --always --dirty 2>/dev/null || cat VERSION 2>/dev/null || echo "0.0.0-dev")
@@ -52,6 +52,7 @@ binary: frontend
 dist: awg binary
 	@echo "[+] Assembling release bundle..."
 	@cp deploy/install.sh $(BUILDDIR)/
+	@cp wg-portal/config.yml.sample $(BUILDDIR)/
 	@cp README.md $(BUILDDIR)/ 2>/dev/null || true
 	@echo "$(VERSION)" > $(BUILDDIR)/VERSION
 	@echo "[+] Release bundle in $(BUILDDIR)/:"
