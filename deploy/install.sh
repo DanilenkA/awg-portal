@@ -1,78 +1,79 @@
 #!/bin/bash
-# awg-portal installation script
+# awg-portal installation script — v1.0.0
 # Run as root: sudo bash install.sh
-
 set -euo pipefail
 
-BINARY="${1:-./wg-portal-amd64}"
-SYSTEMD_DIR="/etc/systemd/system"
 BIN_DIR="/usr/local/bin"
-
-echo "==> awg-portal installer"
-echo ""
-
-if [ "$EUID" -ne 0 ]; then
-  echo "ERROR: Please run as root (sudo)."
-  exit 1
-fi
-
-# --- Binary ---
-if [ ! -f "$BINARY" ]; then
-  echo "ERROR: Binary not found: $BINARY"
-  exit 1
-fi
-
-echo "[1/5] Installing binary to ${BIN_DIR}/wg-portal..."
-install -m 0755 "$BINARY" "${BIN_DIR}/wg-portal"
-
-# --- Build amneziawg-go ---
-echo "[2/5] Building amneziawg-go..."
-if command -v go &>/dev/null; then
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  cd "$SCRIPT_DIR"
-  if [ -d ../amneziawg-go ]; then
-    cd ../amneziawg-go
-    CGO_ENABLED=0 go build -o /usr/local/bin/amneziawg-go -tags netgo .
-    install -m 0755 /usr/local/bin/amneziawg-go "${BIN_DIR}/amneziawg-go"
-  else
-    echo "  WARNING: amneziawg-go source not found. Build manually."
-  fi
-else
-  echo "  WARNING: Go not found, skipping amneziawg-go build."
-fi
-
-# --- Systemd units ---
-echo "[3/5] Installing systemd units..."
+SYSTEMD_DIR="/etc/systemd/system"
+PORTAL_DIR="/opt/wg-portal"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-if [ -f "${SCRIPT_DIR}/amneziawg@.service" ]; then
-  install -m 0644 "${SCRIPT_DIR}/amneziawg@.service" "${SYSTEMD_DIR}/amneziawg@.service"
-fi
-if [ -f "${SCRIPT_DIR}/wg-portal.service" ]; then
-  install -m 0644 "${SCRIPT_DIR}/wg-portal.service" "${SYSTEMD_DIR}/wg-portal.service"
+echo "==> awg-portal installer v1.0.0"
+
+if [ "$EUID" -ne 0 ]; then
+  echo "ERROR: Run as root (sudo)."
+  exit 1
 fi
 
-# Override for wg-portal -> amneziawg dependency
-OVERRIDE_DIR="${SYSTEMD_DIR}/wg-portal.service.d"
-mkdir -p "$OVERRIDE_DIR"
-if [ -f "${SCRIPT_DIR}/override-wg-portal.conf" ]; then
-  install -m 0644 "${SCRIPT_DIR}/override-wg-portal.conf" "${OVERRIDE_DIR}/override.conf"
+# 1. Binary
+echo "[1/4] Installing wg-portal binary..."
+if [ -f "${SCRIPT_DIR}/wg-portal-amd64" ]; then
+  install -m 0755 "${SCRIPT_DIR}/wg-portal-amd64" "${BIN_DIR}/wg-portal"
+elif [ -f "${SCRIPT_DIR}/../dist/wg-portal-amd64" ]; then
+  install -m 0755 "${SCRIPT_DIR}/../dist/wg-portal-amd64" "${BIN_DIR}/wg-portal"
+else
+  echo "  WARNING: wg-portal-amd64 not found, skip."
 fi
 
-# --- Reload and enable ---
-echo "[4/5] Reloading systemd..."
+# 2. amneziawg-go
+echo "[2/4] Checking amneziawg-go..."
+if command -v amneziawg-go &>/dev/null; then
+  echo "  amneziawg-go found at $(which amneziawg-go)"
+else
+  echo "  WARNING: amneziawg-go not found in PATH."
+  echo "  Build manually:"
+  echo "    git clone https://github.com/amnezia-vpn/amneziawg-go"
+  echo "    cd amneziawg-go && CGO_ENABLED=0 go build -o /usr/local/bin/amneziawg-go -tags netgo ."
+fi
+
+# 3. Portal directory and config
+echo "[3/4] Setting up ${PORTAL_DIR}..."
+mkdir -p "${PORTAL_DIR}"
+if [ ! -f "${PORTAL_DIR}/config.yml" ]; then
+  if [ -f "${SCRIPT_DIR}/../config.yml.sample" ]; then
+    cp "${SCRIPT_DIR}/../config.yml.sample" "${PORTAL_DIR}/config.yml"
+  elif [ -f "${SCRIPT_DIR}/../wg-portal/config.yml.sample" ]; then
+    cp "${SCRIPT_DIR}/../wg-portal/config.yml.sample" "${PORTAL_DIR}/config.yml"
+  fi
+  echo "  Sample config copied. EDIT ${PORTAL_DIR}/config.yml before starting!"
+fi
+
+# 4. Systemd
+echo "[4/4] Installing systemd unit..."
+cat > "${SYSTEMD_DIR}/wg-portal.service" << 'UNIT'
+[Unit]
+Description=WireGuard Portal with AmneziaWG
+After=network.target
+
+[Service]
+Type=simple
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+Restart=on-failure
+RestartSec=10
+WorkingDirectory=/opt/wg-portal
+Environment=WG_PORTAL_CONFIG=/opt/wg-portal/config.yml
+ExecStart=/usr/local/bin/wg-portal
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
 systemctl daemon-reload
-
-echo "[5/5] Enabling amneziawg@wg0..."
-systemctl enable amneziawg@wg0 || echo "  WARNING: enable failed (interface wg0 may not exist yet)"
-
 echo ""
-echo "==> Installation complete!"
+echo "==> Installation complete."
 echo ""
 echo "Next steps:"
-echo "  1. Create interface: systemctl start amneziawg@wg0"
-echo "  2. Start portal:     systemctl start wg-portal"
-echo "  3. Check:            systemctl status amneziawg@wg0 wg-portal"
-echo ""
-echo "Config: /etc/wg-portal/config.yml"
-echo "Docs:   https://github.com/h44z/wg-portal"
+echo "  1. Edit /opt/wg-portal/config.yml"
+echo "  2. Ensure amneziawg-go is in PATH"
+echo "  3. systemctl enable --now wg-portal"
+echo "  4. journalctl -u wg-portal -f"
