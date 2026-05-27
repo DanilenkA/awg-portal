@@ -10,9 +10,9 @@ import (
 
 	mail "github.com/xhit/go-simple-mail/v2"
 
-	"github.com/h44z/wg-portal/internal"
-	"github.com/h44z/wg-portal/internal/config"
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal"
+	"github.com/DanilenkA/awg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 type MailRepo struct {

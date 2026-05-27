@@ -1,4 +1,4 @@
-module github.com/h44z/wg-portal
+module github.com/DanilenkA/awg-portal
 
 go 1.25.7
 

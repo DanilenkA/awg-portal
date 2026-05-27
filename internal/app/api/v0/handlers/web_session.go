@@ -9,7 +9,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 
-	"github.com/h44z/wg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/config"
 )
 
 func init() {

@@ -3,8 +3,8 @@ package model
 import (
 	"time"
 
-	"github.com/h44z/wg-portal/internal"
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 type User struct {

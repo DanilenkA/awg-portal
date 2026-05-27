@@ -3,7 +3,7 @@ package domain
 import (
 	"testing"
 
-	"github.com/h44z/wg-portal/internal/lowlevel"
+	"github.com/DanilenkA/awg-portal/internal/lowlevel"
 )
 
 func TestInterface_GetAWGParams_RoundTrip(t *testing.T) {

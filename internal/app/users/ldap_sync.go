@@ -9,10 +9,10 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 
-	"github.com/h44z/wg-portal/internal"
-	"github.com/h44z/wg-portal/internal/app"
-	"github.com/h44z/wg-portal/internal/config"
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal"
+	"github.com/DanilenkA/awg-portal/internal/app"
+	"github.com/DanilenkA/awg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 func (m Manager) runLdapSynchronizationService(ctx context.Context) {

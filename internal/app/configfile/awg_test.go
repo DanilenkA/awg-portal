@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 func mustReadAll(t *testing.T, r io.Reader) string {

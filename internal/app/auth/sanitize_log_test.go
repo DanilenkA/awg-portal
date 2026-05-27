@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"pgregory.net/rapid"
 
-	"github.com/h44z/wg-portal/internal/config"
-	"github.com/h44z/wg-portal/internal/domain"
-	"github.com/h44z/wg-portal/internal/testutil"
+	"github.com/DanilenkA/awg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/testutil"
 )
 
 // captureWarnLogsInline redirects the default slog logger to a buffer, calls fn,

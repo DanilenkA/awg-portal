@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 //go:embed tpl_files/*

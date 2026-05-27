@@ -19,8 +19,8 @@ import (
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"
 
-	"github.com/h44z/wg-portal/internal/config"
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 // SysStat stores the current database schema version and the timestamp when it was applied.

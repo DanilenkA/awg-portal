@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/h44z/wg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/config"
 )
 
 func Test_parseOauthUserInfo_no_admin(t *testing.T) {

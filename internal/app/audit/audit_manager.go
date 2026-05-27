@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 type ManagerDatabaseRepo interface {

@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/h44z/wg-portal/internal/app/api/core/respond"
-	"github.com/h44z/wg-portal/internal/app/api/v0/model"
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/respond"
+	"github.com/DanilenkA/awg-portal/internal/app/api/v0/model"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 type Scope string

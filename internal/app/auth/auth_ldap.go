@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 
-	"github.com/h44z/wg-portal/internal"
-	"github.com/h44z/wg-portal/internal/config"
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal"
+	"github.com/DanilenkA/awg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 // LdapAuthenticator is an authenticator that uses LDAP for authentication.

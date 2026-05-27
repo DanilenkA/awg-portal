@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/h44z/wg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/config"
 )
 
 type testSession struct {

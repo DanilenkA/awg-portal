@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/h44z/wg-portal/internal/config"
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 func TestStatisticsCollector_getSessionStartTime(t *testing.T) {

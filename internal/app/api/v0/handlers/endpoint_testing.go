@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-pkgz/routegroup"
 
-	"github.com/h44z/wg-portal/internal/app/api/core/respond"
-	"github.com/h44z/wg-portal/internal/app/api/v0/model"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/respond"
+	"github.com/DanilenkA/awg-portal/internal/app/api/v0/model"
 )
 
 type TestEndpoint struct {

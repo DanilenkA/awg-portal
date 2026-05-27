@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/h44z/wg-portal/internal/testutil"
+	"github.com/DanilenkA/awg-portal/internal/testutil"
 )
 
 func TestAuthenticatorUserInfo_Sanitize_NullByteInFirstname(t *testing.T) {

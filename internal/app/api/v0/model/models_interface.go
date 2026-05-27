@@ -3,9 +3,9 @@ package model
 import (
 	"time"
 
-	"github.com/h44z/wg-portal/internal"
-	"github.com/h44z/wg-portal/internal/config"
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal"
+	"github.com/DanilenkA/awg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 type Interface struct {
@@ -47,6 +47,20 @@ type Interface struct {
 	PeerDefPostUp   string `json:"PeerDefPostUp"`   // default action that is executed after the device is up
 	PeerDefPreDown  string `json:"PeerDefPreDown"`  // default action that is executed before the device is down
 	PeerDefPostDown string `json:"PeerDefPostDown"` // default action that is executed after the device is down
+
+	// AmneziaWG obfuscation
+	AWGEnabled bool   `json:"AWGEnabled"`
+	AWGJc      int    `json:"AWGJc"`
+	AWGJmin    int    `json:"AWGJmin"`
+	AWGJmax    int    `json:"AWGJmax"`
+	AWGS1      int    `json:"AWGS1"`
+	AWGS2      int    `json:"AWGS2"`
+	AWGS3      int    `json:"AWGS3"`
+	AWGS4      int    `json:"AWGS4"`
+	AWGH1      uint32 `json:"AWGH1"`
+	AWGH2      uint32 `json:"AWGH2"`
+	AWGH3      uint32 `json:"AWGH3"`
+	AWGH4      uint32 `json:"AWGH4"`
 
 	// Calculated values
 
@@ -173,6 +187,19 @@ func NewDomainInterface(src *Interface) *domain.Interface {
 		PeerDefPostUp:              src.PeerDefPostUp,
 		PeerDefPreDown:             src.PeerDefPreDown,
 		PeerDefPostDown:            src.PeerDefPostDown,
+		// AmneziaWG obfuscation
+		AWGEnabled: src.AWGEnabled,
+		AWGJc:      src.AWGJc,
+		AWGJmin:    src.AWGJmin,
+		AWGJmax:    src.AWGJmax,
+		AWGS1:      src.AWGS1,
+		AWGS2:      src.AWGS2,
+		AWGS3:      src.AWGS3,
+		AWGS4:      src.AWGS4,
+		AWGH1:      src.AWGH1,
+		AWGH2:      src.AWGH2,
+		AWGH3:      src.AWGH3,
+		AWGH4:      src.AWGH4,
 	}
 
 	if src.Disabled {

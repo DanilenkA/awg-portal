@@ -16,13 +16,13 @@ import (
 
 	"github.com/go-pkgz/routegroup"
 
-	"github.com/h44z/wg-portal/internal"
-	"github.com/h44z/wg-portal/internal/app/api/core/middleware/cors"
-	"github.com/h44z/wg-portal/internal/app/api/core/middleware/logging"
-	"github.com/h44z/wg-portal/internal/app/api/core/middleware/recovery"
-	"github.com/h44z/wg-portal/internal/app/api/core/middleware/tracing"
-	"github.com/h44z/wg-portal/internal/app/api/core/respond"
-	"github.com/h44z/wg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/middleware/cors"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/middleware/logging"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/middleware/recovery"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/middleware/tracing"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/respond"
+	"github.com/DanilenkA/awg-portal/internal/config"
 )
 
 const (

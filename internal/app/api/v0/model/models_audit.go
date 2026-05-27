@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 type AuditEntry struct {

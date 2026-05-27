@@ -1,6 +1,6 @@
 package models
 
-import "github.com/h44z/wg-portal/internal/domain"
+import "github.com/DanilenkA/awg-portal/internal/domain"
 
 // UserInformation represents the information about a user and its linked peers.
 type UserInformation struct {

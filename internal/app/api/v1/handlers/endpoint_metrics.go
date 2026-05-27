@@ -6,10 +6,10 @@ import (
 
 	"github.com/go-pkgz/routegroup"
 
-	"github.com/h44z/wg-portal/internal/app/api/core/request"
-	"github.com/h44z/wg-portal/internal/app/api/core/respond"
-	"github.com/h44z/wg-portal/internal/app/api/v1/models"
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/request"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/respond"
+	"github.com/DanilenkA/awg-portal/internal/app/api/v1/models"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 type MetricsEndpointStatisticsService interface {

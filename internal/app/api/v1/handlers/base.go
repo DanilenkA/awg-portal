@@ -6,10 +6,10 @@ import (
 
 	"github.com/go-pkgz/routegroup"
 
-	"github.com/h44z/wg-portal/internal/app/api/core"
-	"github.com/h44z/wg-portal/internal/app/api/core/middleware/cors"
-	"github.com/h44z/wg-portal/internal/app/api/v1/models"
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core"
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/middleware/cors"
+	"github.com/DanilenkA/awg-portal/internal/app/api/v1/models"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 type Handler interface {
@@ -30,10 +30,10 @@ type Handler interface {
 // @description This API allows seamless integration with external tools or scripts for automated network configuration and administration.
 
 // @license.name MIT
-// @license.url https://github.com/h44z/wg-portal/blob/master/LICENSE.txt
+// @license.url https://github.com/DanilenkA/awg-portal/blob/master/LICENSE.txt
 
 // @contact.name WireGuard Portal Project
-// @contact.url https://github.com/h44z/wg-portal
+// @contact.url https://github.com/DanilenkA/awg-portal
 
 // @securityDefinitions.basic BasicAuth
 

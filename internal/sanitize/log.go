@@ -3,7 +3,7 @@ package sanitize
 import (
 	"log/slog"
 
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 // LogChange applies sanitizeFn to raw, logs when the value changes, and writes

@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/h44z/wg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/domain"
 )
 
 type LoginProviderInfo struct {

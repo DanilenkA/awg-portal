@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/h44z/wg-portal/internal/config"
-	"github.com/h44z/wg-portal/internal/domain"
-	"github.com/h44z/wg-portal/internal/testutil"
+	"github.com/DanilenkA/awg-portal/internal/config"
+	"github.com/DanilenkA/awg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/testutil"
 )
 
 // makeTestLdapFields returns a minimal LdapFields config for testing.
