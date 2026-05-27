@@ -28,6 +28,7 @@ import (
 	"github.com/h44z/wg-portal/internal/app/webhooks"
 	"github.com/h44z/wg-portal/internal/app/wireguard"
 	"github.com/h44z/wg-portal/internal/config"
+	"github.com/h44z/wg-portal/internal/lowlevel"
 )
 
 // main entry point for WireGuard Portal
@@ -52,6 +53,7 @@ func main() {
 
 	wireGuard, err := wireguard.NewControllerManager(cfg)
 	internal.AssertNoError(err)
+	defer lowlevel.StopAllAWGProcesses() // ensure clean shutdown of amneziawg-go processes
 
 	mailer := adapters.NewSmtpMailRepo(cfg.Mail)
 

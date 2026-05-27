@@ -105,6 +105,11 @@ auth:
 
 backend:
   default: local
+  # AmneziaWG integration mode (local backend only):
+  #   auto   - try amneziawg-go, fallback to kernel WG (default)
+  #   always - require amneziawg-go, error if not available
+  #   never  - kernel WG only, ignore AWG parameters
+  awg_mode: auto
   pfsense:
     - id: pfsense1
       display_name: "Main pfSense Firewall"

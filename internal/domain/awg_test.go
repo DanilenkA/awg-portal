@@ -23,6 +23,8 @@ func TestInterface_GetAWGParams_RoundTrip(t *testing.T) {
 		AWGJmax:     params.Jmax,
 		AWGS1:       params.S1,
 		AWGS2:       params.S2,
+		AWGS3:       params.S3,
+		AWGS4:       params.S4,
 		AWGH1:       params.H1,
 		AWGH2:       params.H2,
 		AWGH3:       params.H3,
@@ -41,7 +43,7 @@ func TestInterface_GetAWGParams_RoundTrip(t *testing.T) {
 func TestPhysicalInterface_AWGParams(t *testing.T) {
 	params := lowlevel.AWGParams{
 		Jc: 4, Jmin: 60, Jmax: 500,
-		S1: 30, S2: 40,
+		S1: 30, S2: 40, S3: 15, S4: 5,
 		H1: 100, H2: 200, H3: 300, H4: 400,
 	}
 
@@ -69,7 +71,7 @@ func TestMergeToPhysicalInterface_AWGParamsCarried(t *testing.T) {
 		Identifier: "wg1",
 		AWGEnabled: true,
 		AWGJc:      5, AWGJmin: 70, AWGJmax: 600,
-		AWGS1: 25, AWGS2: 35,
+		AWGS1: 25, AWGS2: 35, AWGS3: 10, AWGS4: 5,
 		AWGH1: 111, AWGH2: 222, AWGH3: 333, AWGH4: 444,
 	}
 

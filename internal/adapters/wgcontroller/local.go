@@ -16,8 +16,8 @@ import (
 	probing "github.com/prometheus-community/pro-bing"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
-	"golang.zx2c4.com/wireguard/wgctrl"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/Jipok/wgctrl-go"
+	"github.com/Jipok/wgctrl-go/wgtypes"
 
 	"github.com/h44z/wg-portal/internal"
 	"github.com/h44z/wg-portal/internal/config"
@@ -279,6 +279,22 @@ func (c LocalController) getInterface(id domain.InterfaceIdentifier) (*domain.Ph
 }
 
 func (c LocalController) createLowLevelInterface(id domain.InterfaceIdentifier) error {
+	awgMode := c.cfg.Backend.GetAWGMode()
+
+	// Try amneziawg-go for "auto" and "always" modes.
+	// amneziawg-go without obfuscation parameters behaves as vanilla WireGuard.
+	if awgMode != config.AWGModeNever {
+		awgErr := lowlevel.StartAWGProcess(string(id))
+		if awgErr == nil {
+			return nil // amneziawg-go created the TUN device + UAPI socket
+		}
+		if awgMode == config.AWGModeAlways {
+			return fmt.Errorf("awg: amneziawg-go not available and awg_mode=always: %w", awgErr)
+		}
+		// awgMode is "auto" — fall through to kernel WG
+		slog.Debug("amneziawg-go not available, falling back to kernel WireGuard", "iface", id)
+	}
+
 	link := &netlink.GenericLink{
 		LinkAttrs: netlink.LinkAttrs{
 			Name: string(id),
@@ -361,12 +377,37 @@ func (c LocalController) updateWireGuardInterface(pi *domain.PhysicalInterface) 
 		intFwMark := int(pi.FirewallMark)
 		fwMark = &intFwMark
 	}
-	err = c.wg.ConfigureDevice(string(pi.Identifier), wgtypes.Config{
+
+	cfg := wgtypes.Config{
 		PrivateKey:   &pKey,
 		ListenPort:   &pi.ListenPort,
 		FirewallMark: fwMark,
 		ReplacePeers: false,
-	})
+	}
+
+	// Apply AmneziaWG obfuscation parameters directly via wgtypes.Config.
+	// Jipok/wgctrl-go sends them natively through the UAPI.
+	// Note: wgtypes.Config uses *string for H1-H4 (UAPI protocol is string-based),
+	// so we convert our uint32 values via fmt.Sprintf.
+	if awgParams, ok := pi.GetAWGParams(); ok {
+		cfg.Jc = &awgParams.Jc
+		cfg.Jmin = &awgParams.Jmin
+		cfg.Jmax = &awgParams.Jmax
+		cfg.S1 = &awgParams.S1
+		cfg.S2 = &awgParams.S2
+		cfg.S3 = &awgParams.S3
+		cfg.S4 = &awgParams.S4
+		h1 := fmt.Sprintf("%d", awgParams.H1)
+		h2 := fmt.Sprintf("%d", awgParams.H2)
+		h3 := fmt.Sprintf("%d", awgParams.H3)
+		h4 := fmt.Sprintf("%d", awgParams.H4)
+		cfg.H1 = &h1
+		cfg.H2 = &h2
+		cfg.H3 = &h3
+		cfg.H4 = &h4
+	}
+
+	err = c.wg.ConfigureDevice(string(pi.Identifier), cfg)
 	if err != nil {
 		return err
 	}
@@ -383,6 +424,10 @@ func (c LocalController) DeleteInterface(_ context.Context, id domain.InterfaceI
 }
 
 func (c LocalController) deleteLowLevelInterface(id domain.InterfaceIdentifier) error {
+	// Stop amneziawg-go process if running (best-effort).
+	// Runs before netlink.LinkDel to ensure clean teardown.
+	_ = lowlevel.StopAWGProcess(string(id))
+
 	link, err := c.nl.LinkByName(string(id))
 	if err != nil {
 		var linkNotFoundError netlink.LinkNotFoundError

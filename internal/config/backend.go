@@ -7,6 +7,16 @@ import (
 
 const LocalBackendName = "local"
 
+// AWGMode controls how the local backend integrates with AmneziaWG.
+// - "auto": try amneziawg-go first, fall back to kernel WireGuard (default)
+// - "always": require amneziawg-go, fail if not available
+// - "never": use kernel WireGuard only, ignore any AWG parameters
+const (
+	AWGModeAuto   = "auto"
+	AWGModeAlways = "always"
+	AWGModeNever  = "never"
+)
+
 type Backend struct {
 	Default string `yaml:"default"` // The default backend to use (defaults to the internal backend)
 
@@ -16,6 +26,7 @@ type Backend struct {
 
 	IgnoredLocalInterfaces []string `yaml:"ignored_local_interfaces"` // A list of interface names that should be ignored by this backend (e.g., "wg0")
 	LocalResolvconfPrefix  string   `yaml:"local_resolvconf_prefix"`  // The prefix to use for interface names when passing them to resolvconf.
+	AWGMode                string   `yaml:"awg_mode"`                 // AmneziaWG integration mode: auto, always, never (default: auto)
 
 	// External Backend-specific configuration
 
@@ -23,10 +34,24 @@ type Backend struct {
 	Pfsense  []BackendPfsense  `yaml:"pfsense"`
 }
 
+// GetAWGMode returns the effective AWG mode with default.
+func (b *Backend) GetAWGMode() string {
+	if b == nil || b.AWGMode == "" {
+		return AWGModeAuto
+	}
+	return b.AWGMode
+}
+
 // Validate checks the backend configuration for errors.
 func (b *Backend) Validate() error {
 	if b.Default == "" {
 		b.Default = LocalBackendName
+	}
+
+	switch b.AWGMode {
+	case "", AWGModeAuto, AWGModeAlways, AWGModeNever:
+	default:
+		return fmt.Errorf("invalid awg_mode %q: must be auto, always, or never", b.AWGMode)
 	}
 
 	uniqueMap := make(map[string]struct{})

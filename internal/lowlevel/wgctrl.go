@@ -3,7 +3,7 @@ package lowlevel
 import (
 	"io"
 
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/Jipok/wgctrl-go/wgtypes"
 )
 
 // A WireGuardClient is a type which can control a WireGuard device.

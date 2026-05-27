@@ -83,13 +83,15 @@ type Interface struct {
 	// Self-provisioning access control
 	LdapAllowedUsers map[string][]UserIdentifier `gorm:"serializer:json"` // Materialised during LDAP sync, keyed by ProviderName
 
-	// AmneziaWG obfuscation — per-interface flag and parameters
+	// AmneziaWG obfuscation — per-interface flag and parameters (amneziawg-go 2.x)
 	AWGEnabled bool   `gorm:"column:awg_enabled"`
 	AWGJc      int    `gorm:"column:awg_jc"`
 	AWGJmin    int    `gorm:"column:awg_jmin"`
 	AWGJmax    int    `gorm:"column:awg_jmax"`
 	AWGS1      int    `gorm:"column:awg_s1"`
 	AWGS2      int    `gorm:"column:awg_s2"`
+	AWGS3      int    `gorm:"column:awg_s3"`
+	AWGS4      int    `gorm:"column:awg_s4"`
 	AWGH1      uint32 `gorm:"column:awg_h1"`
 	AWGH2      uint32 `gorm:"column:awg_h2"`
 	AWGH3      uint32 `gorm:"column:awg_h3"`
@@ -104,6 +106,8 @@ func (i *Interface) GetAWGParams() lowlevel.AWGParams {
 		Jmax: i.AWGJmax,
 		S1:   i.AWGS1,
 		S2:   i.AWGS2,
+		S3:   i.AWGS3,
+		S4:   i.AWGS4,
 		H1:   i.AWGH1,
 		H2:   i.AWGH2,
 		H3:   i.AWGH3,

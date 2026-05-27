@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/Jipok/wgctrl-go/wgtypes"
 )
 
 func TestKeyPair_GetPrivateKeyBytesReturnsCorrectBytes(t *testing.T) {

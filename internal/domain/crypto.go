@@ -3,7 +3,7 @@ package domain
 import (
 	"encoding/base64"
 
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/Jipok/wgctrl-go/wgtypes"
 )
 
 type KeyPair struct {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/Jipok/wgctrl-go/wgtypes"
 	"gorm.io/gorm"
 
 	"github.com/h44z/wg-portal/internal"
@@ -173,6 +173,8 @@ type PeerInterfaceConfig struct {
 	AWGJmax    int    `gorm:"column:awg_jmax"`
 	AWGS1      int    `gorm:"column:awg_s1"`
 	AWGS2      int    `gorm:"column:awg_s2"`
+	AWGS3      int    `gorm:"column:awg_s3"`
+	AWGS4      int    `gorm:"column:awg_s4"`
 	AWGH1      uint32 `gorm:"column:awg_h1"`
 	AWGH2      uint32 `gorm:"column:awg_h2"`
 	AWGH3      uint32 `gorm:"column:awg_h3"`

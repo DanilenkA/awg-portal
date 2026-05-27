@@ -415,6 +415,8 @@ func (m Manager) PrepareInterface(ctx context.Context) (*domain.Interface, error
 			freshInterface.AWGJmax = p.Jmax
 			freshInterface.AWGS1 = p.S1
 			freshInterface.AWGS2 = p.S2
+			freshInterface.AWGS3 = p.S3
+			freshInterface.AWGS4 = p.S4
 			freshInterface.AWGH1 = p.H1
 			freshInterface.AWGH2 = p.H2
 			freshInterface.AWGH3 = p.H3
@@ -1056,6 +1058,8 @@ func (m Manager) importPeer(ctx context.Context, in *domain.Interface, p *domain
 	peer.Interface.AWGJmax = in.AWGJmax
 	peer.Interface.AWGS1 = in.AWGS1
 	peer.Interface.AWGS2 = in.AWGS2
+	peer.Interface.AWGS3 = in.AWGS3
+	peer.Interface.AWGS4 = in.AWGS4
 	peer.Interface.AWGH1 = in.AWGH1
 	peer.Interface.AWGH2 = in.AWGH2
 	peer.Interface.AWGH3 = in.AWGH3

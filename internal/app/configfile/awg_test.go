@@ -37,7 +37,7 @@ func TestGetInterfaceConfig_WithAWGEnabled(t *testing.T) {
 		DisplayName: "AWG Test",
 		AWGEnabled:  true,
 		AWGJc:       5, AWGJmin: 60, AWGJmax: 500,
-		AWGS1: 20, AWGS2: 30,
+		AWGS1: 20, AWGS2: 30, AWGS3: 15, AWGS4: 5,
 		AWGH1: 100, AWGH2: 200, AWGH3: 300, AWGH4: 400,
 		KeyPair: domain.KeyPair{
 			PrivateKey: "uEGeOEFfQOl/uZid6VFnBwQz/+p8lFYqMKM2fOTFZls=",
@@ -108,7 +108,7 @@ func TestGetPeerConfig_WithAWGEnabled(t *testing.T) {
 			},
 			AWGEnabled: true,
 			AWGJc: 7, AWGJmin: 55, AWGJmax: 700,
-			AWGS1: 25, AWGS2: 35,
+			AWGS1: 25, AWGS2: 35, AWGS3: 12, AWGS4: 3,
 			AWGH1: 101, AWGH2: 202, AWGH3: 303, AWGH4: 404,
 		},
 		EndpointPublicKey: domain.NewConfigOption("xTU4q8UYv7dWgE5kF2jL9zC1bN0mR3pS6tH8wK4yA5=", true),

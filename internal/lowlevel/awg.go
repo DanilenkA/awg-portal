@@ -4,83 +4,48 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
 
 // ─────────────────────────────────────────────────────────────
-// AWG obfuscation parameters
+// AWG obfuscation parameters (amneziawg-go 2.x)
 // ─────────────────────────────────────────────────────────────
 
-// AWGParams holds AmneziaWG DPI-obfuscation parameters (version 1.x).
+// AWGParams holds AmneziaWG DPI-obfuscation parameters.
 // All zero values = vanilla WireGuard (backward compatible).
 type AWGParams struct {
 	Jc         int    // junk packets before handshake [0–10]
 	Jmin, Jmax int    // junk size range in bytes
-	S1, S2     int    // random prefix bytes in handshake messages
-	H1, H2, H3, H4 uint32 // replaced message types, pairwise unique
+	S1, S2, S3, S4 int // random prefix bytes per packet type
+	H1, H2, H3, H4 uint32 // message type values (single value; ranges via "start-end" in UAPI)
 }
 
-// IsZero returns true when all fields are at their zero value —
-// amneziawg-go then behaves as vanilla WireGuard.
+// IsZero returns true when all fields are at their zero value.
 func (p AWGParams) IsZero() bool {
 	return p.Jc == 0 && p.H1 == 0 && p.H2 == 0 && p.H3 == 0 && p.H4 == 0
 }
 
-// TODO(v2): extend with S3, S4, I1–I5 for CPS (QUIC/DNS mimic) when
-// upgrading to amneziawg-go 2.0 protocol.
-
 // ─────────────────────────────────────────────────────────────
-// Process management — wg-portal manages amneziawg-go itself
+// Process management
 // ─────────────────────────────────────────────────────────────
 
 var (
-	mu       sync.Mutex
-	procs    = make(map[string]*exec.Cmd) // ifaceName → Cmd
-	sockDir  = "/var/run/amneziawg"       // amneziawg-go hardcodes this
+	mu      sync.Mutex
+	procs   = make(map[string]*exec.Cmd) // ifaceName → Cmd
+	sockDir = "/var/run/amneziawg"        // amneziawg-go hardcodes this
 )
 
 func socketPath(ifaceName string) string {
 	return filepath.Join(sockDir, ifaceName+".sock")
 }
 
-// wgctrlSocketPath returns the path where wgctrl expects the socket.
-func wgctrlSocketPath(ifaceName string) string {
-	return filepath.Join("/var/run/wireguard", ifaceName+".sock")
-}
-
-// ensureSymlink creates /var/run/wireguard/<iface>.sock → /var/run/amneziawg/<iface>.sock
-// so that wgctrl (which scans /var/run/wireguard/) can find the amneziawg socket.
-func ensureSymlink(ifaceName string) error {
-	target := socketPath(ifaceName)
-	link := wgctrlSocketPath(ifaceName)
-
-	// Remove stale symlink if any
-	if _, err := os.Lstat(link); err == nil {
-		os.Remove(link)
-	}
-
-	// Ensure /var/run/wireguard dir exists
-	os.MkdirAll(filepath.Dir(link), 0755)
-
-	return os.Symlink(target, link)
-}
-
-// removeSymlink removes the wgctrl-compat symlink.
-func removeSymlink(ifaceName string) {
-	link := wgctrlSocketPath(ifaceName)
-	os.Remove(link)
-}
-
-// StartAWGProcess starts amneziawg-go <ifaceName> and waits for the
-// UAPI socket to become available (timeout 10s).
-// If the socket already exists the process is considered already running
-// and nil is returned (idempotent).
+// StartAWGProcess starts "amneziawg-go --foreground <ifaceName>" and
+// waits for the UAPI socket (timeout 10s). Idempotent: returns nil if
+// the socket already exists.
 func StartAWGProcess(ifaceName string) error {
 	mu.Lock()
 	if _, running := procs[ifaceName]; running {
@@ -94,7 +59,10 @@ func StartAWGProcess(ifaceName string) error {
 		return nil // already running (managed externally)
 	}
 
-	cmd := exec.Command("amneziawg-go", ifaceName)
+	// --foreground is REQUIRED: without it amneziawg-go forks to
+	// background and the parent PID dies, making StopAWGProcess
+	// (SIGTERM) non-functional.
+	cmd := exec.Command("amneziawg-go", "--foreground", ifaceName)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	if err := cmd.Start(); err != nil {
@@ -105,11 +73,6 @@ func StartAWGProcess(ifaceName string) error {
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		if _, err := os.Stat(sock); err == nil {
-			// Create wgctrl-compat symlink
-			if slErr := ensureSymlink(ifaceName); slErr != nil {
-				// non-fatal: log context preserved in caller
-				_ = slErr
-			}
 			mu.Lock()
 			procs[ifaceName] = cmd
 			mu.Unlock()
@@ -123,8 +86,7 @@ func StartAWGProcess(ifaceName string) error {
 	return fmt.Errorf("awg: %s socket did not appear within 10s", ifaceName)
 }
 
-// StopAWGProcess sends SIGTERM to the amneziawg-go process for the given
-// interface and cleans up the symlink.
+// StopAWGProcess sends SIGTERM to the amneziawg-go process.
 func StopAWGProcess(ifaceName string) error {
 	mu.Lock()
 	cmd, ok := procs[ifaceName]
@@ -132,8 +94,6 @@ func StopAWGProcess(ifaceName string) error {
 		delete(procs, ifaceName)
 	}
 	mu.Unlock()
-
-	removeSymlink(ifaceName)
 
 	if !ok {
 		// Not managed by us; try pkill as fallback
@@ -143,7 +103,6 @@ func StopAWGProcess(ifaceName string) error {
 	}
 
 	if err := cmd.Process.Signal(os.Interrupt); err != nil {
-		// SIGTERM may not work everywhere; fall back to Kill
 		cmd.Process.Kill()
 	}
 
@@ -186,61 +145,22 @@ func IsAWGProcessRunning(ifaceName string) bool {
 }
 
 // ─────────────────────────────────────────────────────────────
-// UAPI communication with amneziawg-go
+// Parameter generation (amneziawg-go 2.x)
 // ─────────────────────────────────────────────────────────────
 
-// ApplyAWGParams writes AWG obfuscation parameters into the UAPI socket.
-// Must be called AFTER the standard wgctrl.ConfigureDevice().
-// Returns nil if params are zero (no-op).
-func ApplyAWGParams(ifaceName string, params AWGParams) error {
-	if params.IsZero() {
-		return nil
-	}
-
-	sock := socketPath(ifaceName)
-	conn, err := net.Dial("unix", sock)
-	if err != nil {
-		return fmt.Errorf("awg: dial %s: %w", sock, err)
-	}
-	defer conn.Close()
-
-	cmd := fmt.Sprintf(
-		"set=1\njc=%d\njmin=%d\njmax=%d\ns1=%d\ns2=%d\nh1=%d\nh2=%d\nh3=%d\nh4=%d\n\n",
-		params.Jc, params.Jmin, params.Jmax,
-		params.S1, params.S2,
-		params.H1, params.H2, params.H3, params.H4,
-	)
-	if _, err := fmt.Fprint(conn, cmd); err != nil {
-		return fmt.Errorf("awg: write %s: %w", ifaceName, err)
-	}
-
-	buf := make([]byte, 256)
-	n, _ := conn.Read(buf)
-	resp := string(buf[:n])
-	if !strings.Contains(resp, "errno=0") {
-		return fmt.Errorf("awg: %s rejected: %q", ifaceName, resp)
-	}
-
-	return nil
-}
-
-// ─────────────────────────────────────────────────────────────
-// Parameter generation
-// ─────────────────────────────────────────────────────────────
-
-// GenerateAWGParams creates random AWG obfuscation parameters.
+// GenerateAWGParams creates AWG 2.0 obfuscation parameters with proper
+// constraints (same as Jipok/wgctrl-go GenerateAmneziaParams):
+//   S1-S3: 0-63, S4: 0-15; all padding values unique; total packet sizes unique
+//   H1-H4: pairwise unique uint32 values (≥ 5)
+//   Jc: 3-6, Jmin: 64-113, Jmax: Jmin+50..Jmin+149
 func GenerateAWGParams() (AWGParams, error) {
 	rng := func(lo, hi int) int {
 		if hi <= lo {
 			return lo
 		}
-		var b [4]byte
+		var b [8]byte
 		_, _ = rand.Read(b[:])
-		n := int(binary.LittleEndian.Uint32(b[:]))
-		if n < 0 {
-			n = -n
-		}
-		return lo + n%(hi-lo+1)
+		return lo + int(binary.LittleEndian.Uint64(b[:])%uint64(hi-lo+1))
 	}
 
 	randU32 := func() uint32 {
@@ -248,20 +168,31 @@ func GenerateAWGParams() (AWGParams, error) {
 			var b [4]byte
 			_, _ = rand.Read(b[:])
 			v := binary.LittleEndian.Uint32(b[:])
-			if v >= 5 { // H values must be ≥ 5
+			if v >= 5 {
 				return v
 			}
 		}
 	}
 
-	// S1 and S2 with S1+56 ≠ S2 constraint
-	s1 := rng(15, 150)
-	s2 := rng(15, 150)
-	for s1+56 == s2 {
-		s2 = rng(15, 150)
+	// S1-S4: unique values + unique total packet sizes
+	// WG control packet sizes: init=148, resp=92, cookie=64
+	var s1, s2, s3, s4 int
+	for {
+		s1 = rng(15, 63)
+		s2 = rng(15, 63)
+		s3 = rng(10, 63)
+		s4 = rng(1, 15)
+
+		if s1 == s2 || s1 == s3 || s1 == s4 || s2 == s3 || s2 == s4 || s3 == s4 {
+			continue // all padding values must be unique
+		}
+		if s1+148 == s2+92 || s3+64 == s1+148 || s3+64 == s2+92 {
+			continue // total packet sizes must be unique
+		}
+		break
 	}
 
-	// H1–H4 pairwise unique
+	// H1-H4 pairwise unique, ≥ 5
 	hs := make(map[uint32]bool, 4)
 	h := func() uint32 {
 		for {
@@ -273,13 +204,12 @@ func GenerateAWGParams() (AWGParams, error) {
 		}
 	}
 
-	jmin := rng(50, 100)
+	jmin := rng(64, 113)
 	return AWGParams{
-		Jc:   rng(3, 10),
+		Jc:   rng(3, 6),
 		Jmin: jmin,
-		Jmax: rng(jmin, 1000),
-		S1:   s1,
-		S2:   s2,
-		H1:   h(), H2: h(), H3: h(), H4: h(),
+		Jmax: rng(jmin+50, jmin+149),
+		S1:   s1, S2: s2, S3: s3, S4: s4,
+		H1: h(), H2: h(), H3: h(), H4: h(),
 	}, nil
 }
