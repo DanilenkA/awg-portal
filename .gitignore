@@ -2,11 +2,26 @@
 .DS_Store
 Thumbs.db
 
-# Build
+# Build artifacts
+dist/
 *.exe
 *.test
 *.out
 /tmp/
+
+# Binaries
+wg-portal
+amneziawg-go
+
+# Runtime data
+data/
+*.db
+*.db-journal
+*.db-wal
+
+# Frontend (built during make)
+frontend/dist/
+frontend/node_modules/
 
 # IDE
 .vscode/
@@ -16,3 +31,6 @@ Thumbs.db
 
 # Go
 vendor/
+
+# Logs
+*.log
