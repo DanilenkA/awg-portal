@@ -34,3 +34,5 @@ vendor/
 
 # Logs
 *.log
+#SSH_key
+
