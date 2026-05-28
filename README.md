@@ -100,6 +100,18 @@ sudo systemctl enable --now awg-portal
 sudo journalctl -u awg-portal -f
 ```
 
+# 2. Установить (от root)
+sudo bash install.sh
+
+# 3. Отредактировать конфиг
+sudo nano /opt/awg-portal/config.yml
+# Обязательно: admin_user, admin_password
+
+# 4. Запустить
+sudo systemctl enable --now awg-portal
+sudo journalctl -u awg-portal -f
+```
+
 ## Конфигурация
 
 ```yaml
