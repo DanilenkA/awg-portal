@@ -36,7 +36,7 @@ frontend:
 	@cd wg-portal/frontend && $(NPMCMD) ci --include=dev 2>&1 | tail -3
 	@cd wg-portal/frontend && npx vite build --base=/app/ 2>&1 | tail -3
 
-# ---- wg-portal Binary ----
+# ---- awg-portal Binary ----
 binary: frontend
 	@echo "[+] Building awg-portal $(VERSION) ($(COMMIT)) for $(GOOS)/$(GOARCH)..."
 	@mkdir -p $(BUILDDIR)
@@ -73,10 +73,10 @@ test:
 help:
 	@echo "Usage: make <target>"
 	@echo ""
-	@echo "  all         Clean build → dist bundle (wg-portal + amneziawg-go)"
+	@echo "  all         Clean build → dist bundle (awg-portal + amneziawg-go)"
 	@echo "  awg         Build amneziawg-go static binary"
 	@echo "  frontend    Build Vue.js frontend"
-	@echo "  binary      Build wg-portal amd64 static binary"
+	@echo "  binary      Build awg-portal_x86-64 static binary"
 	@echo "  dist        Assemble release bundle"
 	@echo "  test        Run tests"
 	@echo "  clean       Remove build artifacts"
