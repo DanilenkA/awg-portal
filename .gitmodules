@@ -3,4 +3,4 @@
 	url = https://github.com/amnezia-vpn/amneziawg-go.git
 [submodule "wg-portal"]
 	path = wg-portal
-	url = git@github.com:DanilenkA/awg-portal.git
+	url = https://github.com/DanilenkA/wg-portal.git
