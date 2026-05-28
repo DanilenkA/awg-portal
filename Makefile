@@ -38,15 +38,15 @@ frontend:
 
 # ---- wg-portal Binary ----
 binary: frontend
-	@echo "[+] Building wg-portal $(VERSION) ($(COMMIT)) for $(GOOS)/$(GOARCH)..."
+	@echo "[+] Building awg-portal $(VERSION) ($(COMMIT)) for $(GOOS)/$(GOARCH)..."
 	@mkdir -p $(BUILDDIR)
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOCMD) build -C wg-portal \
-		-o ../$(BUILDDIR)/wg-portal-amd64 \
+		-o ../$(BUILDDIR)/awg-portal_x86-64 \
 		-ldflags "$(LDFLAGS)" \
 		-tags netgo \
 		./cmd/wg-portal/
-	@echo "[+] wg-portal: $$(ls -lh $(BUILDDIR)/wg-portal-amd64 | awk '{print $$5}')"
-	@echo "[+] Static check:" && file $(BUILDDIR)/wg-portal-amd64
+	@echo "[+] awg-portal_x86-64: $$(ls -lh $(BUILDDIR)/awg-portal_x86-64 | awk '{print $$5}')"
+	@echo "[+] Static check:" && file $(BUILDDIR)/awg-portal_x86-64
 
 # ---- Dist bundle ----
 dist: awg binary
