@@ -471,6 +471,15 @@ func (c LocalController) SavePeer(
 	id domain.PeerIdentifier,
 	updateFunc func(pp *domain.PhysicalPeer) (*domain.PhysicalPeer, error),
 ) error {
+	// For AmneziaWG interfaces, use direct UAPI communication to bypass
+	// wgctrl-go's incorrect interface public_key → peer parsing.
+	awgSock := lowlevel.SocketPath(string(deviceId))
+	if _, statErr := os.Stat(awgSock); statErr == nil && c.cfg.Backend.GetAWGMode() != config.AWGModeNever {
+		slog.Debug("using direct AWG UAPI for peer save", "iface", deviceId, "peer", id, "socket", awgSock)
+		return c.saveAWGPeer(deviceId, id, updateFunc)
+	}
+	slog.Debug("fallback to wgctrl for peer save", "iface", deviceId, "peer", id)
+
 	physicalPeer, err := c.getOrCreatePeer(deviceId, id)
 	if err != nil {
 		return err
@@ -498,6 +507,50 @@ func (c LocalController) SavePeer(
 	}
 
 	return nil
+}
+
+// saveAWGPeer manages peers on AmneziaWG interfaces via direct UAPI.
+func (c LocalController) saveAWGPeer(
+	deviceId domain.InterfaceIdentifier,
+	id domain.PeerIdentifier,
+	updateFunc func(pp *domain.PhysicalPeer) (*domain.PhysicalPeer, error),
+) error {
+	// Create empty physical peer, apply the update
+	pp := &domain.PhysicalPeer{
+		Identifier: id,
+		KeyPair: domain.KeyPair{
+			PublicKey: string(id),
+		},
+	}
+
+	var err error
+	pp, err = updateFunc(pp)
+	if err != nil {
+		return err
+	}
+
+	// Check if the peer is disabled
+	if pp.GetExtras() != nil {
+		switch extras := pp.GetExtras().(type) {
+		case domain.LocalPeerExtras:
+			if extras.Disabled {
+				return lowlevel.RemoveAWGPeer(string(deviceId), string(id))
+			}
+		}
+	}
+
+	// Build allowed IPs from the peer
+	allowedIPs := make([]string, 0, len(pp.AllowedIPs))
+	for _, cidr := range pp.AllowedIPs {
+		allowedIPs = append(allowedIPs, cidr.String())
+	}
+
+	// Send via UAPI
+	return lowlevel.SetAWGPeer(string(deviceId), lowlevel.AWGUAPIPeerConfig{
+		PublicKey:  string(id),
+		AllowedIPs: allowedIPs,
+		Keepalive:  pp.PersistentKeepalive,
+	})
 }
 
 func (c LocalController) getOrCreatePeer(deviceId domain.InterfaceIdentifier, id domain.PeerIdentifier) (

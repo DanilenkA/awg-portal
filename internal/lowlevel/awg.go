@@ -2,12 +2,15 @@ package lowlevel
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -150,6 +153,107 @@ func IsAWGProcessRunning(ifaceName string) bool {
 		return false
 	}
 	return cmd.Process != nil && cmd.ProcessState == nil
+}
+
+// ─────────────────────────────────────────────────────────────
+// UAPI direct peer management (bypasses wgctrl-go parse issues)
+// ─────────────────────────────────────────────────────────────
+
+// AWGUAPIPeerConfig holds the minimal configuration needed to add or update
+// a peer via the AmneziaWG UAPI socket.
+type AWGUAPIPeerConfig struct {
+	PublicKey    string   // base64-encoded public key
+	AllowedIPs   []string // CIDR notation, e.g. ["10.200.0.2/32"]
+	Keepalive    int      // persistent keepalive interval in seconds
+}
+
+// UAPIKeyToHex converts a base64-encoded WireGuard public key to hex format
+// required by the AWG UAPI protocol.
+func UAPIKeyToHex(keyB64 string) string {
+	raw, err := base64.StdEncoding.DecodeString(keyB64)
+	if err != nil {
+		return ""
+	}
+	return hex.EncodeToString(raw)
+}
+
+// SetAWGPeer adds or updates a peer on an AWG interface via direct UAPI
+// communication with the amneziawg-go process. Uses hex-encoded keys.
+func SetAWGPeer(ifaceName string, peer AWGUAPIPeerConfig) error {
+	sock := SocketPath(ifaceName)
+	conn, err := net.DialTimeout("unix", sock, 3*time.Second)
+	if err != nil {
+		return fmt.Errorf("awg uapi: dial %s: %w", sock, err)
+	}
+	defer conn.Close()
+
+	pubHex := UAPIKeyToHex(peer.PublicKey)
+	if pubHex == "" {
+		return fmt.Errorf("awg uapi: invalid public key: %s", peer.PublicKey)
+	}
+
+	var buf strings.Builder
+	buf.WriteString("set=1\n")
+	buf.WriteString(fmt.Sprintf("public_key=%s\n", pubHex))
+	for _, cidr := range peer.AllowedIPs {
+		buf.WriteString(fmt.Sprintf("allowed_ip=%s\n", cidr))
+	}
+	if peer.Keepalive > 0 {
+		buf.WriteString(fmt.Sprintf("persistent_keepalive_interval=%d\n", peer.Keepalive))
+	}
+	buf.WriteString("\n")
+
+	if _, err := conn.Write([]byte(buf.String())); err != nil {
+		return fmt.Errorf("awg uapi: write: %w", err)
+	}
+
+	resp := make([]byte, 128)
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	n, err := conn.Read(resp)
+	if err != nil {
+		return fmt.Errorf("awg uapi: read response: %w", err)
+	}
+
+	status := strings.TrimSpace(string(resp[:n]))
+	if status != "errno=0" && !strings.Contains(status, "errno=0") {
+		return fmt.Errorf("awg uapi: %s", status)
+	}
+
+	return nil
+}
+
+// RemoveAWGPeer removes a peer from an AWG interface via direct UAPI.
+func RemoveAWGPeer(ifaceName string, pubKeyB64 string) error {
+	sock := SocketPath(ifaceName)
+	conn, err := net.DialTimeout("unix", sock, 3*time.Second)
+	if err != nil {
+		return fmt.Errorf("awg uapi: dial %s: %w", sock, err)
+	}
+	defer conn.Close()
+
+	pubHex := UAPIKeyToHex(pubKeyB64)
+	if pubHex == "" {
+		return fmt.Errorf("awg uapi: invalid public key: %s", pubKeyB64)
+	}
+
+	msg := fmt.Sprintf("set=1\npublic_key=%s\nremove=true\n\n", pubHex)
+	if _, err := conn.Write([]byte(msg)); err != nil {
+		return fmt.Errorf("awg uapi: write: %w", err)
+	}
+
+	resp := make([]byte, 128)
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	n, err := conn.Read(resp)
+	if err != nil {
+		return fmt.Errorf("awg uapi: read response: %w", err)
+	}
+
+	status := strings.TrimSpace(string(resp[:n]))
+	if status != "errno=0" && !strings.Contains(status, "errno=0") {
+		return fmt.Errorf("awg uapi: %s", status)
+	}
+
+	return nil
 }
 
 // ─────────────────────────────────────────────────────────────
