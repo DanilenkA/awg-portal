@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,13 +40,14 @@ var (
 	sockDir = "/var/run/amneziawg"        // amneziawg-go hardcodes this
 )
 
-func socketPath(ifaceName string) string {
+func SocketPath(ifaceName string) string {
 	return filepath.Join(sockDir, ifaceName+".sock")
 }
 
 // StartAWGProcess starts "amneziawg-go --foreground <ifaceName>" and
-// waits for the UAPI socket (timeout 10s). Idempotent: returns nil if
-// the socket already exists.
+// waits for the UAPI socket (timeout 10s).
+// If a stale socket exists (file present but no listener), it is cleaned up
+// and the process is restarted.
 func StartAWGProcess(ifaceName string) error {
 	mu.Lock()
 	if _, running := procs[ifaceName]; running {
@@ -54,9 +56,15 @@ func StartAWGProcess(ifaceName string) error {
 	}
 	mu.Unlock()
 
-	sock := socketPath(ifaceName)
+	sock := SocketPath(ifaceName)
 	if _, err := os.Stat(sock); err == nil {
-		return nil // already running (managed externally)
+		// Socket exists — verify it's actually listening (stale socket check)
+		if conn, dialErr := net.DialTimeout("unix", sock, 500*time.Millisecond); dialErr == nil {
+			conn.Close()
+			return nil // socket is alive
+		}
+		// Stale socket — remove it so we can start fresh
+		os.Remove(sock)
 	}
 
 	// --foreground is REQUIRED: without it amneziawg-go forks to

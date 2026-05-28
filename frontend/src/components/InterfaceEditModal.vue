@@ -49,6 +49,49 @@ const currentTags = ref({
   PeerDefDns: "",
   PeerDefDnsSearch: ""
 })
+
+// AWG parameter auto-generation (matches backend GenerateAWGParams)
+function generateAWGParams() {
+  const rand = (lo, hi) => Math.floor(Math.random() * (hi - lo + 1)) + lo
+  const randU32 = () => { let v; do { v = Math.floor(Math.random() * 0xFFFFFFFF); } while (v < 5); return v }
+  
+  let s1, s2, s3, s4
+  for (;;) {
+    s1 = rand(15, 63); s2 = rand(15, 63); s3 = rand(10, 63); s4 = rand(1, 15)
+    const set = new Set([s1, s2, s3, s4])
+    if (set.size !== 4) continue
+    if (s1+148 === s2+92 || s3+64 === s1+148 || s3+64 === s2+92) continue
+    break
+  }
+  
+  const hs = new Set()
+  const h = () => { let v; do { v = randU32() } while (hs.has(v)); hs.add(v); return v }
+  
+  const jmin = rand(64, 113)
+  return {
+    AWGJc: rand(3, 6),
+    AWGJmin: jmin,
+    AWGJmax: rand(jmin+50, jmin+149),
+    AWGS1: s1, AWGS2: s2, AWGS3: s3, AWGS4: s4,
+    AWGH1: h(), AWGH2: h(), AWGH3: h(), AWGH4: h()
+  }
+}
+
+function toggleAWG() {
+  formData.value.AWGEnabled = !formData.value.AWGEnabled
+  if (formData.value.AWGEnabled) {
+    const params = generateAWGParams()
+    Object.assign(formData.value, params)
+  } else {
+    formData.value.AWGJc = 0
+    formData.value.AWGJmin = 0
+    formData.value.AWGJmax = 0
+    formData.value.AWGS1 = 0; formData.value.AWGS2 = 0
+    formData.value.AWGS3 = 0; formData.value.AWGS4 = 0
+    formData.value.AWGH1 = 0; formData.value.AWGH2 = 0
+    formData.value.AWGH3 = 0; formData.value.AWGH4 = 0
+  }
+}
 const formData = ref(freshInterface())
 const isSaving = ref(false)
 const isDeleting = ref(false)
@@ -106,6 +149,20 @@ watch(() => props.visible, async (newValue, oldValue) => {
 
           formData.value.SaveConfig = interfaces.Prepared.SaveConfig
 
+          // Reset AWG for new interface
+          formData.value.AWGEnabled = false
+          formData.value.AWGJc = 0
+          formData.value.AWGJmin = 0
+          formData.value.AWGJmax = 0
+          formData.value.AWGS1 = 0
+          formData.value.AWGS2 = 0
+          formData.value.AWGS3 = 0
+          formData.value.AWGS4 = 0
+          formData.value.AWGH1 = 0
+          formData.value.AWGH2 = 0
+          formData.value.AWGH3 = 0
+          formData.value.AWGH4 = 0
+
           formData.value.PeerDefNetwork = interfaces.Prepared.PeerDefNetwork
           formData.value.PeerDefDns = interfaces.Prepared.PeerDefDns
           formData.value.PeerDefDnsSearch = interfaces.Prepared.PeerDefDnsSearch
@@ -160,6 +217,19 @@ watch(() => props.visible, async (newValue, oldValue) => {
           formData.value.PeerDefPreDown = selectedInterface.value.PeerDefPreDown
           formData.value.PeerDefPostDown = selectedInterface.value.PeerDefPostDown
 
+          // AWG fields
+          formData.value.AWGEnabled = selectedInterface.value.AWGEnabled
+          formData.value.AWGJc = selectedInterface.value.AWGJc
+          formData.value.AWGJmin = selectedInterface.value.AWGJmin
+          formData.value.AWGJmax = selectedInterface.value.AWGJmax
+          formData.value.AWGS1 = selectedInterface.value.AWGS1
+          formData.value.AWGS2 = selectedInterface.value.AWGS2
+          formData.value.AWGS3 = selectedInterface.value.AWGS3
+          formData.value.AWGS4 = selectedInterface.value.AWGS4
+          formData.value.AWGH1 = selectedInterface.value.AWGH1
+          formData.value.AWGH2 = selectedInterface.value.AWGH2
+          formData.value.AWGH3 = selectedInterface.value.AWGH3
+          formData.value.AWGH4 = selectedInterface.value.AWGH4
         }
       }
     }
@@ -428,6 +498,68 @@ async function del() {
             <div class="form-group">
               <label class="form-label mt-4">{{ $t('modals.interface-edit.public-key.label') }}</label>
               <input v-model="formData.PublicKey" class="form-control" :placeholder="$t('modals.interface-edit.public-key.placeholder')" required type="text">
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend class="mt-4">Protocol</legend>
+            <div class="form-check form-switch">
+              <input :checked="formData.AWGEnabled" class="form-check-input" type="checkbox" id="awgToggle" @change="toggleAWG">
+              <label class="form-check-label" for="awgToggle">
+                AmneziaWG (обфускация DPI)
+              </label>
+            </div>
+            <div v-if="formData.AWGEnabled" class="mt-3 p-3 border rounded bg-light">
+              <small class="text-muted d-block mb-2">Параметры обфускации сгенерированы автоматически.</small>
+              <div class="row">
+                <div class="col-md-4 mb-2">
+                  <label class="form-label small">Jc (Junk count)</label>
+                  <input v-model="formData.AWGJc" class="form-control form-control-sm" type="number" min="0" max="10">
+                </div>
+                <div class="col-md-4 mb-2">
+                  <label class="form-label small">Jmin</label>
+                  <input v-model="formData.AWGJmin" class="form-control form-control-sm" type="number">
+                </div>
+                <div class="col-md-4 mb-2">
+                  <label class="form-label small">Jmax</label>
+                  <input v-model="formData.AWGJmax" class="form-control form-control-sm" type="number">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-3 mb-2">
+                  <label class="form-label small">S1</label>
+                  <input v-model="formData.AWGS1" class="form-control form-control-sm" type="number">
+                </div>
+                <div class="col-md-3 mb-2">
+                  <label class="form-label small">S2</label>
+                  <input v-model="formData.AWGS2" class="form-control form-control-sm" type="number">
+                </div>
+                <div class="col-md-3 mb-2">
+                  <label class="form-label small">S3</label>
+                  <input v-model="formData.AWGS3" class="form-control form-control-sm" type="number">
+                </div>
+                <div class="col-md-3 mb-2">
+                  <label class="form-label small">S4</label>
+                  <input v-model="formData.AWGS4" class="form-control form-control-sm" type="number">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-3 mb-2">
+                  <label class="form-label small">H1</label>
+                  <input v-model="formData.AWGH1" class="form-control form-control-sm" type="number">
+                </div>
+                <div class="col-md-3 mb-2">
+                  <label class="form-label small">H2</label>
+                  <input v-model="formData.AWGH2" class="form-control form-control-sm" type="number">
+                </div>
+                <div class="col-md-3 mb-2">
+                  <label class="form-label small">H3</label>
+                  <input v-model="formData.AWGH3" class="form-control form-control-sm" type="number">
+                </div>
+                <div class="col-md-3 mb-2">
+                  <label class="form-label small">H4</label>
+                  <input v-model="formData.AWGH4" class="form-control form-control-sm" type="number">
+                </div>
+              </div>
             </div>
           </fieldset>
           <fieldset>

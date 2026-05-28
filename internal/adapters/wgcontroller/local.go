@@ -255,17 +255,37 @@ func (c LocalController) getOrCreateInterface(id domain.InterfaceIdentifier) (*d
 	if err == nil {
 		return device, nil // interface exists
 	}
-	if !errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("device error: %w", err) // unknown error
+
+	// If the error is a stale AWG socket (connection refused), recover by
+	// stopping the dead process, removing the socket, and recreating.
+	// This handles the case where amneziawg-go died but left the socket file behind.
+	if errors.Is(err, os.ErrNotExist) {
+		// interface doesn't exist at all — create it
+		if err := c.createLowLevelInterface(id); err != nil {
+			return nil, err
+		}
+		return c.getInterface(id)
 	}
 
-	// create new device
-	if err := c.createLowLevelInterface(id); err != nil {
-		return nil, err
+	// Check for stale AWG socket (wgctrl-go dial unix socket failure)
+	if strings.Contains(err.Error(), "connection refused") &&
+		c.cfg.Backend.GetAWGMode() != config.AWGModeNever {
+		slog.Warn("stale AWG socket detected, restarting amneziawg-go", "iface", id)
+		// Kill any orphaned amneziawg-go process for this interface
+		_ = lowlevel.StopAWGProcess(string(id))
+		// Remove stale socket file
+		sockPath := lowlevel.SocketPath(string(id))
+		if removeErr := os.Remove(sockPath); removeErr != nil && !os.IsNotExist(removeErr) {
+			slog.Warn("failed to remove stale AWG socket", "path", sockPath, "err", removeErr)
+		}
+		// Recreate interface via lowlevel (starts AWG process)
+		if createErr := c.createLowLevelInterface(id); createErr != nil {
+			return nil, fmt.Errorf("failed to recreate interface after stale socket: %w", createErr)
+		}
+		return c.getInterface(id)
 	}
 
-	device, err = c.getInterface(id)
-	return device, err
+	return nil, fmt.Errorf("device error: %w", err)
 }
 
 func (c LocalController) getInterface(id domain.InterfaceIdentifier) (*domain.PhysicalInterface, error) {
@@ -541,7 +561,7 @@ func (c LocalController) updatePeer(deviceId domain.InterfaceIdentifier, pp *dom
 	cfg := wgtypes.PeerConfig{
 		PublicKey:                   pp.GetPublicKey(),
 		Remove:                      false,
-		UpdateOnly:                  true,
+		UpdateOnly:                  true, // true = only update if exists; create handled by getOrCreatePeer
 		PresharedKey:                pp.GetPresharedKey(),
 		Endpoint:                    pp.GetEndpointAddress(),
 		PersistentKeepaliveInterval: pp.GetPersistentKeepaliveTime(),
@@ -793,7 +813,7 @@ func (c LocalController) setRoutesForFamily(
 			Family:            family,
 			Table:             table,
 			Mark:              fwMark,
-			Invert:            true,
+			Invert:            false,
 			SuppressIfgroup:   -1,
 			SuppressPrefixlen: -1,
 			Priority:          c.getRulePriority(existingRules),
