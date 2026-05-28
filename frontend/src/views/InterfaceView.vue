@@ -210,6 +210,8 @@ onMounted(async () => {
           <div class="row">
             <div class="col-12 col-lg-8">
               {{ $t('interfaces.interface.headline') }} <strong>{{interfaces.GetSelected.Identifier}}</strong> ({{ $t('modals.interface-edit.mode.' + interfaces.GetSelected.Mode )}} | {{ $t('interfaces.interface.backend') + ": " + calculateBackendName }}<span v-if="!isBackendValid" :title="t('interfaces.interface.wrong-backend')" class="ms-1 me-1"><i class="fa-solid fa-triangle-exclamation"></i></span>)
+              <span v-if="interfaces.GetSelected.AWGEnabled" class="badge bg-info ms-2">AmneziaWG</span>
+              <span v-else class="badge bg-secondary ms-2">WireGuard</span>
               <span v-if="interfaces.GetSelected.Disabled" class="text-danger"><i class="fa fa-circle-xmark" :title="interfaces.GetSelected.DisabledReason"></i></span>
               <div v-if="interfaces.GetSelected && (interfaces.TrafficStats.Received > 0 || interfaces.TrafficStats.Transmitted > 0)" class="mt-2">
                 <small class="text-muted">
@@ -238,6 +240,10 @@ onMounted(async () => {
                 <tr>
                   <td>{{ $t('interfaces.interface.endpoint') }}:</td>
                   <td>{{interfaces.GetSelected.PeerDefEndpoint}}</td>
+                </tr>
+                <tr>
+                  <td>{{ $t('interfaces.interface.protocol') }}:</td>
+                  <td><span v-if="interfaces.GetSelected.AWGEnabled" class="badge bg-info">AmneziaWG</span><span v-else class="badge bg-secondary">WireGuard</span></td>
                 </tr>
                 <tr>
                   <td>{{ $t('interfaces.interface.port') }}:</td>

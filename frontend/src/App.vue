@@ -14,7 +14,7 @@ const settings = settingsStore()
 const currentTheme = ref("auto")
 
 onMounted(async () => {
-  console.log("Starting WireGuard Portal frontend...");
+  console.log("Starting AWG-PORTAL frontend...");
 
   // restore theme from localStorage
   switchTheme(getTheme());
@@ -27,15 +27,15 @@ onMounted(async () => {
     await auth.LoadSession();
     await settings.LoadSettings(); // only logs errors, does not throw
 
-    console.log("WireGuard Portal session is valid");
+    console.log("AWG-PORTAL session is valid");
   } catch (e) {
     if (wasLoggedIn) {
-      console.log("WireGuard Portal invalid - logging out");
+      console.log("AWG-PORTAL invalid - logging out");
       await auth.Logout();
     }
   }
 
-  console.log("WireGuard Portal ready!");
+  console.log("AWG-PORTAL ready!");
 })
 
 const switchLanguage = function (lang) {
@@ -114,7 +114,7 @@ const userDisplayName = computed(() => {
 
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-      <RouterLink class="navbar-brand" :to="{ name: 'home' }"><img :alt="companyName" :src="webBasePath + '/img/header-logo.png'" /></RouterLink>
+      <RouterLink class="navbar-brand" :to="{ name: 'home' }"><img alt="AWG-PORTAL" :src="webBasePath + '/img/awg-logo.svg'" height="40" /></RouterLink>
       <button aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler"
         data-bs-target="#navbarTop" data-bs-toggle="collapse" type="button">
         <span class="navbar-toggler-icon"></span>

@@ -46,27 +46,27 @@
     "calculator": "Калькулятор IP-адресов"
   },
   "home": {
-    "headline": "Портал VPN WireGuard®",
-    "info-headline": "Дополнительная информация",
-    "abstract": "WireGuard® - это чрезвычайно простой, но быстрый и современный VPN, использующий передовую криптографию. Он стремится быть быстрее, проще, компактнее и полезнее, чем IPsec, избегая при этом значительных сложностей. Он предназначен для значительного повышения производительности по сравнению с OpenVPN.",
+    "headline": "AWG-PORTAL",
+    "info-headline": "Быстрые ссылки",
+    "abstract": "Веб-портал для WireGuard с поддержкой AmneziaWG — обфускация DPI, управление интерфейсами и пирами.",
     "installation": {
-      "box-header": "Установка WireGuard",
-      "headline": "Установка",
-      "content": "Инструкции по установке клиентского программного обеспечения можно найти на официальном сайте WireGuard.",
+      "box-header": "Установка AWG-PORTAL",
+      "headline": "Релиз на GitHub",
+      "content": "Скачайте последний релиз с GitHub. Включает статический бинарник, скрипт установки и amneziawg-go.",
       "btn": "Открыть инструкции",
-      "button": "Открыть инструкции"
+      "button": "Перейти к релизам"
     },
     "about-wg": {
-      "box-header": "О WireGuard",
-      "headline": "О программе",
-      "content": "WireGuard® - это чрезвычайно простой, но быстрый и современный VPN, использующий передовую криптографию.",
-      "button": "Подробнее"
+      "box-header": "Установка клиента",
+      "headline": "WireGuard / AmneziaWG",
+      "content": "Установите официальный клиент WireGuard или AmneziaWG на ваши устройства для подключения к порталу.",
+      "button": "WireGuard Install"
     },
     "about-portal": {
-      "box-header": "О портале WireGuard",
-      "headline": "Портал WireGuard",
-      "content": "Портал WireGuard - это простой веб-портал для настройки WireGuard.",
-      "button": "Подробнее"
+      "box-header": "Документация",
+      "headline": "Исходники",
+      "content": "Форк h44z/wg-portal с интеграцией AmneziaWG. Исходный код, issues и документация на GitHub.",
+      "button": "GitHub Репозиторий"
     },
     "profiles": {
       "headline": "VPN Профили",
@@ -123,7 +123,8 @@
       "button-show-config": "Показать конфигурацию",
       "button-download-config": "Скачать конфигурацию",
       "button-store-config": "Сохранить конфигурацию для wg-quick",
-      "button-edit": "Редактировать интерфейс"
+      "button-edit": "Редактировать интерфейс",
+      "protocol": "Протокол"
     },
     "button-add-interface": "Добавить интерфейс",
     "button-add-peer": "Добавить пира",

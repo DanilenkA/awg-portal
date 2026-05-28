@@ -46,26 +46,26 @@
     "calculator": "IP Calculator"
   },
   "home": {
-    "headline": "WireGuard® VPN Portal",
-    "info-headline": "More Information",
-    "abstract": "WireGuard® is an extremely simple yet fast and modern VPN that utilizes state-of-the-art cryptography. It aims to be faster, simpler, leaner, and more useful than IPsec, while avoiding the massive headache. It intends to be considerably more performant than OpenVPN.",
+    "headline": "AWG-PORTAL",
+    "info-headline": "Quick Links",
+    "abstract": "WireGuard Portal with native AmneziaWG support — DPI obfuscation, interface and peer management via web UI.",
     "installation": {
-      "box-header": "WireGuard Installation",
-      "headline": "Installation",
-      "content": "Installation instructions for client software can be found on the official WireGuard website.",
-      "button": "Open Instructions"
+      "box-header": "Install AWG-PORTAL",
+      "headline": "GitHub Release",
+      "content": "Download the latest release bundle from GitHub. Includes static binary, install script, and amneziawg-go.",
+      "button": "Open Releases"
     },
     "about-wg": {
-      "box-header": "About WireGuard",
-      "headline": "About",
-      "content": "WireGuard® is an extremely simple yet fast and modern VPN that utilizes state-of-the-art cryptography.",
-      "button": "More"
+      "box-header": "Client Installation",
+      "headline": "WireGuard / AmneziaWG",
+      "content": "Install the official WireGuard client or AmneziaWG client on your devices to connect to the portal.",
+      "button": "WireGuard Install"
     },
     "about-portal": {
-      "box-header": "About WireGuard Portal",
-      "headline": "WireGuard Portal",
-      "content": "WireGuard Portal is a simple, web based configuration portal for WireGuard.",
-      "button": "More"
+      "box-header": "Documentation",
+      "headline": "Source & Docs",
+      "content": "Fork of h44z/wg-portal with AmneziaWG integration. Source code, issues, and documentation on GitHub.",
+      "button": "GitHub Repository"
     },
     "profiles": {
       "headline": "VPN Profiles",
@@ -122,7 +122,8 @@
       "button-show-config": "Show configuration",
       "button-download-config": "Download configuration",
       "button-store-config": "Store configuration for wg-quick",
-      "button-edit": "Edit interface"
+      "button-edit": "Edit interface",
+      "protocol": "Protocol"
     },
     "button-add-interface": "Add Interface",
     "button-add-peer": "Add Peer",

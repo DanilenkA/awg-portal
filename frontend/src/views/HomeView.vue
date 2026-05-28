@@ -6,14 +6,13 @@ const auth = authStore()
 </script>
 
 <template>
-  <div class="page-header">
-    <h1>{{ $t('home.headline') }}</h1>
+  <div class="page-header text-center mb-4">
+    <img src="/img/awg-logo.svg" alt="AWG-PORTAL" height="60" class="mb-3" />
+    <h1 class="display-4">{{ $t('home.headline') }}</h1>
+    <p class="lead">{{ $t('home.abstract') }}</p>
   </div>
 
-  <p class="lead">{{ $t('home.abstract') }}</p>
-
-
-  <div class="card border-secondary p-5" v-if="auth.IsAuthenticated">
+  <div class="card border-primary p-5 mb-4" v-if="auth.IsAuthenticated">
     <h2 class="display-5">{{ $t('home.profiles.headline') }}</h2>
     <p class="lead">{{ $t('home.profiles.abstract') }}</p>
     <hr class="my-4">
@@ -23,7 +22,7 @@ const auth = authStore()
     </p>
   </div>
 
-  <div class="card border-secondary p-5 mt-4" v-if="auth.IsAuthenticated && auth.IsAdmin">
+  <div class="card border-primary p-5 mt-4" v-if="auth.IsAuthenticated && auth.IsAdmin">
     <h2 class="display-5">{{ $t('home.admin.headline') }}</h2>
     <p class="lead">{{ $t('home.admin.abstract') }}</p>
     <hr class="my-4">
@@ -35,7 +34,7 @@ const auth = authStore()
     </p>
   </div>
 
-  <h3 class="mt-5">{{ $t('home.info-headline') }}</h3>
+  <h3 class="mt-5 mb-3">{{ $t('home.info-headline') }}</h3>
   <div class="row">
     <div class="col-lg-4">
       <div class="card border-secondary mb-4" style="min-height: 15rem;">
@@ -43,7 +42,7 @@ const auth = authStore()
         <div class="card-body d-flex flex-column">
           <h4 class="card-title">{{ $t('home.installation.headline') }}</h4>
           <p class="card-text">{{ $t('home.installation.content') }}</p>
-          <a href="https://www.wireguard.com/install/" title="WireGuard Installation" target="_blank"
+          <a href="https://github.com/DanilenkA/awg-portal/releases" title="AWG-PORTAL Releases" target="_blank"
             rel="noopener noreferrer" class="mt-auto btn btn-primary btn-sm">{{ $t('home.installation.button') }}</a>
         </div>
       </div>
@@ -54,8 +53,12 @@ const auth = authStore()
         <div class="card-body d-flex flex-column">
           <h4 class="card-title">{{ $t('home.about-wg.headline') }}</h4>
           <p class="card-text">{{ $t('home.about-wg.content') }}</p>
-          <a href="https://www.wireguard.com/" title="WireGuard" target="_blank" rel="noopener noreferrer"
-            class="mt-auto btn btn-primary btn-sm">{{ $t('home.about-wg.button') }}</a>
+          <div class="mt-auto d-flex gap-2">
+            <a href="https://www.wireguard.com/install/" title="WireGuard" target="_blank" rel="noopener noreferrer"
+              class="btn btn-primary btn-sm">{{ $t('home.about-wg.button') }}</a>
+            <a href="https://github.com/amnezia-vpn/amneziawg-go" title="AmneziaWG" target="_blank" rel="noopener noreferrer"
+              class="btn btn-outline-primary btn-sm">AmneziaWG</a>
+          </div>
         </div>
       </div>
     </div>
@@ -65,7 +68,7 @@ const auth = authStore()
         <div class="card-body d-flex flex-column">
           <h4 class="card-title">{{ $t('home.about-portal.headline') }}</h4>
           <p class="card-text">{{ $t('home.about-portal.content') }}</p>
-          <a href="https://wgportal.org/" title="WireGuard Portal" target="_blank"
+          <a href="https://github.com/DanilenkA/awg-portal" title="AWG-PORTAL GitHub" target="_blank"
             rel="noopener noreferrer" class="mt-auto btn btn-primary btn-sm">{{ $t('home.about-portal.button') }}</a>
         </div>
       </div>
