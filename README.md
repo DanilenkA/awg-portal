@@ -4,7 +4,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-blue.svg)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.txt)
-[![Release](https://img.shields.io/badge/release-v1.2.1fix-blue.svg)](https://github.com/DanilenkA/awg-portal/releases)
+[![Release](https://img.shields.io/badge/release-v1.2.2-blue.svg)](https://github.com/DanilenkA/awg-portal/releases)
 
 ## Что это
 
