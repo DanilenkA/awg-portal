@@ -33,18 +33,18 @@ awg:
 # ---- Frontend ----
 frontend:
 	@echo "[+] Building frontend..."
-	@cd wg-portal/frontend && $(NPMCMD) ci 2>&1 | tail -1
-	@cd wg-portal/frontend && node node_modules/vite/bin/vite.js build --base=/app/ 2>&1 | tail -1
+	@cd wg-portal/frontend && $(NPMCMD) ci --include=dev 2>&1 | tail -3
+	@cd wg-portal/frontend && npx vite build --base=/app/ 2>&1 | tail -3
 
 # ---- wg-portal Binary ----
 binary: frontend
 	@echo "[+] Building wg-portal $(VERSION) ($(COMMIT)) for $(GOOS)/$(GOARCH)..."
 	@mkdir -p $(BUILDDIR)
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOCMD) build \
-		-o $(BUILDDIR)/wg-portal-amd64 \
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOCMD) build -C wg-portal \
+		-o ../$(BUILDDIR)/wg-portal-amd64 \
 		-ldflags "$(LDFLAGS)" \
 		-tags netgo \
-		./wg-portal/cmd/wg-portal/
+		./cmd/wg-portal/
 	@echo "[+] wg-portal: $$(ls -lh $(BUILDDIR)/wg-portal-amd64 | awk '{print $$5}')"
 	@echo "[+] Static check:" && file $(BUILDDIR)/wg-portal-amd64
 
