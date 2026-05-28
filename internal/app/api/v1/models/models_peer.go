@@ -73,6 +73,20 @@ type Peer struct {
 	// PostDown is an optional action that is executed after the device is down.
 	PostDown ConfigOption[string] `json:"PostDown"`
 
+	// AmneziaWG obfuscation parameters (client-side)
+	AWGEnabled bool `json:"AWGEnabled"`
+	AWGJc      int    `json:"AWGJc"`
+	AWGJmin    int    `json:"AWGJmin"`
+	AWGJmax    int    `json:"AWGJmax"`
+	AWGS1      int    `json:"AWGS1"`
+	AWGS2      int    `json:"AWGS2"`
+	AWGS3      int    `json:"AWGS3"`
+	AWGS4      int    `json:"AWGS4"`
+	AWGH1      uint32 `json:"AWGH1"`
+	AWGH2      uint32 `json:"AWGH2"`
+	AWGH3      uint32 `json:"AWGH3"`
+	AWGH4      uint32 `json:"AWGH4"`
+
 	// Filename is the name of the config file for this peer.
 	// This value is read only and is not settable by the user.
 	Filename string `json:"Filename" example:"wg_peer_x.conf" binding:"omitempty,max=21" readonly:"true"`
@@ -113,6 +127,18 @@ func NewPeer(src *domain.Peer) *Peer {
 		PostUp:              ConfigOptionFromDomain(src.Interface.PostUp),
 		PreDown:             ConfigOptionFromDomain(src.Interface.PreDown),
 		PostDown:            ConfigOptionFromDomain(src.Interface.PostDown),
+		AWGEnabled:          src.Interface.AWGEnabled,
+		AWGJc:               src.Interface.AWGJc,
+		AWGJmin:             src.Interface.AWGJmin,
+		AWGJmax:             src.Interface.AWGJmax,
+		AWGS1:               src.Interface.AWGS1,
+		AWGS2:               src.Interface.AWGS2,
+		AWGS3:               src.Interface.AWGS3,
+		AWGS4:               src.Interface.AWGS4,
+		AWGH1:               src.Interface.AWGH1,
+		AWGH2:               src.Interface.AWGH2,
+		AWGH3:               src.Interface.AWGH3,
+		AWGH4:               src.Interface.AWGH4,
 		Filename:            src.GetConfigFileName(),
 	}
 }
@@ -170,6 +196,18 @@ func NewDomainPeer(src *Peer) *domain.Peer {
 			PostUp:            ConfigOptionToDomain(src.PostUp),
 			PreDown:           ConfigOptionToDomain(src.PreDown),
 			PostDown:          ConfigOptionToDomain(src.PostDown),
+			AWGEnabled:        src.AWGEnabled,
+			AWGJc:             src.AWGJc,
+			AWGJmin:           src.AWGJmin,
+			AWGJmax:           src.AWGJmax,
+			AWGS1:             src.AWGS1,
+			AWGS2:             src.AWGS2,
+			AWGS3:             src.AWGS3,
+			AWGS4:             src.AWGS4,
+			AWGH1:             src.AWGH1,
+			AWGH2:             src.AWGH2,
+			AWGH3:             src.AWGH3,
+			AWGH4:             src.AWGH4,
 		},
 	}
 

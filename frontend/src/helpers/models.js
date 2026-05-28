@@ -140,6 +140,20 @@ export function freshPeer() {
 
     Filename: "",
 
+    // AmneziaWG obfuscation parameters
+    AWGEnabled: false,
+    AWGJc: 0,
+    AWGJmin: 0,
+    AWGJmax: 0,
+    AWGS1: 0,
+    AWGS2: 0,
+    AWGS3: 0,
+    AWGS4: 0,
+    AWGH1: 0,
+    AWGH2: 0,
+    AWGH3: 0,
+    AWGH4: 0,
+
     // Internal values
     IgnoreGlobalSettings: false,
     IsSelected: false
