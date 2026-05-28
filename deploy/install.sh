@@ -5,7 +5,7 @@ set -euo pipefail
 
 BIN_DIR="/usr/local/bin"
 SYSTEMD_DIR="/etc/systemd/system"
-PORTAL_DIR="/opt/wg-portal"
+PORTAL_DIR="/opt/awg-portal"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "==> awg-portal installer v1.0.1"
@@ -15,14 +15,14 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# 1. wg-portal binary
-echo "[1/4] Installing wg-portal..."
-if [ -f "${SCRIPT_DIR}/wg-portal-amd64" ]; then
-  install -m 0755 "${SCRIPT_DIR}/wg-portal-amd64" "${BIN_DIR}/wg-portal"
-elif [ -f "${SCRIPT_DIR}/../dist/wg-portal-amd64" ]; then
-  install -m 0755 "${SCRIPT_DIR}/../dist/wg-portal-amd64" "${BIN_DIR}/wg-portal"
+# 1. awg-portal binary
+echo "[1/4] Installing awg-portal..."
+if [ -f "${SCRIPT_DIR}/awg-portal_x86-64" ]; then
+  install -m 0755 "${SCRIPT_DIR}/awg-portal_x86-64" "${BIN_DIR}/awg-portal"
+elif [ -f "${SCRIPT_DIR}/../dist/awg-portal_x86-64" ]; then
+  install -m 0755 "${SCRIPT_DIR}/../dist/awg-portal_x86-64" "${BIN_DIR}/awg-portal"
 else
-  echo "  ERROR: wg-portal-amd64 not found in the bundle."
+  echo "  ERROR: awg-portal_x86-64 not found in the bundle."
   exit 1
 fi
 
@@ -52,9 +52,9 @@ fi
 
 # 4. Systemd
 echo "[4/4] Installing systemd unit..."
-cat > "${SYSTEMD_DIR}/wg-portal.service" << 'UNIT'
+cat > "${SYSTEMD_DIR}/awg-portal.service" << 'UNIT'
 [Unit]
-Description=WireGuard Portal with AmneziaWG
+Description=AWG Portal — Web UI for WireGuard & AmneziaWG
 After=network.target
 
 [Service]
@@ -62,9 +62,9 @@ Type=simple
 AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
 Restart=on-failure
 RestartSec=10
-WorkingDirectory=/opt/wg-portal
-Environment=WG_PORTAL_CONFIG=/opt/wg-portal/config.yml
-ExecStart=/usr/local/bin/wg-portal
+WorkingDirectory=/opt/awg-portal
+Environment=WG_PORTAL_CONFIG=/opt/awg-portal/config.yml
+ExecStart=/usr/local/bin/awg-portal
 
 [Install]
 WantedBy=multi-user.target
@@ -76,10 +76,10 @@ echo ""
 echo "==> Installation complete."
 echo ""
 echo "Installed:"
-echo "  /usr/local/bin/wg-portal   ($(file /usr/local/bin/wg-portal | cut -d, -f2-))"
+echo "  /usr/local/bin/awg-portal   ($(file /usr/local/bin/awg-portal | cut -d, -f2-))"
 echo "  /usr/local/bin/amneziawg-go ($(file /usr/local/bin/amneziawg-go | cut -d, -f2-))"
 echo ""
 echo "Next steps:"
-echo "  1. Edit /opt/wg-portal/config.yml"
-echo "  2. systemctl enable --now wg-portal"
-echo "  3. journalctl -u wg-portal -f"
+echo "  1. Edit /opt/awg-portal/config.yml"
+echo "  2. systemctl enable --now awg-portal"
+echo "  3. journalctl -u awg-portal -f"
