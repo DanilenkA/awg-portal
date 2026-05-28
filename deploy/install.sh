@@ -1,5 +1,5 @@
 #!/bin/bash
-# awg-portal installation script — v1.0.1
+# awg-portal installation script — v1.2.1
 # Run as root: sudo bash install.sh
 set -euo pipefail
 
@@ -8,7 +8,7 @@ SYSTEMD_DIR="/etc/systemd/system"
 PORTAL_DIR="/opt/awg-portal"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "==> awg-portal installer v1.0.1"
+echo "==> awg-portal installer v1.2.1"
 
 if [ "$EUID" -ne 0 ]; then
   echo "ERROR: Run as root (sudo)."
