@@ -3,5 +3,12 @@
     "version": "master",
     "title": "master",
     "aliases": []
+  },
+  {
+    "version": "v1.2.2fix",
+    "title": "v1.2.2fix",
+    "aliases": [
+      "latest"
+    ]
   }
 ]
