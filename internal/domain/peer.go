@@ -150,10 +150,17 @@ func (p *Peer) GenerateDisplayName(prefix string) {
 func (p *Peer) OverwriteUserEditableFields(userPeer *Peer, cfg *config.Config) {
 	p.DisplayName = userPeer.DisplayName
 	if cfg.Core.EditableKeys {
-		p.Interface.PublicKey = userPeer.Interface.PublicKey
-		p.Interface.PrivateKey = userPeer.Interface.PrivateKey
-		p.PresharedKey = userPeer.PresharedKey
-		p.Identifier = userPeer.Identifier
+		// Only overwrite keys if the user actually provided non-empty values.
+		// This prevents frontend/API callers from accidentally wiping out
+		// server-generated keys (PrivateKey, PresharedKey) by omitting them.
+		if userPeer.Interface.PrivateKey != "" {
+			p.Interface.PublicKey = userPeer.Interface.PublicKey
+			p.Interface.PrivateKey = userPeer.Interface.PrivateKey
+			p.Identifier = userPeer.Identifier
+		}
+		if userPeer.PresharedKey != "" {
+			p.PresharedKey = userPeer.PresharedKey
+		}
 	}
 	p.Interface.Mtu = userPeer.Interface.Mtu
 	p.PersistentKeepalive = userPeer.PersistentKeepalive

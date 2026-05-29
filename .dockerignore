@@ -1,14 +1,16 @@
-# Ignore everything
+# Ignore everything by default (negated allowlist approach)
 *
 
-# Allow backend files
+# Allow backend source files
 !cmd/
 !internal/
 !go.mod
 !go.sum
 
-# Allow frontend files
+# Allow frontend source files
 !frontend/
 
-# Ignore node_modules
+# Ignore node_modules everywhere
 **/node_modules/
+
+# Dockerfile itself is already handled by the Docker daemon
