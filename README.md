@@ -144,6 +144,8 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun  # Required for AWG userspace mode
     environment:
       - WG_PORTAL_CORE_ADMIN_USER=admin@example.com
       - WG_PORTAL_CORE_ADMIN_PASSWORD=CHANGE_ME_PLEASE
@@ -217,13 +219,15 @@ make build-docker-multiarch
    Это исправлено в AWG-PORTAL (в оригинале h44z ключи оставались пустыми).
 
 5. **AmneziaWG (обфускация):** Для работы AWG требуется бинарник
-   `amneziawg-go`. В Docker-образе его нет. Скачайте и разместите рядом
-   с конфигом, либо установите на хосте:
-   ```bash
-   curl -LO https://github.com/amnezia-vpn/amneziawg-go/releases/latest/download/amneziawg-go-linux-amd64.tar.gz
-   tar xzf amneziawg-go-linux-amd64.tar.gz
-   chmod +x amneziawg-go
-   mv amneziawg-go /usr/local/bin/
+   `amneziawg-go`. В Docker-образ AWG-PORTAL он **встроен** —
+   дополнительная установка не требуется.
+
+6. **TUN-устройство:** Для работы AWG (userspace-режим amneziawg-go)
+   необходимо монтировать `/dev/net/tun` в контейнер и добавить
+   `--privileged` или устройство в devices:
+   ```yaml
+   devices:
+     - /dev/net/tun:/dev/net/tun
    ```
 
 ## Установка AmneziaWG
@@ -235,13 +239,15 @@ AWG-PORTAL автоматически управляет процессом `amn
 ## Сборка из исходников
 
 ```bash
-# Требования: Go 1.23+, Node.js 20+
+# Требования: Go 1.25+, Node.js 20+, Docker 24+
 git clone git@github.com:DanilenkA/awg-portal.git
-cd awg-portal
-make build-docker
+cd awg-portal/wg-portal
 
-# Или сборка бинарника
-make build-amd64
+# Docker-образ (включает amneziawg-go)
+docker build --build-arg BUILD_VERSION=v1.3.0 -t ghcr.io/danilenka/awg-portal:v1.3.0 .
+
+# Или бинарник (требуется Go на хосте)
+CGO_ENABLED=0 go build -ldflags "-X github.com/DanilenkA/awg-portal/internal.Version=v1.3.0" -o awg-portal_x86-64 cmd/wg-portal/main.go
 ```
 
 ## Application stack

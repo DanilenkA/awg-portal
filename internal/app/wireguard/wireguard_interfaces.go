@@ -445,6 +445,15 @@ func (m Manager) CreateInterface(ctx context.Context, in *domain.Interface) (*do
 		return nil, fmt.Errorf("creation not allowed: %w", err)
 	}
 
+	// Auto-generate keys if not provided (important for admin API calls without prepare)
+	if in.PrivateKey == "" {
+		kp, err := domain.NewFreshKeypair()
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate keys: %w", err)
+		}
+		in.KeyPair = kp
+	}
+
 	in, err = m.saveInterface(ctx, in)
 	if err != nil {
 		return nil, fmt.Errorf("creation failure: %w", err)

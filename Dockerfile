@@ -48,6 +48,15 @@ FROM scratch AS binaries
 COPY --from=builder /build/dist/wg-portal /
 
 ######
+# Build amneziawg-go
+######
+FROM --platform=${BUILDPLATFORM} golang:1.26-alpine AS amneziawg
+RUN apk add --no-cache git
+WORKDIR /build
+RUN git clone --depth 1 https://github.com/amnezia-vpn/amneziawg-go.git . && \
+    CGO_ENABLED=0 GOARCH=${TARGETARCH} go build -ldflags "-w -s" -o /build/amneziawg-go .
+
+######
 # Final image
 ######
 FROM alpine:3.23
@@ -57,6 +66,7 @@ RUN apk add --no-cache bash curl iptables nftables openresolv wireguard-tools tz
 ENV TZ=UTC
 # Copy binaries
 COPY --from=builder /build/dist/wg-portal /app/wg-portal
+COPY --from=amneziawg /build/amneziawg-go /usr/local/bin/amneziawg-go
 # Set the Current Working Directory inside the container
 WORKDIR /app
 # Expose default ports for metrics, web and wireguard

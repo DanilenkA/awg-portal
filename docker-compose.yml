@@ -1,8 +1,9 @@
+---
 services:
   awg-portal:
-    # Замените :latest на конкретную версию для production,
-    # например ghcr.io/danilenka/awg-portal:v1.2.2fix
-    image: ghcr.io/danilenka/awg-portal:latest
+    # Замените :v1.3.0 на актуальную версию из https://github.com/DanilenkA/awg-portal/pkgs/container/awg-portal
+    # или используйте :latest для получения последней стабильной версии
+    image: ghcr.io/danilenka/awg-portal:v1.3.0
     container_name: awg-portal
     restart: unless-stopped
 
@@ -15,6 +16,10 @@ services:
       - NET_ADMIN
       # Загрузка модулей ядра (ip xfrm, ipsec, wireguard)
       - SYS_MODULE
+
+    devices:
+      # TUN-устройство для AmneziaWG userspace-режима (amneziawg-go)
+      - /dev/net/tun:/dev/net/tun
 
     environment:
       # ── Core ─────────────────────────────────────────────────────

@@ -99,6 +99,12 @@ type Interface struct {
 }
 
 // GetAWGParams returns the AmneziaWG obfuscation parameters stored in the interface.
+// HasAnyAWGParams returns true if the interface has AmneziaWG enabled or
+// any AWG obfuscation parameters set (non-zero).
+func (i *Interface) HasAnyAWGParams() bool {
+	return i.AWGEnabled || i.AWGJc != 0 || i.AWGH1 != 0
+}
+
 func (i *Interface) GetAWGParams() lowlevel.AWGParams {
 	return lowlevel.AWGParams{
 		Jc:   i.AWGJc,
