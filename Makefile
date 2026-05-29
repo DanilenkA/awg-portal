@@ -5,7 +5,7 @@ MODULENAME=github.com/DanilenkA/awg-portal
 GOFILES=$(shell go list ./... | grep -v /vendor/)
 BUILDDIR=dist
 BINARIES=$(subst cmd/,,$(wildcard cmd/*))
-IMAGE=h44z/wg-portal
+IMAGE=ghcr.io/DanilenkA/awg-portal
 NPMCMD=npm
 
 all: help
@@ -133,7 +133,7 @@ build-docker:
 	docker build --progress=plain \
 	--build-arg BUILD_IDENTIFIER=${ENV_BUILD_IDENTIFIER} --build-arg BUILD_VERSION=${ENV_BUILD_VERSION} \
  	--build-arg TARGETPLATFORM=unknown . \
-	-t h44z/wg-portal:local
+	-t ghcr.io/DanilenkA/awg-portal:local
 
 #< helm-docs: Generate the helm chart documentation
 .PHONY: helm-docs
