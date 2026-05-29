@@ -242,8 +242,6 @@ func (m Manager) CreatePeer(ctx context.Context, peer *domain.Peer) (*domain.Pee
 
 	sessionUser := domain.GetUserInfo(ctx)
 
-	peer.Identifier = domain.PeerIdentifier(peer.Interface.PublicKey) // ensure that identifier corresponds to the public key
-
 	// Enforce peer limit for non-admin users if LimitAdditionalUserPeers is set
 	if m.cfg.Core.SelfProvisioningAllowed && !sessionUser.IsAdmin && m.cfg.Advanced.LimitAdditionalUserPeers > 0 {
 		peers, err := m.db.GetUserPeers(ctx, peer.UserIdentifier)
@@ -276,7 +274,9 @@ func (m Manager) CreatePeer(ctx context.Context, peer *domain.Peer) (*domain.Pee
 		return nil, fmt.Errorf("peer %s already exists: %w", peer.Identifier, domain.ErrDuplicateEntry)
 	}
 
-	// if a peer is self provisioned, ensure that only allowed fields are set from the request
+	// Ensure key material is always present
+	// - Non-admin users always go through PreparePeer (generates fresh keys)
+	// - Admin users: use provided keys if present, otherwise fall back to PreparePeer
 	if !sessionUser.IsAdmin {
 		preparedPeer, err := m.PreparePeer(ctx, peer.InterfaceIdentifier)
 		if err != nil {
@@ -286,6 +286,19 @@ func (m Manager) CreatePeer(ctx context.Context, peer *domain.Peer) (*domain.Pee
 		preparedPeer.OverwriteUserEditableFields(peer, m.cfg)
 
 		peer = preparedPeer
+	} else if peer.Interface.PrivateKey == "" {
+		// Admin didn't provide a PrivateKey — generate fresh keys
+		preparedPeer, err := m.PreparePeer(ctx, peer.InterfaceIdentifier)
+		if err != nil {
+			return nil, fmt.Errorf("failed to prepare peer for interface %s: %w", peer.InterfaceIdentifier, err)
+		}
+
+		preparedPeer.OverwriteUserEditableFields(peer, m.cfg)
+
+		peer = preparedPeer
+	} else {
+		// Admin provided keys — ensure Identifier matches PublicKey
+		peer.Identifier = domain.PeerIdentifier(peer.Interface.PublicKey)
 	}
 
 	if err := m.validatePeerCreation(ctx, existingPeer, peer); err != nil {

@@ -1,22 +1,49 @@
 ---
 services:
-  wg-portal:
-    image: wgportal/wg-portal:v2
-    container_name: wg-portal
+  awg-portal:
+    image: ghcr.io/danilenka/awg-portal:local
+    container_name: awg-portal
     restart: unless-stopped
-    logging:
-      options:
-        max-size: "10m"
-        max-file: "3"
+    network_mode: "host"
     cap_add:
       - NET_ADMIN
-    # Use host network mode for WireGuard and the UI. Ensure that access to the UI is properly secured.
-    network_mode: "host"
+      - SYS_MODULE
+    environment:
+      # Core
+      - WG_PORTAL_CORE_ADMIN_USER=admin@awg.local
+      - WG_PORTAL_CORE_ADMIN_PASSWORD=admin1n123-admin1n123-admin1n123
+      - WG_PORTAL_CORE_RESTORE_STATE=false
+      - WG_PORTAL_CORE_IMPORT_EXISTING=false
+      - WG_PORTAL_CORE_CREATE_DEFAULT_PEER_ON_LOGIN=true
+      - WG_PORTAL_CORE_CREATE_DEFAULT_PEER_ON_INTERFACE_CREATION=true
+
+      # Database
+      - WG_PORTAL_DATABASE_TYPE=sqlite
+      - WG_PORTAL_DATABASE_DSN=/app/data/sqlite.db
+
+      # Web
+      - WG_PORTAL_WEB_EXTERNAL_URL=http://10.130.130.100:8888
+      - WG_PORTAL_WEB_LISTENING_ADDRESS=:8888
+      - WG_PORTAL_WEB_REQUEST_LOGGING=true
+      - WG_PORTAL_WEB_SITE_TITLE=AWG-PORTAL Test (Docker Compose)
+      - WG_PORTAL_WEB_SITE_COMPANY_NAME=AWG-PORTAL
+
+      # Advanced
+      - WG_PORTAL_ADVANCED_LOG_LEVEL=info
+      - WG_PORTAL_ADVANCED_START_LISTEN_PORT=51820
+      - WG_PORTAL_ADVANCED_START_CIDR_V4=10.211.1.0/24
+      - WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH=/app/config
+
+      # Backend
+      - WG_PORTAL_BACKEND_AWG_MODE=auto
+
+      # Auth
+      - WG_PORTAL_AUTH_MIN_PASSWORD_LENGTH=4
+
+      # Statistics
+      - WG_PORTAL_STATISTICS_LISTENING_ADDRESS=:8787
+
     volumes:
-      # left side is the host path, right side is the container path
       - /etc/wireguard:/etc/wireguard
       - ./data:/app/data
       - ./config:/app/config
-#    restart: no
-#    command: ["-migrateFrom=/app/data/wg_portal.db"]
-

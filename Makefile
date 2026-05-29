@@ -127,13 +127,24 @@ frontend-dependencies:
 	@mkdir -p $(BUILDDIR)
 	cd frontend; $(NPMCMD) install
 
-#< build-docker: Build a docker image on the current host system
+#< build-docker: Build a docker image (local tag, single architecture)
 .PHONY: build-docker
 build-docker:
+	$(eval VERSION_TAG := $(shell git describe --tags --always 2>/dev/null || echo "dev"))
 	docker build --progress=plain \
-	--build-arg BUILD_IDENTIFIER=${ENV_BUILD_IDENTIFIER} --build-arg BUILD_VERSION=${ENV_BUILD_VERSION} \
- 	--build-arg TARGETPLATFORM=unknown . \
-	-t ghcr.io/DanilenkA/awg-portal:local
+	--build-arg BUILD_VERSION=${VERSION_TAG} . \
+	-t ghcr.io/danilenka/awg-portal:latest \
+	-t ghcr.io/danilenka/awg-portal:${VERSION_TAG}
+
+#< build-docker-multiarch: Build a multi-architecture docker image and push (requires buildx)
+.PHONY: build-docker-multiarch
+build-docker-multiarch:
+	$(eval VERSION_TAG := $(shell git describe --tags --always 2>/dev/null || echo "dev"))
+	docker buildx build --push --progress=plain \
+	--platform linux/amd64,linux/arm64 \
+	--build-arg BUILD_VERSION=${VERSION_TAG} . \
+	-t ghcr.io/danilenka/awg-portal:latest \
+	-t ghcr.io/danilenka/awg-portal:${VERSION_TAG}
 
 #< helm-docs: Generate the helm chart documentation
 .PHONY: helm-docs
