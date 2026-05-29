@@ -7,7 +7,7 @@
 
 ## Introduction
 
-**AWG-PORTAL** — это форк [h44z/wg-portal](https://github.com/h44z/wg-portal) v2 с полной поддержкой [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go) — протокола, устойчивого к DPI и блокировкам.
+**AWG-PORTAL** — это форк [h44z/wg-portal](https://github.com/h44z/wg-portal) с полной поддержкой [AmneziaWGv2 ](https://github.com/amnezia-vpn/amneziawg-go) — протокола, устойчивого к DPI и блокировкам.
 
 Портал предоставляет веб-интерфейс для управления VPN-серверами на базе **WireGuard** и **AmneziaWG**. Поддерживает создание/удаление пиров, генерацию конфигов, QR-коды, email-рассылку, мониторинг и REST API.
 
