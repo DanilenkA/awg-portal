@@ -123,6 +123,20 @@ func (p *Peer) ApplyInterfaceDefaults(in *Interface) {
 	p.Interface.PostUp.TrySetValue(in.PeerDefPostUp)
 	p.Interface.PreDown.TrySetValue(in.PeerDefPreDown)
 	p.Interface.PostDown.TrySetValue(in.PeerDefPostDown)
+
+	// Propagate AmneziaWG obfuscation parameters from interface to peer
+	p.Interface.AWGEnabled = in.AWGEnabled
+	p.Interface.AWGJc = in.AWGJc
+	p.Interface.AWGJmin = in.AWGJmin
+	p.Interface.AWGJmax = in.AWGJmax
+	p.Interface.AWGS1 = in.AWGS1
+	p.Interface.AWGS2 = in.AWGS2
+	p.Interface.AWGS3 = in.AWGS3
+	p.Interface.AWGS4 = in.AWGS4
+	p.Interface.AWGH1 = in.AWGH1
+	p.Interface.AWGH2 = in.AWGH2
+	p.Interface.AWGH3 = in.AWGH3
+	p.Interface.AWGH4 = in.AWGH4
 }
 
 func (p *Peer) GenerateDisplayName(prefix string) {

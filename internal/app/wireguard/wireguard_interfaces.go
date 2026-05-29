@@ -585,7 +585,7 @@ func (m Manager) saveInterface(ctx context.Context, iface *domain.Interface) (
 		return nil, fmt.Errorf("failed to save interface: %w", err)
 	}
 
-	// update the interface type of peers in db
+	// update the interface type of peers in db and propagate AWG obfuscation parameters
 	peers, err := m.db.GetInterfacePeers(ctx, iface.Identifier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load peers for interface %s: %w", iface.Identifier, err)
@@ -600,6 +600,20 @@ func (m Manager) saveInterface(ctx context.Context, iface *domain.Interface) (
 			case domain.InterfaceTypeServer:
 				peer.Interface.Type = domain.InterfaceTypeClient
 			}
+
+			// Propagate AmneziaWG obfuscation parameters to existing peers
+			peer.Interface.AWGEnabled = iface.AWGEnabled
+			peer.Interface.AWGJc = iface.AWGJc
+			peer.Interface.AWGJmin = iface.AWGJmin
+			peer.Interface.AWGJmax = iface.AWGJmax
+			peer.Interface.AWGS1 = iface.AWGS1
+			peer.Interface.AWGS2 = iface.AWGS2
+			peer.Interface.AWGS3 = iface.AWGS3
+			peer.Interface.AWGS4 = iface.AWGS4
+			peer.Interface.AWGH1 = iface.AWGH1
+			peer.Interface.AWGH2 = iface.AWGH2
+			peer.Interface.AWGH3 = iface.AWGH3
+			peer.Interface.AWGH4 = iface.AWGH4
 
 			return &peer, nil
 		})

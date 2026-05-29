@@ -114,7 +114,7 @@ const userDisplayName = computed(() => {
 
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-      <RouterLink class="navbar-brand" :to="{ name: 'home' }"><img alt="AWG-PORTAL" :src="webBasePath + '/img/awg-logo.svg'" height="40" /></RouterLink>
+      <RouterLink class="navbar-brand" :to="{ name: 'home' }"><img :alt="companyName" :src="webBasePath + '/img/header-logo.png'" /></RouterLink>
       <button aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler"
         data-bs-target="#navbarTop" data-bs-toggle="collapse" type="button">
         <span class="navbar-toggler-icon"></span>

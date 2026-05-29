@@ -525,6 +525,21 @@ func (m Manager) savePeers(ctx context.Context, peers ...*domain.Peer) error {
 
 		iface := interfaces[peer.InterfaceIdentifier]
 
+		// Force-propagate AmneziaWG obfuscation parameters from the interface to the peer
+		// This ensures clients always get AWG params even if the frontend omits them in requests
+		peer.Interface.AWGEnabled = iface.AWGEnabled
+		peer.Interface.AWGJc = iface.AWGJc
+		peer.Interface.AWGJmin = iface.AWGJmin
+		peer.Interface.AWGJmax = iface.AWGJmax
+		peer.Interface.AWGS1 = iface.AWGS1
+		peer.Interface.AWGS2 = iface.AWGS2
+		peer.Interface.AWGS3 = iface.AWGS3
+		peer.Interface.AWGS4 = iface.AWGS4
+		peer.Interface.AWGH1 = iface.AWGH1
+		peer.Interface.AWGH2 = iface.AWGH2
+		peer.Interface.AWGH3 = iface.AWGH3
+		peer.Interface.AWGH4 = iface.AWGH4
+
 		// Always save the peer to the backend, regardless of disabled/expired state
 		// The backend will handle the disabled state appropriately
 		err := m.db.SavePeer(ctx, peer.Identifier, func(p *domain.Peer) (*domain.Peer, error) {

@@ -6,13 +6,13 @@ const auth = authStore()
 </script>
 
 <template>
-  <div class="page-header text-center mb-4">
-    <img src="/img/awg-logo.svg" alt="AWG-PORTAL" height="60" class="mb-3" />
-    <h1 class="display-4">{{ $t('home.headline') }}</h1>
-    <p class="lead">{{ $t('home.abstract') }}</p>
+  <div class="page-header">
+    <h1>{{ $t('home.headline') }}</h1>
   </div>
 
-  <div class="card border-primary p-5 mb-4" v-if="auth.IsAuthenticated">
+  <p class="lead">{{ $t('home.abstract') }}</p>
+
+  <div class="card border-secondary p-5" v-if="auth.IsAuthenticated">
     <h2 class="display-5">{{ $t('home.profiles.headline') }}</h2>
     <p class="lead">{{ $t('home.profiles.abstract') }}</p>
     <hr class="my-4">
@@ -56,7 +56,7 @@ const auth = authStore()
           <div class="mt-auto d-flex gap-2">
             <a href="https://www.wireguard.com/install/" title="WireGuard" target="_blank" rel="noopener noreferrer"
               class="btn btn-primary btn-sm">{{ $t('home.about-wg.button') }}</a>
-            <a href="https://github.com/amnezia-vpn/amneziawg-go" title="AmneziaWG" target="_blank" rel="noopener noreferrer"
+            <a href="https://docs.amnezia.org/ru/documentation/amnezia-wg/" title="AmneziaWG" target="_blank" rel="noopener noreferrer"
               class="btn btn-outline-primary btn-sm">AmneziaWG</a>
           </div>
         </div>

@@ -1,79 +1,96 @@
-# WireGuard Portal v2
+# AWG-PORTAL
 
-[![Build Status](https://github.com/h44z/wg-portal/actions/workflows/docker-publish.yml/badge.svg?event=push)](https://github.com/h44z/wg-portal/actions/workflows/docker-publish.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
-![GitHub last commit](https://img.shields.io/github/last-commit/h44z/wg-portal/master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/h44z/wg-portal)](https://goreportcard.com/report/github.com/h44z/wg-portal)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/h44z/wg-portal)
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/h44z/wg-portal)
-[![Docker Pulls](https://img.shields.io/docker/pulls/h44z/wg-portal.svg)](https://hub.docker.com/r/wgportal/wg-portal/)
+![GitHub last commit](https://img.shields.io/github/last-commit/DanilenkA/awg-portal/master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/DanilenkA/awg-portal)](https://goreportcard.com/report/github.com/DanilenkA/awg-portal)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/DanilenkA/awg-portal)
 
 ## Introduction
-<!-- Text from this line # is included in docs/documentation/overview.md -->
-**WireGuard Portal** is a simple, web-based configuration portal for [WireGuard](https://wireguard.com) server management.
-The portal uses the WireGuard [wgctrl](https://github.com/WireGuard/wgctrl-go) library to manage existing VPN
-interfaces. This allows for the seamless activation or deactivation of new users without disturbing existing VPN
-connections.
 
-The configuration portal supports using a database (SQLite, MySQL, MsSQL, or Postgres), OAuth or LDAP
-(Active Directory or OpenLDAP) as a user source for authentication and profile data.
+**AWG-PORTAL** — это форк [h44z/wg-portal](https://github.com/h44z/wg-portal) v2 с полной поддержкой [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go) — протокола, устойчивого к DPI и блокировкам.
 
-## Features
+Портал предоставляет веб-интерфейс для управления VPN-серверами на базе **WireGuard** и **AmneziaWG**. Поддерживает создание/удаление пиров, генерацию конфигов, QR-коды, email-рассылку, мониторинг и REST API.
 
-* Self-hosted - the whole application is a single binary
-* Responsive multi-language web UI with dark-mode written in Vue.js
-* Automatically selects IP from the network pool assigned to the client
-* QR-Code for convenient mobile client configuration
-* Sends email to the client with QR-code and client config
-* Enable / Disable clients seamlessly
-* Generation of wg-quick configuration file (`wgX.conf`) if required
-* User authentication (database, OAuth, or LDAP), Passkey support
-* IPv6 ready
-* Docker ready
-* Can be used with existing WireGuard setups
-* Support for multiple WireGuard interfaces
-* Supports multiple WireGuard backends (wgctrl, MikroTik, or pfSense)
-* Peer Expiry Feature
-* Handles route and DNS settings like wg-quick does
-* Exposes Prometheus metrics for monitoring and alerting
-* REST API for management and client deployment
-* Webhook for custom actions on peer, interface, or user updates
+Обфускация AmneziaWG настраивается через веб-интерфейс для каждого интерфейса отдельно — параметры автоматически передаются в конфигурации клиентов.
 
-<!-- Text to this line # is included in docs/documentation/overview.md -->
-![Screenshot](docs/assets/images/screenshot.png)
+## Возможности
 
-## Documentation
+* Полная поддержка **WireGuard** и **AmneziaWG** (amneziawg-go v2.x / awg)
+* Обфускация трафика — защита от DPI (Deep Packet Inspection)
+* Автовыбор AWG-параметров с возможностью ручной настройки
+* Самодостаточный бинарник — всё в одном файле
+* Адаптивный веб-интерфейс на Vue.js с тёмной темой и мультиязычностью
+* Автовыбор IP из пула сети при создании пира
+* QR-код для удобной настройки мобильных клиентов
+* Отправка конфига по email
+* Включение / отключение пиров без прерывания соединений
+* Генерация wg-quick конфигов (`wgX.conf`)
+* Аутентификация (БД, OAuth, LDAP), поддержка Passkey
+* IPv6 готовность
+* Docker-ready
+* Работа с существующими WireGuard-интерфейсами
+* Поддержка нескольких интерфейсов и бекендов (wgctl, MikroTik, pfSense)
+* Управление маршрутизацией и DNS (как wg-quick)
+* Prometheus-метрики для мониторинга
+* REST API для управления и деплоя клиентов
+* Webhook для кастомных действий
 
-For the complete documentation visit [wgportal.org](https://wgportal.org).
+## Отличия от оригинала (h44z/wg-portal)
 
-## What is out of scope
+| Возможность | h44z/wg-portal | AWG-PORTAL |
+|---|---|---|
+| WireGuard | ✅ | ✅ |
+| AmneziaWG (обфускация) | ❌ | ✅ |
+| amneziawg-go | ❌ | ✅ (v2.x) |
+| AWG-параметры в API | ❌ | ✅ |
+| UAPI для AWG | ❌ | ✅ |
+| AWG-бейдж в интерфейсе | ❌ | ✅ |
+| SVG-логотип | ❌ | ✅ |
 
-* Automatic generation or application of any `iptables` or `nftables` rules.
-* Support for operating systems other than linux.
-* Automatic import of private keys of an existing WireGuard setup.
+## Быстрый старт
+
+```bash
+# Скачать последний релиз
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-linux-amd64.tar.gz
+tar xzf awg-portal-linux-amd64.tar.gz
+sudo ./awg-portal --config config.yml
+```
+
+Пример конфига: [config.yml.sample](config.yml.sample)
+
+Полная документация: [wgportal.org](https://wgportal.org) (оригинальная, функционал совместим).
+
+## Установка AmneziaWG
+
+AWG-PORTAL автоматически управляет процессом `amneziawg-go`. Если бинарный бандл содержит `amneziawg-go`, портал запустит его в фоне. В режиме `awg_mode: auto` портал сам определяет, какой протокол использовать, на основе настроек интерфейса.
+
+Подробнее: [AmneziaWG](https://docs.amnezia.org/ru/documentation/amnezia-wg/)
+
+## Сборка из исходников
+
+```bash
+# Требования: Go 1.23+, Node.js 20+
+git clone git@github.com:DanilenkA/awg-portal.git
+cd awg-portal
+
+# Фронтенд
+make frontend
+
+# Бинарь
+make build-amd64
+```
 
 ## Application stack
 
-* [wgctrl-go](https://github.com/WireGuard/wgctrl-go) and [netlink](https://github.com/vishvananda/netlink) for interface handling
-* [Bootstrap](https://getbootstrap.com/), for the HTML templates
-* [Vue.js](https://vuejs.org/), for the frontend
+* [amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) — AWG-протокол
+* [wgctrl-go](https://github.com/WireGuard/wgctrl-go) и [netlink](https://github.com/vishvananda/netlink) — управление интерфейсами
+* [Bootstrap](https://getbootstrap.com/) — HTML-шаблоны
+* [Vue.js](https://vuejs.org/) — фронтенд
 
-## License
+## Лицензия
 
-* MIT License. [MIT](LICENSE.txt) or <https://opensource.org/licenses/MIT>
+MIT License. [MIT](LICENSE.txt)
 
-## Contributors and Sponsors
+## Благодарности
 
-Thanks so much for all your contributions! They’re truly appreciated and help keep WireGuard Portal moving ahead.
-
-<a href="https://github.com/h44z/wg-portal/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=h44z/wg-portal" />
-</a>
-
-Want to support the project? You can buy me a coffee or join as a contributor - every bit of support helps! 
-[Become a sponsor!](https://github.com/sponsors/h44z)
-
-
-> [!IMPORTANT]
-> Since the project was accepted by the Docker-Sponsored Open Source Program, the Docker image location has moved to [wgportal/wg-portal](https://hub.docker.com/r/wgportal/wg-portal).
-> Please update the Docker image from **h44z/wg-portal** to **wgportal/wg-portal**.
+Огромное спасибо [h44z](https://github.com/h44z) за оригинальный [WireGuard Portal](https://github.com/h44z/wg-portal).
