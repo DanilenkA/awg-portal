@@ -1,49 +1,95 @@
----
 services:
   awg-portal:
-    image: ghcr.io/danilenka/awg-portal:local
+    # Замените :latest на конкретную версию для production,
+    # например ghcr.io/danilenka/awg-portal:v1.2.2fix
+    image: ghcr.io/danilenka/awg-portal:latest
     container_name: awg-portal
     restart: unless-stopped
+
+    # Host-режим обязателен: контейнер управляет сетевыми интерфейсами
+    # хоста (WireGuard/AmneziaWG). Bridge-режим не поддерживается.
     network_mode: "host"
+
     cap_add:
+      # Управление WireGuard/AmneziaWG-интерфейсами (ip link, wg set)
       - NET_ADMIN
+      # Загрузка модулей ядра (ip xfrm, ipsec, wireguard)
       - SYS_MODULE
+
     environment:
-      # Core
-      - WG_PORTAL_CORE_ADMIN_USER=admin@awg.local
-      - WG_PORTAL_CORE_ADMIN_PASSWORD=admin1n123-admin1n123-admin1n123
-      - WG_PORTAL_CORE_RESTORE_STATE=false
-      - WG_PORTAL_CORE_IMPORT_EXISTING=false
-      - WG_PORTAL_CORE_CREATE_DEFAULT_PEER_ON_LOGIN=true
+      # ── Core ─────────────────────────────────────────────────────
+      # Учётная запись администратора (создаётся при первом запуске)
+      - WG_PORTAL_CORE_ADMIN_USER=admin@example.com
+      # Пароль администратора (обязательно смените!)
+      - WG_PORTAL_CORE_ADMIN_PASSWORD=CHANGE_ME_PLEASE
+
+      # Восстанавливать WireGuard-интерфейсы из БД при старте.
+      # Оставьте true, если контейнер перезапускается с теми же сетевыми
+      # интерфейсами. Выключите (false), если БД содержит интерфейсы,
+      # которые уже удалены на хосте.
+      - WG_PORTAL_CORE_RESTORE_STATE=true
+
+      # Импортировать существующие на хосте WireGuard-интерфейсы
+      - WG_PORTAL_CORE_IMPORT_EXISTING=true
+
+      # Создавать дефолтный пир при входе пользователя или создании интерфейса
+      - WG_PORTAL_CORE_CREATE_DEFAULT_PEER_ON_LOGIN=false
       - WG_PORTAL_CORE_CREATE_DEFAULT_PEER_ON_INTERFACE_CREATION=true
 
-      # Database
+      # ── Database ────────────────────────────────────────────────
+      # Поддерживается SQLite (встроенная) и PostgreSQL.
+      # Для PostgreSQL пример:
+      #   WG_PORTAL_DATABASE_TYPE=postgres
+      #   WG_PORTAL_DATABASE_DSN=host=pg host=localhost user=... dbname=... password=...
       - WG_PORTAL_DATABASE_TYPE=sqlite
       - WG_PORTAL_DATABASE_DSN=/app/data/sqlite.db
 
-      # Web
-      - WG_PORTAL_WEB_EXTERNAL_URL=http://10.130.130.100:8888
+      # ── Web ─────────────────────────────────────────────────────
+      # Внешний URL (для ссылок в email, QR-кодах).
+      # Замените на реальный IP/домен сервера!
+      - WG_PORTAL_WEB_EXTERNAL_URL=http://localhost:8888
+      # Адрес прослушивания
       - WG_PORTAL_WEB_LISTENING_ADDRESS=:8888
+      # Логирование HTTP-запросов
       - WG_PORTAL_WEB_REQUEST_LOGGING=true
-      - WG_PORTAL_WEB_SITE_TITLE=AWG-PORTAL Test (Docker Compose)
+      # Название сайта (отображается в заголовке)
+      - WG_PORTAL_WEB_SITE_TITLE=AWG-PORTAL
+      # Название компании (в подвале)
       - WG_PORTAL_WEB_SITE_COMPANY_NAME=AWG-PORTAL
 
-      # Advanced
+      # ── Advanced ────────────────────────────────────────────────
       - WG_PORTAL_ADVANCED_LOG_LEVEL=info
+
+      # Стартовый порт для WireGuard (51820, 51821, ...). При создании
+      # интерфейса порт автоматически увеличивается на 1.
       - WG_PORTAL_ADVANCED_START_LISTEN_PORT=51820
+
+      # Стартовая IPv4-подсеть
       - WG_PORTAL_ADVANCED_START_CIDR_V4=10.211.1.0/24
+
+      # Путь к конфигурационным файлам WireGuard (wgX.conf).
+      # Важно: без этой директории save-config падает с nil pointer!
       - WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH=/app/config
 
-      # Backend
+      # ── Backend ─────────────────────────────────────────────────
+      # Режим AmneziaWG:
+      #   auto   — попробовать amneziawg-go, при ошибке — kernel WG
+      #   always — требовать amneziawg-go, ошибка если нет
+      #   never  — только kernel WireGuard
       - WG_PORTAL_BACKEND_AWG_MODE=auto
 
-      # Auth
-      - WG_PORTAL_AUTH_MIN_PASSWORD_LENGTH=4
+      # ── Auth ────────────────────────────────────────────────────
+      # Минимальная длина пароля
+      - WG_PORTAL_AUTH_MIN_PASSWORD_LENGTH=8
 
-      # Statistics
+      # ── Statistics / Monitoring ─────────────────────────────────
+      # Prometheus-метрики (опционально, можно отключить)
       - WG_PORTAL_STATISTICS_LISTENING_ADDRESS=:8787
 
     volumes:
+      # WireGuard/AWG-конфиги на хосте
       - /etc/wireguard:/etc/wireguard
+      # База данных и данные портала
       - ./data:/app/data
+      # Путь для wg-конфигов (см. WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH)
       - ./config:/app/config

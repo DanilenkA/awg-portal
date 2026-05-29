@@ -7,7 +7,7 @@
 
 ## Introduction
 
-**AWG-PORTAL** — это форк [h44z/wg-portal](https://github.com/h44z/wg-portal) с полной поддержкой [AmneziaWG ](https://github.com/amnezia-vpn/amneziawg-go) — протокола, устойчивого к DPI и блокировкам.
+**AWG-PORTAL** — это форк [h44z/wg-portal](https://github.com/h44z/wg-portal) с полной поддержкой [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go) — протокола, устойчивого к DPI и блокировкам.
 
 Портал предоставляет веб-интерфейс для управления VPN-серверами на базе **WireGuard** и **AmneziaWG**. Поддерживает создание/удаление пиров, генерацию конфигов, QR-коды, email-рассылку, мониторинг и REST API.
 
@@ -46,8 +46,33 @@
 | UAPI для AWG | ❌ | ✅ |
 | AWG-бейдж в интерфейсе | ❌ | ✅ |
 | SVG-логотип | ❌ | ✅ |
+| PresharedKey/PrivateKey автогенерация в API | ❌ | ✅ |
 
 ## Быстрый старт
+
+### Docker (рекомендовано)
+
+```bash
+# 1. Скачать docker-compose.yml
+curl -LO https://raw.githubusercontent.com/DanilenkA/awg-portal/main/docker-compose.yml
+
+# 2. Отредактировать docker-compose.yml — поменять:
+#    - WG_PORTAL_CORE_ADMIN_USER
+#    - WG_PORTAL_CORE_ADMIN_PASSWORD
+#    - WG_PORTAL_WEB_EXTERNAL_URL
+
+# 3. Создать директории для данных
+mkdir -p data config
+
+# 4. Запустить
+docker compose up -d
+
+# 5. Открыть браузер: http://<сервер>:8888
+```
+
+Контейнер использует `network_mode: host` — портал управляет сетевыми интерфейсами непосредственно на хосте. Все порты (8888, 8787, 51820+) открываются на хосте.
+
+### Бинарный релиз
 
 ```bash
 # Скачать последний релиз
@@ -59,6 +84,147 @@ sudo ./awg-portal --config config.yml
 Пример конфига: [config.yml.sample](config.yml.sample)
 
 Полная документация: [wgportal.org](https://wgportal.org) (оригинальная, функционал совместим).
+
+## Docker
+
+### Доступные образы
+
+Образы публикуются на GitHub Container Registry:
+
+```
+ghcr.io/danilenka/awg-portal:latest     # последний стабильный
+ghcr.io/danilenka/awg-portal:vX.X.X     # конкретная версия
+```
+
+### Системные требования
+
+- **Docker Engine** 24+ (рекомендуется с поддержкой Compose v2)
+- **Ядро Linux** с модулем `wireguard` (5.6+) или `amneziawg` (для AWG)
+- Доступ к сетевым интерфейсам — контейнер требует `--cap-add=NET_ADMIN,SYS_MODULE` и `--network=host`
+
+### Конфигурация через переменные окружения
+
+Все параметры [config.yml.sample](config.yml.sample) можно задать через переменные окружения. Схема именования:
+
+```
+WG_PORTAL_<СЕКЦИЯ>_<ПАРАМЕТР>
+```
+
+Пример: `advanced.log_level` → `WG_PORTAL_ADVANCED_LOG_LEVEL`
+
+Базовые переменные (обязательны к настройке):
+
+| Переменная | Описание | Пример |
+|---|---|---|
+| `WG_PORTAL_CORE_ADMIN_USER` | Email администратора | `admin@example.com` |
+| `WG_PORTAL_CORE_ADMIN_PASSWORD` | Пароль администратора | (смените!) |
+| `WG_PORTAL_WEB_EXTERNAL_URL` | Внешний URL портала | `http://vpn.example.com:8888` |
+| `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH` | Путь для wg-конфигов | `/app/config` |
+
+> **Важно:** `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH` обязателен. Без него
+> функция `save-config` падает с nil pointer.
+
+### Монтируемые тома
+
+| Том хоста | В контейнере | Назначение |
+|---|---|---|
+| `/etc/wireguard` | `/etc/wireguard` | WireGuard/AmneziaWG-конфиги интерфейсов |
+| `./data` | `/app/data` | SQLite БД, логи, ключи |
+| `./config` | `/app/config` | wg-конфиги (save-config) |
+
+### docker-compose.yml (полный пример)
+
+```yaml
+services:
+  awg-portal:
+    image: ghcr.io/danilenka/awg-portal:latest
+    container_name: awg-portal
+    restart: unless-stopped
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - WG_PORTAL_CORE_ADMIN_USER=admin@example.com
+      - WG_PORTAL_CORE_ADMIN_PASSWORD=CHANGE_ME_PLEASE
+      - WG_PORTAL_CORE_RESTORE_STATE=true
+      - WG_PORTAL_CORE_IMPORT_EXISTING=true
+      - WG_PORTAL_WEB_EXTERNAL_URL=http://localhost:8888
+      - WG_PORTAL_WEB_LISTENING_ADDRESS=:8888
+      - WG_PORTAL_WEB_SITE_TITLE=AWG-PORTAL
+      - WG_PORTAL_ADVANCED_LOG_LEVEL=info
+      - WG_PORTAL_ADVANCED_START_LISTEN_PORT=51820
+      - WG_PORTAL_ADVANCED_START_CIDR_V4=10.211.1.0/24
+      - WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH=/app/config
+      - WG_PORTAL_BACKEND_AWG_MODE=auto
+      - WG_PORTAL_DATABASE_TYPE=sqlite
+      - WG_PORTAL_DATABASE_DSN=/app/data/sqlite.db
+    volumes:
+      - /etc/wireguard:/etc/wireguard
+      - ./data:/app/data
+      - ./config:/app/config
+```
+
+Полный файл с комментариями — в [docker-compose.yml](docker-compose.yml) репозитория.
+
+### Использование config.yml вместо переменных окружения
+
+Если предпочитаете YAML-файл, смонтируйте его в `/app/config/config.yml`:
+
+```yaml
+services:
+  awg-portal:
+    image: ghcr.io/danilenka/awg-portal:latest
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    volumes:
+      - ./config.yml:/app/config/config.yml
+      - /etc/wireguard:/etc/wireguard
+      - ./data:/app/data
+```
+
+### Сборка образа из исходников
+
+```bash
+# Требования: Docker 24+
+git clone git@github.com:DanilenkA/awg-portal.git
+cd awg-portal
+
+# Собрать образ (теги: latest + версия из git describe)
+make build-docker
+
+# Мультиархитектурная сборка (amd64 + arm64) с пушами в ghcr.io
+make build-docker-multiarch
+```
+
+### Особенности работы в Docker
+
+1. **Физические интерфейсы:** Портал управляет WireGuard-интерфейсами на
+   хосте через `wg set`/`ip link`. Это нормально — интерфейсы видны на хосте
+   и сохраняются после перезапуска контейнера (если `restore_state=true`).
+
+2. **save-config:** Для сохранения wg-конфигов на диск требуется
+   `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH`. Без него save-config не работает.
+
+3. **Маршрутизация:** Портал использует `wg set`, а не `wg-quick`. Если нужна
+   автоматическая настройка маршрутов (fwmark, таблица маршрутизации),
+   добавьте PostUp-скрипты или используйте `wg-quick` на хосте.
+
+4. **PresharedKey:** При создании пира через REST API без указания
+   `PrivateKey` и `PresharedKey` — портал сгенерирует их автоматически.
+   Это исправлено в AWG-PORTAL (в оригинале h44z ключи оставались пустыми).
+
+5. **AmneziaWG (обфускация):** Для работы AWG требуется бинарник
+   `amneziawg-go`. В Docker-образе его нет. Скачайте и разместите рядом
+   с конфигом, либо установите на хосте:
+   ```bash
+   curl -LO https://github.com/amnezia-vpn/amneziawg-go/releases/latest/download/amneziawg-go-linux-amd64.tar.gz
+   tar xzf amneziawg-go-linux-amd64.tar.gz
+   chmod +x amneziawg-go
+   mv amneziawg-go /usr/local/bin/
+   ```
 
 ## Установка AmneziaWG
 
@@ -72,11 +238,9 @@ AWG-PORTAL автоматически управляет процессом `amn
 # Требования: Go 1.23+, Node.js 20+
 git clone git@github.com:DanilenkA/awg-portal.git
 cd awg-portal
+make build-docker
 
-# Фронтенд
-make frontend
-
-# Бинарь
+# Или сборка бинарника
 make build-amd64
 ```
 
@@ -86,6 +250,37 @@ make build-amd64
 * [wgctrl-go](https://github.com/WireGuard/wgctrl-go) и [netlink](https://github.com/vishvananda/netlink) — управление интерфейсами
 * [Bootstrap](https://getbootstrap.com/) — HTML-шаблоны
 * [Vue.js](https://vuejs.org/) — фронтенд
+* [Vite](https://vite.dev/) — сборка фронтенда
+
+## REST API
+
+Портал предоставляет REST API для автоматизации. После запуска:
+
+```bash
+# Логин (получить JWT-токен)
+curl -X POST http://localhost:8888/api/v0/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin@example.com","password":"CHANGE_ME_PLEASE"}'
+
+# Создать интерфейс (замените JWT)
+curl -X POST http://localhost:8888/api/v0/interface/new \
+  -H "Authorization: Bearer <JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{"InterfaceName":"wg0","IpAddresses":["10.211.1.1/24"],"ListenPort":51820}'
+
+# Создать пира
+curl -X POST http://localhost:8888/api/v0/peer/iface/wg0/new \
+  -H "Authorization: Bearer <JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{"DisplayName":"client1","IPAddresses":["10.211.1.2/32"]}'
+
+# Получить конфиг пира
+curl -X GET http://localhost:8888/api/v0/peer/config/<peer-id> \
+  -H "Authorization: Bearer <JWT>"
+```
+
+API v0 полностью совместимо с h44z/wg-portal. Документация:
+[Swagger: /api/v0/docs/](https://wgportal.org/master/rest-api/)
 
 ## Лицензия
 
