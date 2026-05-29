@@ -163,6 +163,8 @@ func IsAWGProcessRunning(ifaceName string) bool {
 // a peer via the AmneziaWG UAPI socket.
 type AWGUAPIPeerConfig struct {
 	PublicKey    string   // base64-encoded public key
+	PresharedKey string   // base64-encoded preshared key (optional, empty = none)
+	Endpoint     string   // endpoint host:port (optional, empty = none)
 	AllowedIPs   []string // CIDR notation, e.g. ["10.200.0.2/32"]
 	Keepalive    int      // persistent keepalive interval in seconds
 }
@@ -195,6 +197,20 @@ func SetAWGPeer(ifaceName string, peer AWGUAPIPeerConfig) error {
 	var buf strings.Builder
 	buf.WriteString("set=1\n")
 	buf.WriteString(fmt.Sprintf("public_key=%s\n", pubHex))
+
+	// Optional preshared key (hex-encoded)
+	if peer.PresharedKey != "" {
+		pskHex := UAPIKeyToHex(peer.PresharedKey)
+		if pskHex != "" {
+			buf.WriteString(fmt.Sprintf("preshared_key=%s\n", pskHex))
+		}
+	}
+
+	// Optional endpoint
+	if peer.Endpoint != "" {
+		buf.WriteString(fmt.Sprintf("endpoint=%s\n", peer.Endpoint))
+	}
+
 	for _, cidr := range peer.AllowedIPs {
 		buf.WriteString(fmt.Sprintf("allowed_ip=%s\n", cidr))
 	}

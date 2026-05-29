@@ -545,11 +545,25 @@ func (c LocalController) saveAWGPeer(
 		allowedIPs = append(allowedIPs, cidr.String())
 	}
 
+		// Build endpoint string from the peer's endpoint (if set)
+	endpoint := ""
+	if pp.Endpoint != "" {
+		endpoint = pp.Endpoint
+	}
+
+	// Get preshared key (base64-encoded)
+	psk := ""
+	if pp.PresharedKey != "" {
+		psk = string(pp.PresharedKey)
+	}
+
 	// Send via UAPI
 	return lowlevel.SetAWGPeer(string(deviceId), lowlevel.AWGUAPIPeerConfig{
-		PublicKey:  string(id),
-		AllowedIPs: allowedIPs,
-		Keepalive:  pp.PersistentKeepalive,
+		PublicKey:    string(id),
+		PresharedKey: psk,
+		Endpoint:     endpoint,
+		AllowedIPs:   allowedIPs,
+		Keepalive:    pp.PersistentKeepalive,
 	})
 }
 
