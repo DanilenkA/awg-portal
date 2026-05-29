@@ -247,6 +247,13 @@ func (c LocalController) SaveInterface(
 		return err
 	}
 
+	// HACK: amneziawg-go TUN interfaces don't get automatic connected routes.
+	// Add them here as a best-effort first attempt; SetRoutes will re-add them
+	// after the route manager clears stale entries.
+	if err := c.ensureAWGConnectedRoute(physicalInterface); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -806,6 +813,33 @@ func (c LocalController) SetRoutes(_ context.Context, info domain.RoutingTableIn
 		return fmt.Errorf("failed to set v6 routes: %w", err)
 	}
 
+	// HACK: setRoutesForFamily removes stale connected routes (scope=link,
+	// type=unicast) from the interface. AWG TUN interfaces created by
+	// amneziawg-go don't get automatic connected routes from the kernel,
+	// so re-add them here after route management completes.
+	// Note: we can't rely on pi.GetAWGParams() here because
+	// convertWireGuardInterface doesn't copy AWG params from UAPI.
+	if info.Interface.HasAnyAWGParams() {
+		slog.Debug("re-adding connected route for AWG interface", "iface", interfaceId)
+		link, linkErr := c.nl.LinkByName(string(interfaceId))
+		if linkErr != nil {
+			return fmt.Errorf("failed to get link for AWG route: %w", linkErr)
+		}
+		for _, addr := range info.Interface.Addresses {
+			if !addr.IsV4() {
+				continue
+			}
+			network := addr.NetworkAddr()
+			if routeErr := c.nl.RouteAdd(&netlink.Route{
+				LinkIndex: link.Attrs().Index,
+				Dst:       network.IpNet(),
+				Scope:     netlink.SCOPE_LINK,
+			}); routeErr != nil && !errors.Is(routeErr, unix.EEXIST) {
+				return fmt.Errorf("failed to add AWG route %s: %w", network.String(), routeErr)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -1174,3 +1208,39 @@ func (c LocalController) PingAddresses(
 }
 
 // endregion statistics-related
+
+// ensureAWGConnectedRoute adds connected routes for AWG (TUN) interfaces.
+// amneziawg-go creates TUN devices via tun.CreateTUN() which, unlike kernel
+// WireGuard interfaces or ip tuntap add, doesn't trigger the kernel to add
+// automatic connected routes. Without this, return traffic from the AWG
+// interface has no route and ping/IP traffic fails.
+func (c LocalController) ensureAWGConnectedRoute(pi *domain.PhysicalInterface) error {
+	if _, isAWG := pi.GetAWGParams(); !isAWG {
+		return nil // not an AWG interface, nothing to do
+	}
+
+	link, err := c.nl.LinkByName(string(pi.Identifier))
+	if err != nil {
+		return fmt.Errorf("failed to get link for AWG route: %w", err)
+	}
+
+	for _, addr := range pi.Addresses {
+		if !addr.IsV4() {
+			continue // only IPv4 for now
+		}
+		network := addr.NetworkAddr()
+		// Matches `ip route add <network>/<mask> dev <iface> scope link`
+		route := &netlink.Route{
+			LinkIndex: link.Attrs().Index,
+			Dst:       network.IpNet(),
+			Scope:     netlink.SCOPE_LINK,
+		}
+			if err := c.nl.RouteAdd(route); err != nil {
+			if errors.Is(err, unix.EEXIST) {
+				continue // already exists, fine
+			}
+			return fmt.Errorf("failed to add AWG connected route %s: %w", network.String(), err)
+		}
+	}
+	return nil
+}

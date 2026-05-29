@@ -1,11 +1,8 @@
 ---
 services:
   awg-portal:
-<<<<<<< HEAD
     # Замените :v1.3.0 на актуальную версию из https://github.com/DanilenkA/awg-portal/pkgs/container/awg-portal
     # или используйте :latest для получения последней стабильной версии
-=======
->>>>>>> 3865544 (chore: update docker-compose.yml for v1.3.0 (TUN device, image tag))
     image: ghcr.io/danilenka/awg-portal:v1.3.0
     container_name: awg-portal
     restart: unless-stopped
@@ -19,16 +16,11 @@ services:
       - NET_ADMIN
       # Загрузка модулей ядра (ip xfrm, ipsec, wireguard)
       - SYS_MODULE
-<<<<<<< HEAD
 
     devices:
       # TUN-устройство для AmneziaWG userspace-режима (amneziawg-go)
       - /dev/net/tun:/dev/net/tun
 
-=======
-    devices:
-      - /dev/net/tun:/dev/net/tun  # Required for AWG userspace mode
->>>>>>> 3865544 (chore: update docker-compose.yml for v1.3.0 (TUN device, image tag))
     environment:
       # ── Core ─────────────────────────────────────────────────────
       # Учётная запись администратора (создаётся при первом запуске)
