@@ -9,10 +9,10 @@ name: Chart
 
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
     paths: ['deploy/helm/**']
   push:
-    branches: [master]
+    branches: [main]
     paths: ['deploy/helm/**']
 
 jobs:
