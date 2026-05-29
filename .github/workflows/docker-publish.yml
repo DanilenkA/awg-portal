@@ -60,12 +60,7 @@ jobs:
             type=ref,event=tag
             type=ref,event=branch
             # semver tags, without v prefix
-            type=semver,pattern={{version}}
             # major and major.minor tags are not available for alpha or beta releases
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
