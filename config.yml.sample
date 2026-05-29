@@ -1,107 +1,35 @@
-# More information about the configuration can be found in the documentation: https://wgportal.org/master/documentation/overview/
+# AWG-PORTAL configuration sample
+# Полная документация: https://wgportal.org/master/documentation/overview/
 
 advanced:
-  log_level: trace
+  log_level: info
 
 core:
-  admin_user: test@test.de
-  admin_password: secret
-  create_default_peer_on_login: true
+  admin_user: admin@example.com
+  admin_password: CHANGE_ME_PLEASE
+  restore_state: false
+  import_existing: false
+  create_default_peer_on_login: false
   create_default_peer_on_user_creation: false
   create_default_peer_on_interface_creation: false
 
 web:
   external_url: http://localhost:8888
-  base_path: ""
   request_logging: true
-  frontend_filepath: ""
+  listening_address: ":8888"
+  site_title: "AWG-PORTAL"
+  site_company_name: "AWG-PORTAL"
 
-mail:
-  templates_path: ""
-
-webhook:
-  url: ""
-  authentication: ""
-  timeout: 10s
+database:
+  type: sqlite
+  dsn: data/sqlite.db
 
 auth:
-  ldap:
-    - id: ldap1
-      provider_name: company ldap
-      url: ldap://ldap.yourcompany.local:389
-      bind_user: ldap_wireguard@yourcompany.local
-      bind_pass: super_Secret_PASSWORD
-      base_dn: DC=YOURCOMPANY,DC=LOCAL
-      login_filter: (&(objectClass=organizationalPerson)(mail={{login_identifier}})(!userAccountControl:1.2.840.113556.1.4.803:=2))
-      admin_group: CN=WireGuardAdmins,OU=it,DC=YOURCOMPANY,DC=LOCAL
-      sync_interval: 0  # sync disabled
-      sync_filter: (&(objectClass=organizationalPerson)(!userAccountControl:1.2.840.113556.1.4.803:=2)(mail=*))
-      registration_enabled: true
-  oidc:
-    - id: oidc1
-      provider_name: google
-      display_name: Login with</br>Google
-      base_url: https://accounts.google.com
-      client_id: the-client-id-1234.apps.googleusercontent.com
-      client_secret: A_CLIENT_SECRET
-      extra_scopes:
-        - https://www.googleapis.com/auth/userinfo.email
-        - https://www.googleapis.com/auth/userinfo.profile
-      registration_enabled: true
-      logout_idp_session: true
-    - id: oidc2
-      provider_name: google2
-      display_name: Login with</br>Google2
-      base_url: https://accounts.google.com
-      client_id: another-client-id-1234.apps.googleusercontent.com
-      client_secret: A_CLIENT_SECRET
-      extra_scopes:
-        - https://www.googleapis.com/auth/userinfo.email
-        - https://www.googleapis.com/auth/userinfo.profile
-      registration_enabled: true
-      logout_idp_session: true
-  oauth:
-    - id: google_plain_oauth
-      provider_name: google3
-      display_name: Login with</br>Google3
-      client_id: another-client-id-1234.apps.googleusercontent.com
-      client_secret: A_CLIENT_SECRET
-      auth_url: https://accounts.google.com/o/oauth2/v2/auth
-      token_url: https://oauth2.googleapis.com/token
-      user_info_url: https://openidconnect.googleapis.com/v1/userinfo
-      scopes:
-        - openid
-        - email
-        - profile
-      field_map:
-        email: email
-        firstname: name
-        user_identifier: sub
-        is_admin: this-attribute-must-be-true
-      registration_enabled: true
-    - id: google_plain_oauth_with_groups
-      provider_name: google4
-      display_name: Login with</br>Google4
-      client_id: another-client-id-1234.apps.googleusercontent.com
-      client_secret: A_CLIENT_SECRET
-      auth_url: https://accounts.google.com/o/oauth2/v2/auth
-      token_url: https://oauth2.googleapis.com/token
-      user_info_url: https://openidconnect.googleapis.com/v1/userinfo
-      scopes:
-        - openid
-        - email
-        - profile
-        - i-want-some-groups
-      field_map:
-        email: email
-        firstname: name
-        user_identifier: sub
-        user_groups: groups
-      admin_mapping:
-        admin_value_regex: ^true$
-        admin_group_regex: ^admin-group-name$
-      registration_enabled: true
-      log_user_info: true
+  # WebAuthn (Passkey) — включите, если настроен HTTPS с доверенным сертификатом.
+  # RPID (Relaying Party ID) определяется из web.external_url.
+  # Без HTTPS использовать не будет.
+  webauthn:
+    enabled: false
 
 backend:
   default: local
@@ -110,12 +38,3 @@ backend:
   #   always - require amneziawg-go, error if not available
   #   never  - kernel WG only, ignore AWG parameters
   awg_mode: auto
-  pfsense:
-    - id: pfsense1
-      display_name: "Main pfSense Firewall"
-      api_url: "https://pfsense.example.com"  # Base URL without /api/v2 (endpoints already include it)
-      api_key: "your-api-key"  # Generate in pfSense under 'System' -> 'REST API' -> 'Keys'
-      api_verify_tls: true
-      api_timeout: 30s
-      concurrency: 5
-      debug: false
