@@ -262,6 +262,9 @@ func (m Manager) PersistInterfaceConfig(ctx context.Context, id domain.Interface
 		return fmt.Errorf("failed to get interface config: %w", err)
 	}
 
+	if m.fsRepo == nil {
+		return fmt.Errorf("config persistence not configured: set advanced.config_storage_path")
+	}
 	if err := m.fsRepo.WriteFile(iface.GetConfigFileName(), cfg); err != nil {
 		return fmt.Errorf("failed to write interface config: %w", err)
 	}
@@ -271,6 +274,9 @@ func (m Manager) PersistInterfaceConfig(ctx context.Context, id domain.Interface
 
 // UnpersistInterfaceConfig removes the configuration file for the given interface from the file system.
 func (m Manager) UnpersistInterfaceConfig(_ context.Context, filename string) error {
+	if m.fsRepo == nil {
+		return fmt.Errorf("config persistence not configured: set advanced.config_storage_path")
+	}
 	if err := m.fsRepo.DeleteFile(filename); err != nil {
 		return fmt.Errorf("failed to remove interface config: %w", err)
 	}
