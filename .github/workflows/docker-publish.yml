@@ -2,11 +2,12 @@ name: Docker
 
 on:
   pull_request:
-    branches: [master]
+    branches: [main, master]
   push:
-    branches: [master]
+    branches: [main, master]
     # Publish vX.X.X tags as releases.
     tags: ["v*.*.*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
