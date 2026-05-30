@@ -30,13 +30,6 @@ jobs:
         shell: bash
         run: echo "BUILD_VERSION=${GITHUB_REF_NAME}-${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
@@ -50,17 +43,17 @@ jobs:
         uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: |
-            wgportal/wg-portal
             ghcr.io/${{ github.repository }}
           flavor: |
             latest=auto
             prefix=
             suffix=
           tags: |
+            # git tag (v*.*.*) → v1.3.1, branch → main
             type=ref,event=tag
             type=ref,event=branch
-            # semver tags, without v prefix
-            # major and major.minor tags are not available for alpha or beta releases
+            # semver c v-префиксом (v1.3.1, v1.3, v1)
+            type=semver,pattern=v{{version}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
