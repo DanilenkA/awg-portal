@@ -29,9 +29,13 @@ func NewFileSystemRepository(basePath string) (*FilesystemRepo, error) {
 
 // WriteFile writes the given contents to the given path.
 // The path is relative to the base path of the repository.
+// If the basePath is empty, the operation is silently skipped (config persistence not configured).
 // If the parent directory does not exist, it is created.
 // If the file already exists, it is overwritten.
 func (r *FilesystemRepo) WriteFile(path string, contents io.Reader) error {
+	if r == nil || r.basePath == "" {
+		return nil // config persistence not configured, skip silently
+	}
 	filePath := filepath.Join(r.basePath, path)
 	parentDirectory := filepath.Dir(filePath)
 
@@ -59,8 +63,12 @@ func (r *FilesystemRepo) WriteFile(path string, contents io.Reader) error {
 
 // DeleteFile deletes the file at the given path.
 // The path is relative to the base path of the repository.
+// If the basePath is empty, the operation is silently skipped.
 // If the file does not exist, it is ignored.
 func (r *FilesystemRepo) DeleteFile(path string) error {
+	if r == nil || r.basePath == "" {
+		return nil // config persistence not configured, skip silently
+	}
 	filePath := filepath.Join(r.basePath, path)
 
 	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {

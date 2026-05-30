@@ -1,8 +1,15 @@
 # AWG-PORTAL configuration sample
 # Полная документация: https://wgportal.org/master/documentation/overview/
+#
+# Все параметры можно задать через переменные окружения:
+#   WG_PORTAL_<SECTION>_<KEY>
+# Пример: advanced.log_level → WG_PORTAL_ADVANCED_LOG_LEVEL
 
 advanced:
   log_level: info
+  # Путь для сохранения wg-конфигов на диск (save-config).
+  # Без этого параметра save-config не работает и возвращает ошибку.
+  # config_storage_path: /app/config
 
 core:
   admin_user: admin@example.com
