@@ -121,8 +121,10 @@ WG_PORTAL_<СЕКЦИЯ>_<ПАРАМЕТР>
 | `WG_PORTAL_WEB_EXTERNAL_URL` | Внешний URL портала | `http://vpn.example.com:8888` |
 | `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH` | Путь для wg-конфигов | `/app/config` |
 
-> **Важно:** `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH` обязателен. Без него
-> функция `save-config` падает с nil pointer.
+> **Важно:** `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH` обязателен для работы
+> функции `save-config`. Без него сохранение конфигов возвращает ошибку.
+> Начиная с v1.3.2, nil-pointer в этой ситуации устранён — портал корректно
+> сообщает "config persistence not configured".
 
 ### Монтируемые тома
 
@@ -209,6 +211,7 @@ make build-docker-multiarch
 
 2. **save-config:** Для сохранения wg-конфигов на диск требуется
    `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH`. Без него save-config не работает.
+   Начиная с v1.3.2 возвращается ошибка, а не паника.
 
 3. **Маршрутизация:** Портал использует `wg set`, а не `wg-quick`. Если нужна
    автоматическая настройка маршрутов (fwmark, таблица маршрутизации),
@@ -235,6 +238,47 @@ make build-docker-multiarch
 AWG-PORTAL автоматически управляет процессом `amneziawg-go`. Если бинарный бандл содержит `amneziawg-go`, портал запустит его в фоне. В режиме `awg_mode: auto` портал сам определяет, какой протокол использовать, на основе настроек интерфейса.
 
 Подробнее: [AmneziaWG](https://docs.amnezia.org/ru/documentation/amnezia-wg/)
+
+### AmneziaWG: обфускация и UAPI
+
+При включении AWG-обфускации (Jc, Jmin, Jmax, S1–S4, H1–H4) на сервере,
+amneziawg-go декапсулирует трафик только с теми же параметрами.
+**Клиент обязан передавать те же AWG-параметры через UAPI**, иначе handshake
+не состоится — пакет дропается с `MessageUnknownType`.
+
+Параметры передаются как ключи UAPI `jc`, `jmin`, `jmax`, `s1`–`s4`, `h1`–`h4`
+при `set=1` для каждого пира.
+
+Пример настройки AWG-пира через UAPI (внутри контейнера/хоста):
+
+```python
+import socket
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.connect('/run/amneziawg/awg-test.sock')
+msg = '''set=1
+public_key=<peer-pubkey-hex>
+endpoint=10.130.130.60:51830
+allowed_ip=10.211.5.2/32
+jc=5
+jmin=50
+jmax=1000
+s1=30
+s2=60
+s3=30
+s4=60
+h1=120
+h2=200
+h3=30
+h4=55
+'''
+s.sendall(msg.encode())
+print(s.recv(1024))  # errno=0 — успех
+s.close()
+```
+
+AWG-параметры, сгенерированные порталом, доступны в ответе API для пира
+(поля `AWGJc`, `AWGJmin`, `AWGJmax`, `AWGS1`–`AWGS4`, `AWGH1`–`AWGH4`).
+
 
 ## Сборка из исходников
 
@@ -263,30 +307,137 @@ CGO_ENABLED=0 go build -ldflags "-X github.com/DanilenkA/awg-portal/internal.Ver
 Портал предоставляет REST API для автоматизации. После запуска:
 
 ```bash
-# Логин (получить JWT-токен)
-curl -X POST http://localhost:8888/api/v0/auth/login \
+# Логин (получить сессионную куку)
+curl -v -X POST http://localhost:8888/api/v0/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin@example.com","password":"CHANGE_ME_PLEASE"}'
+# Сохраните Cookie из ответа: wgPortalSession=...
 
-# Создать интерфейс (замените JWT)
+# Создать интерфейс (замените COOKIE)
 curl -X POST http://localhost:8888/api/v0/interface/new \
-  -H "Authorization: Bearer <JWT>" \
+  -H "Cookie: wgPortalSession=<COOKIE>" \
   -H "Content-Type: application/json" \
-  -d '{"InterfaceName":"wg0","IpAddresses":["10.211.1.1/24"],"ListenPort":51820}'
+  -d '{"Identifier":"wg0","Addresses":["10.211.1.1/24"],"ListenPort":51820}'
 
 # Создать пира
-curl -X POST http://localhost:8888/api/v0/peer/iface/wg0/new \
-  -H "Authorization: Bearer <JWT>" \
+curl -X POST 'http://localhost:8888/api/v0/peer/iface/wg0/new' \
+  -H "Cookie: wgPortalSession=<COOKIE>" \
   -H "Content-Type: application/json" \
-  -d '{"DisplayName":"client1","IPAddresses":["10.211.1.2/32"]}'
+  -d '{"InterfaceIdentifier":"wg0","Email":"client@example.com"}'
 
 # Получить конфиг пира
 curl -X GET http://localhost:8888/api/v0/peer/config/<peer-id> \
-  -H "Authorization: Bearer <JWT>"
+  -H "Cookie: wgPortalSession=<COOKIE>"
 ```
 
-API v0 полностью совместимо с h44z/wg-portal. Документация:
+API v0 полностью совместимо с h44z/wg-portal (кроме имени куки — `wgPortalSession`
+вместо `session`). Документация:
 [Swagger: /api/v0/docs/](https://wgportal.org/master/rest-api/)
+
+## Лицензия
+
+MIT License. [MIT](LICENSE.txt)
+
+## Troubleshooting
+
+### save-config возвращает ошибку "config persistence not configured"
+
+Задайте `advanced.config_storage_path` в конфиге или переменную окружения
+`WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH`. Без неё сохранение конфигов не работает.
+
+### WG-интерфейс создаётся как TUN, а не wireguard
+
+Известный upstream-баг (h44z/wg-portal). Портал создаёт интерфейс как
+`tun type tun`, а не `type wireguard`. Симптом: `wg show` падает с
+`Operation not supported`. Workaround:
+
+```bash
+sudo ip link delete wg0
+sudo ip link add dev wg0 type wireguard
+# Настройте адрес и ключи через wg set + ip addr
+```
+
+### amneziawg-go не стартует — "kernel has first class support"
+
+Если на хосте установлен kernel-модуль `amneziawg`, amneziawg-go
+отказывается запускаться. Выгрузите модуль и добавьте blacklist:
+
+```bash
+sudo modprobe -r amneziawg
+echo "blacklist amneziawg" | sudo tee /etc/modprobe.d/blacklist-amneziawg.conf
+```
+
+### AWG-туннель не поднимается (пинг 100% loss)
+
+**Причина 1: mismatch обфускации.**
+Если на сервере включены AWG-параметры (S1, H1 и т.д.), клиент обязан
+передавать те же параметры через UAPI. Клиент через wg-quick (без AWG)
+не сможет установить соединение — amneziawg-go дропает plain-пакеты.
+
+**Причина 2: нет connected route.**
+amneziawg-go не добавляет автоматический connected route для TUN-интерфейса.
+Начиная с v1.3.0 портал делает это сам (`ensureAWGConnectedRoute`).
+На ранних версиях добавьте вручную:
+
+```bash
+sudo ip route add <сеть> dev <интерфейс> scope link
+# Пример: ip route add 10.211.5.0/24 dev awg0 scope link
+```
+
+### AmneziaWG и kernel WireGuard конфликтуют на одном порту
+
+Если порт, указанный в `listen_port`, уже занят kernel WireGuard-интерфейсом,
+amneziawg-go не сможет его открыть. Убедитесь, что порт свободен.
+
+## Тестирование
+
+Перед тестированием убедитесь, что стенд чист. Рекомендуемый preflight-скрипт:
+
+```bash
+#!/bin/bash
+# Проверка модулей — amneziawg быть не должно
+lsmod | grep -E "wireguard|amnezia|tun"
+
+# Проверка портов — 8888/8787 свободны
+ss -tunelp | grep -E "8888|8787|5182[0-9]"
+
+# Проверка процессов — никаких awg/portal/amnezia
+ps aux | grep -iE "awg|portal|amnezia" | grep -v grep
+
+# Проверка интерфейсов — только lo, eth0, docker
+ip a | grep -E "^[0-9]+" | grep -v "lo\|eth0\|docker"
+
+# Проверка Docker (если нужен)
+sudo docker ps -a
+
+# Проверка UAPI-сокетов от прошлых тестов
+ls -la /run/amneziawg/
+```
+
+После теста — очистка:
+
+```bash
+# Остановить сервис, удалить юнит
+sudo systemctl stop awg-portal 2>/dev/null
+# Удалить интерфейсы
+sudo ip link delete wg-test 2>/dev/null
+sudo ip link delete awg-test 2>/dev/null
+# Убить amneziawg-go
+sudo pkill -f amneziawg-go 2>/dev/null
+# Удалить UAPI-сокеты
+sudo rm -rf /run/amneziawg/ 2>/dev/null
+# Удалить БД
+sudo rm -f data/sqlite.db 2>/dev/null
+```
+
+### Известные проблемы тестирования
+
+- В v1.2.2fix нет PresharedKey/Endpoint в UAPI — пиры добавляются без endpoint
+  (исправлено в v1.3.0).
+- В v1.2.2fix Base64UrlDecode ломает ASCII-идентификаторы — используйте
+  v1.3.0+ (исправлено).
+- При создании AWG-интерфейса через API без PrivateKey в v1.2.2fix падает
+  "incorrect key size" (исправлено в v1.3.0 — автогенерация).
 
 ## Лицензия
 
