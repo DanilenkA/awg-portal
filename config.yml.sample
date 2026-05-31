@@ -1,47 +1,67 @@
 # AWG-PORTAL configuration sample
-# Полная документация: https://wgportal.org/master/documentation/overview/
 #
 # Все параметры можно задать через переменные окружения:
 #   WG_PORTAL_<SECTION>_<KEY>
 # Пример: advanced.log_level → WG_PORTAL_ADVANCED_LOG_LEVEL
+#
+# Конфиг-файл загружается через WG_PORTAL_CONFIG env (systemd: /opt/awg-portal/config.yml)
+# Если файл не найден — используются дефолтные значения + ENV-переменные.
+#
+# Полная документация upstream (не всё совместимо):
+#   https://github.com/h44z/wg-portal
+#   https://wgportal.org (docs для версии 1.x)
 
-advanced:
-  log_level: info
-  # Путь для сохранения wg-конфигов на диск (save-config).
-  # Без этого параметра save-config не работает и возвращает ошибку.
-  # config_storage_path: /app/config
-
+# ============================================================
+# Базовые настройки (обязательные)
+# ============================================================
 core:
   admin_user: admin@example.com
-  admin_password: CHANGE_ME_PLEASE
-  restore_state: false
-  import_existing: false
-  create_default_peer_on_login: false
-  create_default_peer_on_user_creation: false
-  create_default_peer_on_interface_creation: false
+  admin_password: CHANGE_ME_PLEASE   # <-- ОБЯЗАТЕЛЬНО СМЕНИТЕ!
+  restore_state: false               # восстанавливать WG-интерфейсы после перезапуска
+  import_existing: false             # импортировать существующие WG-интерфейсы хоста
 
+# ============================================================
+# Расширенные настройки
+# ============================================================
+advanced:
+  log_level: info                     # debug | info | warn | error
+  config_storage_path: /opt/awg-portal/config   # куда сохранять wg-конфиги (save-config)
+  start_listen_port: 51820           # начальный порт для интерфейсов
+  start_cidr_v4: 10.211.1.0/24       # начальная подсеть для пиров
+
+# ============================================================
+# Веб-интерфейс
+# ============================================================
 web:
-  external_url: http://localhost:8888
-  request_logging: true
-  listening_address: ":8888"
-  site_title: "AWG-PORTAL"
-  site_company_name: "AWG-PORTAL"
+  site_title: AWG-PORTAL
+  listening_address: :8888
+  external_url: http://<IP>:8888      # <-- ЗАМЕНИТЕ на реальный IP/домен
 
-database:
-  type: sqlite
-  dsn: data/sqlite.db
-
-auth:
-  # WebAuthn (Passkey) — включите, если настроен HTTPS с доверенным сертификатом.
-  # RPID (Relaying Party ID) определяется из web.external_url.
-  # Без HTTPS использовать не будет.
-  webauthn:
-    enabled: false
-
+# ============================================================
+# AmneziaWG (обфускация трафика)
+# ============================================================
+# awg_mode: auto — для интерфейсов с обфускацией запускает amneziawg-go
+# awg_mode: disabled — только WireGuard (kernel)
+# awg_mode: force — только AmneziaWG (userspace)
 backend:
-  default: local
-  # AmneziaWG integration mode (local backend only):
-  #   auto   - try amneziawg-go, fallback to kernel WG (default)
-  #   always - require amneziawg-go, error if not available
-  #   never  - kernel WG only, ignore AWG parameters
-  awg_mode: auto
+  awg_mode: auto                     # auto | disabled | forced
+
+  # Бекенд для управления WG-интерфейсами
+  # wgctrl — через WireGuard kernel module (wg set)
+  # mikrotik — через RouterOS API
+  # pfsense — через pfSense pfctl
+  backend: wgctrl                    # wgctrl | mikrotik | pfsense
+
+# ============================================================
+# База данных
+# ============================================================
+database:
+  type: sqlite                        # sqlite | mysql | postgres | mssql
+  dsn: /opt/awg-portal/data/sqlite.db  # путь к файлу БД или DSN подключения
+
+# ============================================================
+# Prometheus метрики (опционально)
+# ============================================================
+# metrics:
+#   enabled: true
+#   listen_address: :8787
