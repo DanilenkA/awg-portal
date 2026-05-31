@@ -228,7 +228,18 @@ func (c LocalController) SaveInterface(
 	id domain.InterfaceIdentifier,
 	updateFunc func(pi *domain.PhysicalInterface) (*domain.PhysicalInterface, error),
 ) error {
-	physicalInterface, err := c.getOrCreateInterface(id)
+	// Pre-apply updateFunc to a zero-value PhysicalInterface to determine
+	// AWG requirements BEFORE creating the low-level interface.
+	// This avoids creating a TUN (via amneziawg-go) for plain WG interfaces.
+	needsAWG := false
+	if updateFunc != nil {
+		probePI := &domain.PhysicalInterface{Identifier: id}
+		if probedPI, probeErr := updateFunc(probePI); probeErr == nil {
+			_, needsAWG = probedPI.GetAWGParams()
+		}
+	}
+
+	physicalInterface, err := c.getOrCreateInterface(id, needsAWG)
 	if err != nil {
 		return err
 	}
@@ -257,7 +268,7 @@ func (c LocalController) SaveInterface(
 	return nil
 }
 
-func (c LocalController) getOrCreateInterface(id domain.InterfaceIdentifier) (*domain.PhysicalInterface, error) {
+func (c LocalController) getOrCreateInterface(id domain.InterfaceIdentifier, needsAWG bool) (*domain.PhysicalInterface, error) {
 	device, err := c.getInterface(id)
 	if err == nil {
 		return device, nil // interface exists
@@ -268,7 +279,7 @@ func (c LocalController) getOrCreateInterface(id domain.InterfaceIdentifier) (*d
 	// This handles the case where amneziawg-go died but left the socket file behind.
 	if errors.Is(err, os.ErrNotExist) {
 		// interface doesn't exist at all — create it
-		if err := c.createLowLevelInterface(id); err != nil {
+		if err := c.createLowLevelInterface(id, needsAWG); err != nil {
 			return nil, err
 		}
 		return c.getInterface(id)
@@ -286,7 +297,7 @@ func (c LocalController) getOrCreateInterface(id domain.InterfaceIdentifier) (*d
 			slog.Warn("failed to remove stale AWG socket", "path", sockPath, "err", removeErr)
 		}
 		// Recreate interface via lowlevel (starts AWG process)
-		if createErr := c.createLowLevelInterface(id); createErr != nil {
+		if createErr := c.createLowLevelInterface(id, needsAWG); createErr != nil {
 			return nil, fmt.Errorf("failed to recreate interface after stale socket: %w", createErr)
 		}
 		return c.getInterface(id)
@@ -305,12 +316,19 @@ func (c LocalController) getInterface(id domain.InterfaceIdentifier) (*domain.Ph
 	return &pi, err
 }
 
-func (c LocalController) createLowLevelInterface(id domain.InterfaceIdentifier) error {
+func (c LocalController) createLowLevelInterface(id domain.InterfaceIdentifier, needsAWG bool) error {
 	awgMode := c.cfg.Backend.GetAWGMode()
 
-	// Try amneziawg-go for "auto" and "always" modes.
-	// amneziawg-go without obfuscation parameters behaves as vanilla WireGuard.
-	if awgMode != config.AWGModeNever {
+	// Start amneziawg-go only when:
+	// - awg_mode=always: force userspace for all interfaces, OR
+	// - awg_mode=auto AND this specific interface needs AWG obfuscation.
+	// For awg_mode=auto with a plain WG interface (needsAWG=false), skip
+	// amneziawg-go and use the kernel wireguard module directly.
+	// This prevents creating a TUN device for interfaces that don't need it.
+	shouldTryAWG := awgMode == config.AWGModeAlways ||
+		(awgMode == config.AWGModeAuto && needsAWG)
+
+	if shouldTryAWG {
 		awgErr := lowlevel.StartAWGProcess(string(id))
 		if awgErr == nil {
 			return nil // amneziawg-go created the TUN device + UAPI socket
@@ -318,7 +336,7 @@ func (c LocalController) createLowLevelInterface(id domain.InterfaceIdentifier) 
 		if awgMode == config.AWGModeAlways {
 			return fmt.Errorf("awg: amneziawg-go not available and awg_mode=always: %w", awgErr)
 		}
-		// awgMode is "auto" — fall through to kernel WG
+		// awgMode is "auto" and amneziawg-go failed — fall through to kernel WG
 		slog.Debug("amneziawg-go not available, falling back to kernel WireGuard", "iface", id)
 	}
 

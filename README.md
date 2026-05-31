@@ -223,7 +223,9 @@ make build-docker-multiarch
 
 5. **AmneziaWG (обфускация):** Для работы AWG требуется бинарник
    `amneziawg-go`. В Docker-образ AWG-PORTAL он **встроен** —
-   дополнительная установка не требуется.
+   дополнительная установка не требуется. Начиная с v1.3.2 при
+   `awg_mode: auto` amneziawg-go запускается **только** для интерфейсов
+   с обфускацией (AWGEnabled). Обычные WG-интерфейсы — kernel WG, без TUN.
 
 6. **TUN-устройство:** Для работы AWG (userspace-режим amneziawg-go)
    необходимо монтировать `/dev/net/tun` в контейнер и добавить
@@ -288,10 +290,10 @@ git clone git@github.com:DanilenkA/awg-portal.git
 cd awg-portal/wg-portal
 
 # Docker-образ (включает amneziawg-go)
-docker build --build-arg BUILD_VERSION=v1.3.0 -t ghcr.io/danilenka/awg-portal:v1.3.0 .
+docker build --build-arg BUILD_VERSION=v1.3.2 -t ghcr.io/danilenka/awg-portal:v1.3.2 .
 
 # Или бинарник (требуется Go на хосте)
-CGO_ENABLED=0 go build -ldflags "-X github.com/DanilenkA/awg-portal/internal.Version=v1.3.0" -o awg-portal_x86-64 cmd/wg-portal/main.go
+CGO_ENABLED=0 go build -ldflags "-X github.com/DanilenkA/awg-portal/internal.Version=v1.3.2" -o awg-portal_x86-64 cmd/wg-portal/main.go
 ```
 
 ## Application stack

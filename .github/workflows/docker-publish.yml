@@ -50,11 +50,8 @@ jobs:
             prefix=
             suffix=
           tags: |
-            # git tag (v*.*.*) → v1.3.1, branch → main
             type=ref,event=tag
-            type=ref,event=branch
-            # semver c v-префиксом (v1.3.1, v1.3, v1)
-            type=semver,pattern=v{{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
