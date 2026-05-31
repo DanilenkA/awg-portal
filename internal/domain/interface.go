@@ -310,13 +310,17 @@ type PhysicalInterface struct {
 
 	backendExtras any // additional backend-specific extras, e.g., domain.MikrotikInterfaceExtras
 
-	awgParams lowlevel.AWGParams // AmneziaWG obfuscation parameters
+	awgParams  lowlevel.AWGParams // AmneziaWG obfuscation parameters
+	AWGEnabled bool               // whether AWG obfuscation is requested on this interface
 }
 
 func (p *PhysicalInterface) SetAWGParams(params lowlevel.AWGParams) { p.awgParams = params }
 
 func (p *PhysicalInterface) GetAWGParams() (lowlevel.AWGParams, bool) {
-	return p.awgParams, !p.awgParams.IsZero()
+	// An interface is considered to need AWG if AWGEnabled is set OR
+	// if non-zero obfuscation params exist.
+	hasParams := !p.awgParams.IsZero()
+	return p.awgParams, p.AWGEnabled || hasParams
 }
 
 func (p *PhysicalInterface) GetExtras() any {
@@ -412,6 +416,7 @@ func MergeToPhysicalInterface(pi *PhysicalInterface, i *Interface) {
 	pi.FirewallMark = i.FirewallMark
 	pi.DeviceUp = !i.IsDisabled()
 	pi.Addresses = i.Addresses
+	pi.AWGEnabled = i.AWGEnabled
 	pi.SetAWGParams(i.GetAWGParams())
 
 	switch pi.ImportSource {
