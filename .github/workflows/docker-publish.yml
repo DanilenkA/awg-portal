@@ -21,9 +21,6 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
@@ -61,31 +58,50 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: linux/amd64
           build-args: |
             BUILD_VERSION=${{ env.BUILD_VERSION }}
 
-      - name: Export binaries from images
+      - name: Export binary from image
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: .
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: linux/amd64
           target: binaries
           outputs: type=local,dest=./binaries
           build-args: |
             BUILD_VERSION=${{ env.BUILD_VERSION }}
 
-      - name: Rename binaries
+      - name: Export amneziawg-go binary
         run: |
-          for file in binaries/linux*/wg-portal; do
-            mv $file binaries/wg-portal_$(basename $(dirname $file))
-          done
+          # Извлекаем amneziawg-go из собранного образа
+          echo "BUILD_TAG=$(echo ${{ github.ref_name }} | sed 's/v//')" >> $GITHUB_ENV
+          docker create --name awg-extract ghcr.io/${{ github.repository }}:${{ github.ref_name }} 2>/dev/null || \
+          docker create --name awg-extract ghcr.io/${{ github.repository }}:v${{ env.BUILD_TAG }}
+          docker cp awg-extract:/usr/local/bin/amneziawg-go ./binaries/linux/amd64/amneziawg-go
+          docker rm awg-extract
 
-      - name: Upload binaries
+      - name: Package bundle
+        run: |
+          VERSION="${{ github.ref_name }}"
+          mkdir -p artifacts/deploy
+          # Бинари — именуем как ждёт install.sh
+          cp binaries/linux/amd64/wg-portal artifacts/awg-portal_x86-64
+          cp binaries/linux/amd64/amneziawg-go artifacts/amneziawg-go
+          # Конфиг и инсталятор
+          cp config.yml.sample artifacts/
+          cp deploy/install.sh artifacts/deploy/
+          # Собираем бандл
+          cd artifacts
+          tar czf ../awg-portal-${VERSION}-bundle.tar.gz ./*
+          cd ..
+          echo "Bundle: awg-portal-${VERSION}-bundle.tar.gz"
+
+      - name: Upload artifact
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: binaries
-          path: binaries/wg-portal_linux*
+          name: bundles
+          path: awg-portal-*-bundle.tar.gz
           retention-days: 10
 
   release:
@@ -95,13 +111,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download binaries
+      - name: Download artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: binaries
+          name: bundles
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
-          files: 'wg-portal_linux*'
+          files: 'awg-portal-*-bundle.tar.gz'
           generate_release_notes: true

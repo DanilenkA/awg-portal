@@ -72,18 +72,51 @@ docker compose up -d
 
 Контейнер использует `network_mode: host` — портал управляет сетевыми интерфейсами непосредственно на хосте. Все порты (8888, 8787, 51820+) открываются на хосте.
 
-### Бинарный релиз
+### Бинарный релиз (рекомендовано)
 
 ```bash
-# Скачать последний релиз
-curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-linux-amd64.tar.gz
-tar xzf awg-portal-linux-amd64.tar.gz
-sudo ./awg-portal --config config.yml
+# 1. Скачать последний бандл
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v1.3.2-bundle.tar.gz
+
+# 2. Распаковать
+mkdir awg-portal && cd awg-portal
+tar xzf ../awg-portal-v1.3.2-bundle.tar.gz
+
+# 3. Запустить установку
+sudo bash deploy/install.sh
+
+# 4. Настроить конфиг и запустить
+sudo nano /opt/awg-portal/config.yml
+sudo systemctl enable --now awg-portal
 ```
 
-Пример конфига: [config.yml.sample](config.yml.sample)
+В бандле:
+- `awg-portal_x86-64` — основной бинарник
+- `amneziawg-go` — userspace AmneziaWG (для обфускации)
+- `config.yml.sample` — образец конфига
+- `deploy/install.sh` — скрипт установки systemd-юнита
 
-Полная документация: [wgportal.org](https://wgportal.org) (оригинальная, функционал совместим).
+### Ручной запуск (без установки)
+
+```bash
+# Конфигурация через переменные окружения (флаг --config НЕ поддерживается)
+export WG_PORTAL_CONFIG=config.yml
+export WG_PORTAL_CORE_ADMIN_USER=admin@example.com
+export WG_PORTAL_CORE_ADMIN_PASSWORD=CHANGE_ME
+sudo ./awg-portal
+```
+
+Конфиг ищется по пути из переменной `WG_PORTAL_CONFIG`. Если не задана —
+`config/config.yml` относительно рабочей директории.
+
+### Конфигурация
+
+Пример конфига: [config.yml.sample](config.yml.sample).
+
+Все параметры можно задать через переменные окружения — схема именования:
+`WG_PORTAL_<СЕКЦИЯ>_<ПАРАМЕТР>`. Переменные имеют приоритет над YAML-файлом.
+
+Полная документация: [wgportal.org](https://wgportal.org) (upstream v1.x, не всё совместимо).
 
 ## Docker
 
