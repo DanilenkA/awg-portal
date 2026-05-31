@@ -831,30 +831,24 @@ func (c LocalController) SetRoutes(_ context.Context, info domain.RoutingTableIn
 		return fmt.Errorf("failed to set v6 routes: %w", err)
 	}
 
-	// HACK: setRoutesForFamily removes stale connected routes (scope=link,
-	// type=unicast) from the interface. AWG TUN interfaces created by
-	// amneziawg-go don't get automatic connected routes from the kernel,
-	// so re-add them here after route management completes.
-	// Note: we can't rely on pi.GetAWGParams() here because
-	// convertWireGuardInterface doesn't copy AWG params from UAPI.
-	if info.Interface.HasAnyAWGParams() {
-		slog.Debug("re-adding connected route for AWG interface", "iface", interfaceId)
-		link, linkErr := c.nl.LinkByName(string(interfaceId))
-		if linkErr != nil {
-			return fmt.Errorf("failed to get link for AWG route: %w", linkErr)
-		}
-		for _, addr := range info.Interface.Addresses {
-			if !addr.IsV4() {
-				continue
-			}
-			network := addr.NetworkAddr()
-			if routeErr := c.nl.RouteAdd(&netlink.Route{
-				LinkIndex: link.Attrs().Index,
-				Dst:       network.IpNet(),
-				Scope:     netlink.SCOPE_LINK,
-			}); routeErr != nil && !errors.Is(routeErr, unix.EEXIST) {
-				return fmt.Errorf("failed to add AWG route %s: %w", network.String(), routeErr)
-			}
+	// HACK: setRoutesForFamily removes kernel-created connected routes (scope=link,
+	// type=unicast) from the main routing table. This affects ALL interfaces:
+	//   - AWG TUN (amneziawg-go) — no automatic connected route from kernel
+	//   - Plain WG kernel — connected route gets deleted by route cleanup logic
+	// Re-add the connected route(s) here after route management completes.
+	slog.Debug("restoring connected route(s) for interface", "iface", interfaceId)
+	link, linkErr := c.nl.LinkByName(string(interfaceId))
+	if linkErr != nil {
+		return fmt.Errorf("failed to get link for connected route: %w", linkErr)
+	}
+	for _, addr := range info.Interface.Addresses {
+		network := addr.NetworkAddr()
+		if routeErr := c.nl.RouteAdd(&netlink.Route{
+			LinkIndex: link.Attrs().Index,
+			Dst:       network.IpNet(),
+			Scope:     netlink.SCOPE_LINK,
+		}); routeErr != nil && !errors.Is(routeErr, unix.EEXIST) {
+			return fmt.Errorf("failed to add connected route %s: %w", network.String(), routeErr)
 		}
 	}
 
