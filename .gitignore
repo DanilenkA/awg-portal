@@ -43,3 +43,4 @@ venv/
 internal/app/api/core/frontend-dist
 # mkdocs output directory
 site/
+HANDOFF.md
