@@ -515,14 +515,6 @@ sudo rm -rf /run/amneziawg/ 2>/dev/null
 sudo rm -f data/sqlite.db 2>/dev/null
 ```
 
-### Известные проблемы тестирования
-
-- В v1.2.2fix нет PresharedKey/Endpoint в UAPI — пиры добавляются без endpoint
-  (исправлено в v1.3.0).
-- В v1.2.2fix Base64UrlDecode ломает ASCII-идентификаторы — используйте
-  v1.3.0+ (исправлено).
-- При создании AWG-интерфейса через API без PrivateKey в v1.2.2fix падает
-  "incorrect key size" (исправлено в v1.3.0 — автогенерация).
 
 ## Лицензия
 
