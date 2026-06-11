@@ -60,7 +60,7 @@ RUN git clone --depth 1 https://github.com/amnezia-vpn/amneziawg-go.git . && \
 ######
 # Final image
 ######
-FROM alpine:3.23
+FROM alpine:3.24
 # Install OS-level dependencies
 RUN apk add --no-cache bash curl iptables nftables openresolv wireguard-tools tzdata
 # Setup timezone
