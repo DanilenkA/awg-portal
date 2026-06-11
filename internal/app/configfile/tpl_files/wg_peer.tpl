@@ -43,6 +43,21 @@ Table = {{ .Peer.Interface.RoutingTable.GetValue }}
 FwMark = {{ .Peer.Interface.FirewallMark.GetValue }}
 {{- end}}
 
+{{- if .Peer.Interface.AWGEnabled}}
+# AmneziaWG obfuscation parameters
+Jc = {{ .Peer.Interface.AWGJc }}
+Jmin = {{ .Peer.Interface.AWGJmin }}
+Jmax = {{ .Peer.Interface.AWGJmax }}
+S1 = {{ .Peer.Interface.AWGS1 }}
+S2 = {{ .Peer.Interface.AWGS2 }}
+S3 = {{ .Peer.Interface.AWGS3 }}
+S4 = {{ .Peer.Interface.AWGS4 }}
+H1 = {{ .Peer.Interface.AWGH1 }}
+H2 = {{ .Peer.Interface.AWGH2 }}
+H3 = {{ .Peer.Interface.AWGH3 }}
+H4 = {{ .Peer.Interface.AWGH4 }}
+{{- end}}
+
 {{- if eq .Style "wgquick"}}
 # Interface hooks (optional)
 {{- if .Peer.Interface.PreUp.GetValue}}
@@ -70,19 +85,4 @@ PresharedKey = {{ .Peer.PresharedKey }}
 {{- end}}
 {{- if and (ne .Peer.PersistentKeepalive.GetValue 0) (eq .Peer.Interface.Type "client")}}
 PersistentKeepalive = {{ .Peer.PersistentKeepalive.GetValue }}
-{{- end}}
-
-{{- if .Peer.Interface.AWGEnabled}}
-# AmneziaWG obfuscation parameters
-Jc = {{ .Peer.Interface.AWGJc }}
-Jmin = {{ .Peer.Interface.AWGJmin }}
-Jmax = {{ .Peer.Interface.AWGJmax }}
-S1 = {{ .Peer.Interface.AWGS1 }}
-S2 = {{ .Peer.Interface.AWGS2 }}
-S3 = {{ .Peer.Interface.AWGS3 }}
-S4 = {{ .Peer.Interface.AWGS4 }}
-H1 = {{ .Peer.Interface.AWGH1 }}
-H2 = {{ .Peer.Interface.AWGH2 }}
-H3 = {{ .Peer.Interface.AWGH3 }}
-H4 = {{ .Peer.Interface.AWGH4 }}
 {{- end}}

@@ -1,7 +1,7 @@
 # AWG-PORTAL
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
-![GitHub last commit](https://img.shields.io/github/last-commit/DanilenkA/awg-portal/master)
+![GitHub last commit](https://img.shields.io/github/last-commit/DanilenkA/awg-portal/main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/DanilenkA/awg-portal)](https://goreportcard.com/report/github.com/DanilenkA/awg-portal)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/DanilenkA/awg-portal)
 
@@ -24,7 +24,7 @@
 * QR-код для удобной настройки мобильных клиентов
 * Отправка конфига по email
 * Включение / отключение пиров без прерывания соединений
-* Генерация wg-quick конфигов (`wgX.conf`)
+* Генерация wg-quick/awg-quick конфигов (`wgX.conf`)
 * Аутентификация (БД, OAuth, LDAP), поддержка Passkey
 * IPv6 готовность
 * Docker-ready
@@ -56,7 +56,7 @@
 # 1. Скачать docker-compose.yml
 curl -LO https://raw.githubusercontent.com/DanilenkA/awg-portal/main/docker-compose.yml
 
-# 2. Отредактировать docker-compose.yml — поменять:
+# 2. Отредактировать docker-compose.yml - поменять:
 #    - WG_PORTAL_CORE_ADMIN_USER
 #    - WG_PORTAL_CORE_ADMIN_PASSWORD
 #    - WG_PORTAL_WEB_EXTERNAL_URL
@@ -96,6 +96,13 @@ sudo systemctl enable --now awg-portal
 - `config.yml.sample` — образец конфига
 - `deploy/install.sh` — скрипт установки systemd-юнита
 
+Скрипт устанавливает основной бинарник в `/usr/local/bin/awg-portal`,
+создаёт `/opt/awg-portal/data` и `/opt/awg-portal/config`, а systemd-юнит
+запускает портал с `WG_PORTAL_CONFIG=/opt/awg-portal/config.yml`.
+`amneziawg-go` устанавливается в `/usr/local/bin/amneziawg-go`.
+Юнит также задаёт `RuntimeDirectory=amneziawg`: systemd создаёт
+`/run/amneziawg` для UAPI-сокетов AWG при старте сервиса.
+
 ### Ручной запуск (без установки)
 
 ```bash
@@ -132,7 +139,8 @@ ghcr.io/danilenka/awg-portal:vX.X.X     # конкретная версия
 ### Системные требования
 
 - **Docker Engine** 24+ (рекомендуется с поддержкой Compose v2)
-- **Ядро Linux** с модулем `wireguard` (5.6+) или `amneziawg` (для AWG)
+- **Ядро Linux** с модулем `wireguard` (5.6+) для обычного WG и доступным
+  `/dev/net/tun` для AWG userspace-режима
 - Доступ к сетевым интерфейсам — контейнер требует `--cap-add=NET_ADMIN,SYS_MODULE` и `--network=host`
 
 ### Конфигурация через переменные окружения
@@ -153,6 +161,7 @@ WG_PORTAL_<СЕКЦИЯ>_<ПАРАМЕТР>
 | `WG_PORTAL_CORE_ADMIN_PASSWORD` | Пароль администратора | (смените!) |
 | `WG_PORTAL_WEB_EXTERNAL_URL` | Внешний URL портала | `http://vpn.example.com:8888` |
 | `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH` | Путь для wg-конфигов | `/app/config` |
+| `WG_PORTAL_BACKEND_AWG_MODE` | Режим выбора AWG-бекенда: `auto`, `always`, `never` | `auto` |
 
 > **Важно:** `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH` обязателен для работы
 > функции `save-config`. Без него сохранение конфигов возвращает ошибку.
@@ -246,9 +255,12 @@ make build-docker-multiarch
    `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH`. Без него save-config не работает.
    Начиная с v1.3.2 возвращается ошибка, а не паника.
 
-3. **Маршрутизация:** Портал использует `wg set`, а не `wg-quick`. Если нужна
-   автоматическая настройка маршрутов (fwmark, таблица маршрутизации),
-   добавьте PostUp-скрипты или используйте `wg-quick` на хосте.
+3. **Маршрутизация:** Портал использует `wg set`, а не `wg-quick`. После
+   применения маршрутов портал восстанавливает connected route для адресных
+   сетей интерфейса, потому что очистка policy routes может удалить
+   kernel route вида `10.x.x.0/24 dev wg0 scope link`, а `amneziawg-go`
+   для TUN-интерфейса сам такой маршрут не создаёт. Если вы вручную меняете
+   маршрутизацию, проверьте `ip route show dev <iface>`.
 
 4. **PresharedKey:** При создании пира через REST API без указания
    `PrivateKey` и `PresharedKey` — портал сгенерирует их автоматически.
@@ -259,6 +271,10 @@ make build-docker-multiarch
    дополнительная установка не требуется. Начиная с v1.3.2 при
    `awg_mode: auto` amneziawg-go запускается **только** для интерфейсов
    с обфускацией (AWGEnabled). Обычные WG-интерфейсы — kernel WG, без TUN.
+   `awg_mode: always` заставляет использовать `amneziawg-go` для всех
+   локальных интерфейсов и завершает операцию ошибкой, если userspace-бекенд
+   недоступен. `awg_mode: never` полностью отключает AWG-поля и использует
+   только kernel WireGuard.
 
 6. **TUN-устройство:** Для работы AWG (userspace-режим amneziawg-go)
    необходимо монтировать `/dev/net/tun` в контейнер и добавить
@@ -268,21 +284,45 @@ make build-docker-multiarch
      - /dev/net/tun:/dev/net/tun
    ```
 
+7. **Клиентские tools:** стандартный `wireguard-tools wg-quick` не умеет
+   поднимать AWG-конфиги с `Jc/Jmin/Jmax/S1-S4/H1-H4`. Для таких конфигов
+   используйте AmneziaWG-compatible клиент или `awg-quick` из
+   [amneziawg-tools](https://github.com/amnezia-vpn/amneziawg-tools).
+
 ## Установка AmneziaWG
 
 AWG-PORTAL автоматически управляет процессом `amneziawg-go`. Если бинарный бандл содержит `amneziawg-go`, портал запустит его в фоне. В режиме `awg_mode: auto` портал сам определяет, какой протокол использовать, на основе настроек интерфейса.
+
+Режимы `backend.awg_mode`:
+
+| Значение | Поведение |
+|---|---|
+| `auto` | Использовать `amneziawg-go` только для интерфейсов с `AWGEnabled=true` и ненулевыми AWG-параметрами. Обычный WG остаётся kernel WireGuard. |
+| `always` | Всегда использовать `amneziawg-go`; если он недоступен, создание/обновление интерфейса завершается ошибкой. |
+| `never` | Никогда не использовать AWG; AWG-параметры не передаются в UAPI, используется только kernel WireGuard. |
 
 Подробнее: [AmneziaWG](https://docs.amnezia.org/ru/documentation/amnezia-wg/)
 
 ### AmneziaWG: обфускация и UAPI
 
-При включении AWG-обфускации (Jc, Jmin, Jmax, S1–S4, H1–H4) на сервере,
+При включении AWG-обфускации (Jc, Jmin, Jmax, S1-S4, H1-H4) на сервере,
 amneziawg-go декапсулирует трафик только с теми же параметрами.
 **Клиент обязан передавать те же AWG-параметры через UAPI**, иначе handshake
 не состоится — пакет дропается с `MessageUnknownType`.
 
 Параметры передаются как ключи UAPI `jc`, `jmin`, `jmax`, `s1`–`s4`, `h1`–`h4`
 при `set=1` для каждого пира.
+
+Диапазоны серверной валидации:
+
+| Параметр | Диапазон |
+|---|---|
+| `Jc` | `0..128` |
+| `Jmin`, `Jmax` | `0..1280`; если `Jc > 0`, `Jmax` должен быть больше `Jmin` |
+| `S1`-`S4` | `0..1280` |
+| `H1`-`H4` | `5..4294967295`, значения должны быть попарно уникальны |
+
+Если `AWGEnabled=true`, все параметры не могут быть нулевыми одновременно.
 
 Пример настройки AWG-пира через UAPI (внутри контейнера/хоста):
 
@@ -314,13 +354,22 @@ s.close()
 AWG-параметры, сгенерированные порталом, доступны в ответе API для пира
 (поля `AWGJc`, `AWGJmin`, `AWGJmax`, `AWGS1`–`AWGS4`, `AWGH1`–`AWGH4`).
 
+Скачанный AWG peer config рассчитан на AmneziaWG-aware tools. На Linux:
+
+```bash
+sudo awg-quick up ./awg-peer.conf
+```
+
+Обычный `wg-quick` из upstream `wireguard-tools` завершится ошибкой вида
+`Line unrecognized: Jc=...` и не является валидным AWG-клиентом.
+
 
 ## Сборка из исходников
 
 ```bash
 # Требования: Go 1.25+, Node.js 20+, Docker 24+
 git clone git@github.com:DanilenkA/awg-portal.git
-cd awg-portal/wg-portal
+cd awg-portal
 
 # Docker-образ (включает amneziawg-go)
 docker build --build-arg BUILD_VERSION=v1.3.2 -t ghcr.io/danilenka/awg-portal:v1.3.2 .
@@ -410,9 +459,10 @@ echo "blacklist amneziawg" | sudo tee /etc/modprobe.d/blacklist-amneziawg.conf
 не сможет установить соединение — amneziawg-go дропает plain-пакеты.
 
 **Причина 2: нет connected route.**
-amneziawg-go не добавляет автоматический connected route для TUN-интерфейса.
-Начиная с v1.3.0 портал делает это сам (`ensureAWGConnectedRoute`).
-На ранних версиях добавьте вручную:
+amneziawg-go не добавляет автоматический connected route для TUN-интерфейса,
+а очистка policy routes может удалить такой маршрут и у kernel WireGuard.
+Начиная с v1.3.2 портал восстанавливает connected route для всех локальных
+интерфейсов после применения маршрутов. На ранних версиях добавьте вручную:
 
 ```bash
 sudo ip route add <сеть> dev <интерфейс> scope link

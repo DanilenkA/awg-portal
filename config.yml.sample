@@ -41,10 +41,10 @@ web:
 # AmneziaWG (обфускация трафика)
 # ============================================================
 # awg_mode: auto — для интерфейсов с обфускацией запускает amneziawg-go
-# awg_mode: disabled — только WireGuard (kernel)
-# awg_mode: force — только AmneziaWG (userspace)
+# awg_mode: always — всегда требует AmneziaWG userspace (amneziawg-go)
+# awg_mode: never — только WireGuard (kernel), AWG-параметры игнорируются
 backend:
-  awg_mode: auto                     # auto | disabled | forced
+  awg_mode: auto                     # auto | always | never
 
   # Бекенд для управления WG-интерфейсами
   # wgctrl — через WireGuard kernel module (wg set)

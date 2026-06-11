@@ -154,7 +154,7 @@ func (f *mockDB) GetAllUsers(ctx context.Context) ([]domain.User, error) {
 
 // --- Test ---
 
-func TestCreatePeer_SetsIdentifier_FromPublicKey(t *testing.T) {
+func TestCreatePeer_IgnoresIncompleteUserKeyPair(t *testing.T) {
 	// Arrange
 	cfg := &config.Config{}
 	cfg.Core.SelfProvisioningAllowed = true
@@ -201,14 +201,22 @@ func TestCreatePeer_SetsIdentifier_FromPublicKey(t *testing.T) {
 		t.Fatalf("CreatePeer returned error: %v", err)
 	}
 
-	expectedId := domain.PeerIdentifier(pubKey)
-	if out.Identifier != expectedId {
-		t.Fatalf("expected Identifier to be set from public key %q, got %q", expectedId, out.Identifier)
+	if out.Interface.PublicKey == "" {
+		t.Fatal("expected generated peer public key to be set")
+	}
+	if out.Interface.PrivateKey == "" {
+		t.Fatal("expected generated peer private key to be set")
+	}
+	if out.Interface.PublicKey == pubKey {
+		t.Fatalf("expected incomplete user-provided key pair to be ignored, got public key %q", out.Interface.PublicKey)
+	}
+	if out.Identifier != domain.PeerIdentifier(out.Interface.PublicKey) {
+		t.Fatalf("expected Identifier to match generated public key %q, got %q", out.Interface.PublicKey, out.Identifier)
 	}
 
-	// Ensure the saved peer in DB also has the expected identifier
-	if db.savedPeers[expectedId] == nil {
-		t.Fatalf("expected peer with identifier %q to be saved in DB", expectedId)
+	// Ensure the saved peer in DB also has the generated identifier.
+	if db.savedPeers[out.Identifier] == nil {
+		t.Fatalf("expected peer with identifier %q to be saved in DB", out.Identifier)
 	}
 }
 

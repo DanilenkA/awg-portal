@@ -51,6 +51,7 @@ COPY --from=builder /build/dist/wg-portal /
 # Build amneziawg-go
 ######
 FROM --platform=${BUILDPLATFORM} golang:1.26-alpine AS amneziawg
+ARG TARGETARCH
 RUN apk add --no-cache git
 WORKDIR /build
 RUN git clone --depth 1 https://github.com/amnezia-vpn/amneziawg-go.git . && \

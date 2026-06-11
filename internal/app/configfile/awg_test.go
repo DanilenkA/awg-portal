@@ -129,4 +129,16 @@ func TestGetPeerConfig_WithAWGEnabled(t *testing.T) {
 			t.Errorf("Missing AWG directive in peer config: %s", key)
 		}
 	}
+
+	peerSection := strings.Index(output, "\n[Peer]\n")
+	jcDirective := strings.Index(output, "\nJc = 7\n")
+	if peerSection == -1 {
+		t.Fatal("missing [Peer] section")
+	}
+	if jcDirective == -1 {
+		t.Fatal("missing Jc directive")
+	}
+	if jcDirective > peerSection {
+		t.Fatal("AWG directives must be emitted in [Interface], before [Peer]")
+	}
 }
