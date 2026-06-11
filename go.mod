@@ -24,7 +24,7 @@ require (
 	github.com/yeqown/go-qrcode/writer/compressed v1.0.1
 	golang.org/x/crypto v0.52.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sys v0.45.0
+	golang.org/x/sys v0.46.0
 	golang.org/x/text v0.38.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.6.0
