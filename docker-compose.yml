@@ -1,9 +1,9 @@
 ---
 services:
   awg-portal:
-    # Замените :v1.3.2 на актуальную версию из https://github.com/DanilenkA/awg-portal/pkgs/container/awg-portal
+    # Замените :v1.4.0 на актуальную версию из https://github.com/DanilenkA/awg-portal/pkgs/container/awg-portal
     # или используйте :stable для получения  стабильной версии или :latest для последней (но там могут быть баги :) )
-    image: ghcr.io/danilenka/awg-portal:v1.3.2
+    image: ghcr.io/danilenka/awg-portal:v1.4.0
     container_name: awg-portal
     restart: unless-stopped
 

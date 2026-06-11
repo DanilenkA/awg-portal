@@ -76,11 +76,11 @@ docker compose up -d
 
 ```bash
 # 1. Скачать последний бандл
-curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v1.3.2-bundle.tar.gz
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v1.4.0-bundle.tar.gz
 
 # 2. Распаковать
 mkdir awg-portal && cd awg-portal
-tar xzf ../awg-portal-v1.3.2-bundle.tar.gz
+tar xzf ../awg-portal-v1.4.0-bundle.tar.gz
 
 # 3. Запустить установку
 sudo bash deploy/install.sh
@@ -372,10 +372,10 @@ git clone git@github.com:DanilenkA/awg-portal.git
 cd awg-portal
 
 # Docker-образ (включает amneziawg-go)
-docker build --build-arg BUILD_VERSION=v1.3.2 -t ghcr.io/danilenka/awg-portal:v1.3.2 .
+docker build --build-arg BUILD_VERSION=v1.4.0 -t ghcr.io/danilenka/awg-portal:v1.4.0 .
 
 # Или бинарник (требуется Go на хосте)
-CGO_ENABLED=0 go build -ldflags "-X github.com/DanilenkA/awg-portal/internal.Version=v1.3.2" -o awg-portal_x86-64 cmd/wg-portal/main.go
+CGO_ENABLED=0 go build -ldflags "-X github.com/DanilenkA/awg-portal/internal.Version=v1.4.0" -o awg-portal_x86-64 cmd/wg-portal/main.go
 ```
 
 ## Application stack
