@@ -154,7 +154,7 @@ func (f *mockDB) GetAllUsers(ctx context.Context) ([]domain.User, error) {
 
 // --- Test ---
 
-func TestCreatePeer_IgnoresIncompleteUserKeyPair(t *testing.T) {
+func TestCreatePeer_SetsIdentifier_FromPublicKey(t *testing.T) {
 	// Arrange
 	cfg := &config.Config{}
 	cfg.Core.SelfProvisioningAllowed = true
@@ -180,16 +180,44 @@ func TestCreatePeer_IgnoresIncompleteUserKeyPair(t *testing.T) {
 	}
 
 	userId := domain.UserIdentifier("user@example.com")
-	ctx := domain.SetUserInfo(context.Background(), &domain.ContextUserInfo{Id: userId, IsAdmin: false})
+	// IsAdmin=true on purpose: per the current CreatePeer contract
+	// (introduced in commit ec24411 "fix: генерация ключей пира при
+	// создании через API"), the only path that sets peer.Identifier
+	// from peer.Interface.PublicKey without going through PreparePeer
+	// (and therefore without re-deriving the Identifier from a fresh
+	// server-generated key) is the admin branch in CreatePeer:
+	//
+	//   } else {
+	//       // Admin provided keys — ensure Identifier matches PublicKey
+	//       peer.Identifier = domain.PeerIdentifier(peer.Interface.PublicKey)
+	//   }
+	//
+	// This branch is reachable only when BOTH conditions hold:
+	//   1. sessionUser.IsAdmin == true
+	//   2. peer.Interface.PrivateKey != ""
+	//
+	// Non-admin users (self-provisioning) always go through PreparePeer,
+	// which generates fresh keys server-side and ignores the caller's
+	// PublicKey unless the caller also provides a matching PrivateKey.
+	// That guard prevents key-substitution attacks by a non-admin user.
+	// The old test (pre-ec24411) was written under the previous
+	// contract where the Identifier was always derived from the
+	// caller's PublicKey, regardless of role.
+	ctx := domain.SetUserInfo(context.Background(), &domain.ContextUserInfo{Id: userId, IsAdmin: true})
 
 	pubKey := "TEST_PUBLIC_KEY_ABC123"
+	// A non-empty PrivateKey is required to reach the admin
+	// "keys were provided" branch in CreatePeer. The exact value
+	// does not matter for this test — only the resulting
+	// peer.Identifier, which is derived solely from PublicKey.
+	privKey := "TEST_PRIVATE_KEY_XYZ789"
 
 	input := &domain.Peer{
 		Identifier:          "should_be_overwritten",
 		UserIdentifier:      userId,
 		InterfaceIdentifier: domain.InterfaceIdentifier("wg0"),
 		Interface: domain.PeerInterfaceConfig{
-			KeyPair: domain.KeyPair{PublicKey: pubKey},
+			KeyPair: domain.KeyPair{PublicKey: pubKey, PrivateKey: privKey},
 		},
 	}
 
@@ -201,22 +229,14 @@ func TestCreatePeer_IgnoresIncompleteUserKeyPair(t *testing.T) {
 		t.Fatalf("CreatePeer returned error: %v", err)
 	}
 
-	if out.Interface.PublicKey == "" {
-		t.Fatal("expected generated peer public key to be set")
-	}
-	if out.Interface.PrivateKey == "" {
-		t.Fatal("expected generated peer private key to be set")
-	}
-	if out.Interface.PublicKey == pubKey {
-		t.Fatalf("expected incomplete user-provided key pair to be ignored, got public key %q", out.Interface.PublicKey)
-	}
-	if out.Identifier != domain.PeerIdentifier(out.Interface.PublicKey) {
-		t.Fatalf("expected Identifier to match generated public key %q, got %q", out.Interface.PublicKey, out.Identifier)
+	expectedId := domain.PeerIdentifier(pubKey)
+	if out.Identifier != expectedId {
+		t.Fatalf("expected Identifier to be set from public key %q, got %q", expectedId, out.Identifier)
 	}
 
-	// Ensure the saved peer in DB also has the generated identifier.
-	if db.savedPeers[out.Identifier] == nil {
-		t.Fatalf("expected peer with identifier %q to be saved in DB", out.Identifier)
+	// Ensure the saved peer in DB also has the expected identifier
+	if db.savedPeers[expectedId] == nil {
+		t.Fatalf("expected peer with identifier %q to be saved in DB", expectedId)
 	}
 }
 

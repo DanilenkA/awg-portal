@@ -52,8 +52,21 @@ const currentTags = ref({
 
 // AWG parameter auto-generation (matches backend GenerateAWGParams)
 function generateAWGParams() {
-  const rand = (lo, hi) => Math.floor(Math.random() * (hi - lo + 1)) + lo
-  const randU32 = () => { let v; do { v = Math.floor(Math.random() * 0xFFFFFFFF); } while (v < 5); return v }
+  const secureU32 = () => {
+    const values = new Uint32Array(1)
+    crypto.getRandomValues(values)
+    return values[0]
+  }
+  const rand = (lo, hi) => {
+    const range = hi - lo + 1
+    const limit = 0x100000000 - (0x100000000 % range)
+    let v
+    do {
+      v = secureU32()
+    } while (v >= limit)
+    return lo + (v % range)
+  }
+  const randU32 = () => { let v; do { v = secureU32() } while (v < 5); return v }
   
   let s1, s2, s3, s4
   for (;;) {
