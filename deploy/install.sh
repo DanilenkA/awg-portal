@@ -3,7 +3,7 @@
 # Run as root: bash deploy/install.sh (from bundle root)
 set -euo pipefail
 
-VERSION="v1.3.2"
+VERSION="v1.4.0"
 BIN_DIR="/usr/local/bin"
 SYSTEMD_DIR="/etc/systemd/system"
 PORTAL_DIR="/opt/awg-portal"

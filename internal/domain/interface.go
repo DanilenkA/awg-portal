@@ -99,10 +99,43 @@ type Interface struct {
 }
 
 // GetAWGParams returns the AmneziaWG obfuscation parameters stored in the interface.
-// HasAnyAWGParams returns true if the interface has AmneziaWG enabled or
-// any AWG obfuscation parameters set (non-zero).
+// HasAnyAWGParams returns true when the interface has at least one
+// non-zero AmneziaWG obfuscation parameter (Jc / Jmin / Jmax / S1-S4 / H1-H4).
+//
+// It deliberately does NOT consider AWGEnabled: the flag is checked
+// separately in EmitAWG, where the contract is "AWG was enabled AND
+// the operator has actually configured params". Mixing the flag into
+// this helper would defeat that check.
 func (i *Interface) HasAnyAWGParams() bool {
-	return i.AWGEnabled || i.AWGJc != 0 || i.AWGH1 != 0
+	return i.AWGJc != 0 ||
+		i.AWGJmin != 0 ||
+		i.AWGJmax != 0 ||
+		i.AWGS1 != 0 ||
+		i.AWGS2 != 0 ||
+		i.AWGS3 != 0 ||
+		i.AWGS4 != 0 ||
+		i.AWGH1 != 0 ||
+		i.AWGH2 != 0 ||
+		i.AWGH3 != 0 ||
+		i.AWGH4 != 0
+}
+
+// EmitAWG is the SINGLE SOURCE OF TRUTH for "should we treat this
+// interface as an AWG (AmneziaWG) interface and push AWG parameters
+// downstream?". It is used by:
+//
+//   - the validation hook (so a stale AWG params field never slips
+//     through validation when AWG is explicitly disabled),
+//   - the mode-switch detector in wireguard_interfaces.go,
+//   - the local controller's wgctrl apply path (so AWG params don't
+//     leak into the kernel UAPI when awg_mode=never).
+//
+// The rule is: AWGEnabled must be true AND there must be at least one
+// non-zero obfuscation parameter. The latter guards against the case
+// where a user flipped AWGEnabled on but never set params — without
+// this guard we'd try to push a half-configured AWG profile to wgctrl.
+func (i *Interface) EmitAWG() bool {
+	return i.AWGEnabled && i.HasAnyAWGParams()
 }
 
 func (i *Interface) GetAWGParams() lowlevel.AWGParams {
@@ -119,6 +152,28 @@ func (i *Interface) GetAWGParams() lowlevel.AWGParams {
 		H3:   i.AWGH3,
 		H4:   i.AWGH4,
 	}
+}
+
+// validateAWGParams checks the AWG obfuscation parameters against the
+// ranges supported by amneziawg-go. It returns nil if AWG is not enabled.
+//
+// Allowed ranges (loose, to leave some headroom above amneziawg-go defaults):
+// Jc ∈ [0,128]
+// Jmin ∈ [0,1280]
+// Jmax ∈ [0,1280] and Jmax > Jmin when Jc > 0
+// S1..S4 ∈ [0,1280]
+// H1..H4 ∈ [5,2^32-1], pairwise unique
+func (i *Interface) validateAWGParams() error {
+	if !i.AWGEnabled {
+		return nil // AWG off — params may be zero/ignored
+	}
+	p := i.GetAWGParams()
+	// If user flipped AWGEnabled on but never filled in params, treat
+	// this as a misconfiguration rather than silently zeroing.
+	if p.IsZero() {
+		return fmt.Errorf("awg: AWGEnabled=true but all obfuscation parameters are zero")
+	}
+	return p.Validate()
 }
 
 // IsUserAllowed returns true if the interface has no filter, or if the user is in the allowed list.
@@ -171,6 +226,14 @@ func (i *Interface) Validate() error {
 		}
 
 		i.PeerDefEndpoint = net.JoinHostPort(host, port)
+	}
+
+	// validate AmneziaWG obfuscation parameters when AWG is enabled.
+	// This prevents the API from accepting nonsense like Jc=99999 or
+	// H1=H2=H3=H4=0, which would either be rejected by amneziawg-go at
+	// runtime or silently produce a broken obfuscation channel.
+	if err := i.validateAWGParams(); err != nil {
+		return fmt.Errorf("invalid awg params: %w", err)
 	}
 
 	return nil
@@ -316,11 +379,24 @@ type PhysicalInterface struct {
 
 func (p *PhysicalInterface) SetAWGParams(params lowlevel.AWGParams) { p.awgParams = params }
 
+// HasAnyAWGParams mirrors Interface.HasAnyAWGParams for the physical
+// layer. The flag is intentionally NOT consulted here — it is checked
+// separately in EmitAWG. This lets callers ask "did the operator
+// configure any AWG params?" without that question being conflated
+// with "is AWG currently turned on?".
+func (p *PhysicalInterface) HasAnyAWGParams() bool {
+	return !p.awgParams.IsZero()
+}
+
 func (p *PhysicalInterface) GetAWGParams() (lowlevel.AWGParams, bool) {
-	// An interface is considered to need AWG if AWGEnabled is set OR
-	// if non-zero obfuscation params exist.
-	hasParams := !p.awgParams.IsZero()
-	return p.awgParams, p.AWGEnabled || hasParams
+	return p.awgParams, p.EmitAWG()
+}
+
+// EmitAWG mirrors Interface.EmitAWG for the physical layer. Both
+// checks (AWGEnabled + non-zero params) are required so we never push
+// a half-configured AWG profile to wgctrl.
+func (p *PhysicalInterface) EmitAWG() bool {
+	return p.AWGEnabled && p.HasAnyAWGParams()
 }
 
 func (p *PhysicalInterface) GetExtras() any {
