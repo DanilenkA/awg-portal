@@ -1,15 +1,34 @@
 # AWG-PORTAL configuration sample
 #
-# Все параметры можно задать через переменные окружения:
-#   WG_PORTAL_<SECTION>_<KEY>
-# Пример: advanced.log_level → WG_PORTAL_ADVANCED_LOG_LEVEL
+# ──────────────────────────────────────────────────────────────────────
+# ESSENTIAL — change these before starting the service
+# ──────────────────────────────────────────────────────────────────────
+#  - core.admin_user / core.admin_password  → web UI login
+#  - web.external_url                       → public URL clients see
+#                                             (the installer auto-fills
+#                                             the IP placeholder in
+#                                             external_url with the
+#                                             server's primary IP)
+#  - backend.awg_mode                       → auto | always | never
+#                                             (auto: try amneziawg-go,
+#                                             fall back to kernel WG)
+#  - database.dsn                           → SQLite file path by default
 #
-# Конфиг-файл загружается через WG_PORTAL_CONFIG env (systemd: /opt/awg-portal/config.yml)
-# Если файл не найден — используются дефолтные значения + ENV-переменные.
+# Everything else is optional and commented below with a short
+# description. Uncomment and edit only if you need to override the
+# default.
 #
-# Полная документация upstream (не всё совместимо):
+# All values can also be set via env: WG_PORTAL_<SECTION>_<KEY>
+# (e.g. advanced.log_level → WG_PORTAL_ADVANCED_LOG_LEVEL).
+#
+# Config is loaded from WG_PORTAL_CONFIG env (systemd unit points to
+# /opt/awg-portal/config.yml). If the file is missing, defaults +
+# ENV variables are used.
+#
+# Upstream docs (not everything is compatible with this build):
 #   https://github.com/h44z/wg-portal
-#   https://wgportal.org (docs для версии 1.x)
+#   https://wgportal.org (docs for 1.x)
+# ──────────────────────────────────────────────────────────────────────
 
 # ============================================================
 # Базовые настройки (обязательные)
@@ -17,25 +36,25 @@
 core:
   admin_user: admin@example.com
   admin_password: CHANGE_ME_PLEASE   # <-- ОБЯЗАТЕЛЬНО СМЕНИТЕ!
-  restore_state: false               # восстанавливать WG-интерфейсы после перезапуска
-  import_existing: false             # импортировать существующие WG-интерфейсы хоста
+  # restore_state: false             # восстанавливать WG-интерфейсы после перезапуска
+  # import_existing: false           # импортировать существующие WG-интерфейсы хоста
 
 # ============================================================
-# Расширенные настройки
+# Расширенные настройки (опционально)
 # ============================================================
-advanced:
-  log_level: info                     # debug | info | warn | error
-  config_storage_path: /opt/awg-portal/config   # куда сохранять wg-конфиги (save-config)
-  start_listen_port: 51820           # начальный порт для интерфейсов
-  start_cidr_v4: 10.211.1.0/24       # начальная подсеть для пиров
+# advanced:
+#   log_level: info                   # debug | info | warn | error
+#   config_storage_path: /opt/awg-portal/config  # куда сохранять wg-конфиги (save-config)
+#   start_listen_port: 51820          # начальный порт для новых интерфейсов
+#   start_cidr_v4: 10.211.1.0/24      # начальная подсеть для пиров
 
 # ============================================================
 # Веб-интерфейс
 # ============================================================
 web:
-  site_title: AWG-PORTAL
-  listening_address: :8888
-  external_url: http://<IP>:8888      # <-- ЗАМЕНИТЕ на реальный IP/домен
+  # site_title: AWG-PORTAL            # заголовок в браузере
+  # listening_address: :8888          # адрес:порт веб-сервера
+  external_url: http://<IP>:8888      # <-- installer auto-replaces placeholder above with primary IP
 
 # ============================================================
 # AmneziaWG (обфускация трафика)
@@ -50,14 +69,16 @@ backend:
   # wgctrl — через WireGuard kernel module (wg set)
   # mikrotik — через RouterOS API
   # pfsense — через pfSense pfctl
-  backend: wgctrl                    # wgctrl | mikrotik | pfsense
+  # backend: wgctrl                  # wgctrl | mikrotik | pfsense
 
 # ============================================================
 # База данных
 # ============================================================
+# type — sqlite (по умолчанию) | mysql | postgres | mssql
+# dsn  — для sqlite это путь к файлу; для остальных — DSN-строка подключения
 database:
-  type: sqlite                        # sqlite | mysql | postgres | mssql
-  dsn: /opt/awg-portal/data/sqlite.db  # путь к файлу БД или DSN подключения
+  # type: sqlite
+  dsn: /opt/awg-portal/data/sqlite.db
 
 # ============================================================
 # Prometheus метрики (опционально)

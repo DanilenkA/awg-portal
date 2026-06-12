@@ -134,6 +134,13 @@ mkdir -p /run/amneziawg          # для UAPI-сокетов AWG
 chown -R "${SERVICE_USER}:${SERVICE_USER}" /run/amneziawg
 chmod 0750 /run/amneziawg
 
+# Auto-detect primary IP (source address of the default route).
+# This is the IP clients will use to reach the portal, so we pre-fill
+# external_url in config.yml so the user does not have to look it up.
+# Falls back to "<IP>" placeholder if detection fails (e.g. no default route yet).
+PRIMARY_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | grep -oP 'src \K[\d.]+' || echo "<IP>")
+echo "  Detected primary IP: ${PRIMARY_IP}"
+
 CONFIG_SOURCE=""
 for candidate in \
     "${BUNDLE_DIR}/config.yml.sample" \
@@ -149,9 +156,13 @@ done
 if [ -n "$CONFIG_SOURCE" ]; then
   if [ ! -f "${PORTAL_DIR}/config.yml" ]; then
     cp "$CONFIG_SOURCE" "${PORTAL_DIR}/config.yml"
+    # Replace placeholder IP in config
+    sed -i "s|<IP>|${PRIMARY_IP}|g" "${PORTAL_DIR}/config.yml"
+    # Also make sure external_url has http:// prefix
+    sed -i "s|http://<IP>|http://${PRIMARY_IP}|g" "${PORTAL_DIR}/config.yml"
     chown "${SERVICE_USER}:${SERVICE_USER}" "${PORTAL_DIR}/config.yml"
     echo "  Sample config copied to ${PORTAL_DIR}/config.yml"
-    echo "  ** EDIT THIS FILE before starting the service! **"
+    echo "  ** REVIEW /opt/awg-portal/config.yml — change admin_password before starting! **"
   else
     echo "  Config already exists at ${PORTAL_DIR}/config.yml — not overwritten."
   fi
