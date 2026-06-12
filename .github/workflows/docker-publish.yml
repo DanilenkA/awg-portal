@@ -87,17 +87,26 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           VERSION="${{ github.ref_name }}"
-          mkdir -p artifacts/deploy
-          cp binaries/linux/amd64/wg-portal artifacts/awg-portal_x86-64
-          cp binaries/linux/amd64/amneziawg-go artifacts/amneziawg-go
-          cp config.yml.sample artifacts/
-          cp deploy/install.sh artifacts/deploy/
+          # Структура бандла v1.4.0:
+          #   awg-portal-<VERSION>/
+          #     install.sh              <- скрипт установки в корне бандла
+          #     config.yml.sample
+          #     bin/
+          #       wg-portal-amd64       <- основной бинарник
+          #       amneziawg-go
+          BUNDLE_ROOT="artifacts/awg-portal-${VERSION}"
+          mkdir -p "${BUNDLE_ROOT}/bin"
+          cp deploy/install.sh "${BUNDLE_ROOT}/install.sh"
           # Подставляем версию в install.sh
-          sed -i "s/VERSION=.*/VERSION=\"$VERSION\"/" artifacts/deploy/install.sh
+          sed -i "s/VERSION=.*/VERSION=\"$VERSION\"/" "${BUNDLE_ROOT}/install.sh"
+          cp config.yml.sample "${BUNDLE_ROOT}/"
+          cp binaries/linux/amd64/wg-portal "${BUNDLE_ROOT}/bin/wg-portal-amd64"
+          cp binaries/linux/amd64/amneziawg-go "${BUNDLE_ROOT}/bin/amneziawg-go"
           cd artifacts
-          tar czf ../awg-portal-${VERSION}-bundle.tar.gz ./*
+          tar czf "../awg-portal-${VERSION}-bundle.tar.gz" "awg-portal-${VERSION}"
           cd ..
           echo "Bundle: awg-portal-${VERSION}-bundle.tar.gz"
+          tar tzf "awg-portal-${VERSION}-bundle.tar.gz"
 
       - name: Upload artifact
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0

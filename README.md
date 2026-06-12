@@ -76,25 +76,38 @@ docker compose up -d
 
 ```bash
 # 1. Скачать последний бандл
-curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v1.3.2-bundle.tar.gz
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v1.4.0-bundle.tar.gz
 
 # 2. Распаковать
 mkdir awg-portal && cd awg-portal
-tar xzf ../awg-portal-v1.3.2-bundle.tar.gz
+tar xzf ../awg-portal-v1.4.0-bundle.tar.gz --strip-components=1
 
 # 3. Запустить установку
-sudo bash deploy/install.sh
+sudo bash install.sh
 
 # 4. Настроить конфиг и запустить
 sudo nano /opt/awg-portal/config.yml
 sudo systemctl enable --now awg-portal
 ```
 
-В бандле:
-- `awg-portal_x86-64` — основной бинарник
-- `amneziawg-go` — userspace AmneziaWG (для обфускации)
+В бандле (`awg-portal-v1.4.0/`):
+- `bin/wg-portal-amd64` — основной бинарник (есть также `wg-portal-arm64` и `wg-portal-arm`)
+- `bin/amneziawg-go` — userspace AmneziaWG (для обфускации)
 - `config.yml.sample` — образец конфига
-- `deploy/install.sh` — скрипт установки systemd-юнита
+- `install.sh` — скрипт установки systemd-юнита (с поддержкой всех вариантов бандла)
+
+Скрипт устанавливает основной бинарник в `/usr/local/bin/awg-portal`,
+создаёт `/opt/awg-portal/data` и `/opt/awg-portal/config`, а systemd-юнит
+запускает портал с `WG_PORTAL_CONFIG=/opt/awg-portal/config.yml`.
+`amneziawg-go` устанавливается в `/usr/local/bin/amneziawg-go`.
+Юнит также задаёт `RuntimeDirectory=amneziawg`: systemd создаёт
+`/run/amneziawg` для UAPI-сокетов AWG при старте сервиса.
+
+> **Примечание:** В бандлах до v1.4.0 включительно install.sh мог лежать
+> в `deploy/install.sh` рядом с бинарниками в корне архива. Скрипт
+> `install.sh` умеет находить бинарники во всех вариантах раскладки
+> (`bin/`, `dist/`, плоский корень), поэтому работает одинаково независимо
+> от того, в `deploy/` он или в корне бандла.
 
 ### Ручной запуск (без установки)
 

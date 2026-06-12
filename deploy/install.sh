@@ -1,18 +1,46 @@
 #!/bin/bash
 # awg-portal installation script
-# Run as root: bash deploy/install.sh (from bundle root)
+#
+# Compatible with multiple bundle layouts:
+#   v1.4.0 release bundle (install.sh at root, binaries in bin/):
+#       awg-portal-v1.4.0/
+#         install.sh
+#         config.yml.sample
+#         bin/wg-portal-amd64, bin/amneziawg-go, ...
+#   Old/legacy bundle (binaries at root, install.sh in deploy/):
+#       awg-portal_x86-64, amneziawg-go, config.yml.sample
+#       deploy/install.sh
+#   Local build (after `make build-amd64`):
+#       dist/wg-portal-amd64, dist/amneziawg-go, dist/install.sh
+#
+# Run as root: sudo bash install.sh   (or sudo bash deploy/install.sh)
 set -euo pipefail
 
-VERSION="v1.3.2"
+VERSION="v1.4.0"
 BIN_DIR="/usr/local/bin"
 SYSTEMD_DIR="/etc/systemd/system"
 PORTAL_DIR="/opt/awg-portal"
 SERVICE_USER="awg-portal"
 
-# SCRIPT_DIR = директория где лежит install.sh (deploy/)
+# SCRIPT_DIR = директория, где лежит этот install.sh.
+#   - Если вызывается как `sudo bash deploy/install.sh` из корня бандла
+#     (старый layout) — SCRIPT_DIR = <bundle>/deploy, BUNDLE_DIR = <bundle>.
+#   - Если вызывается как `sudo bash install.sh` из корня бандла
+#     (v1.4.0 layout) — SCRIPT_DIR = BUNDLE_DIR = <bundle>.
+#   - Если вызывается из dist/ (после `make build`) — SCRIPT_DIR = dist/,
+#     BUNDLE_DIR = корень репозитория (для config.yml.sample).
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-# BUNDLE_DIR = корень архива (родитель deploy/)
-BUNDLE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# BUNDLE_DIR = корень архива.
+#   - Если скрипт лежит в корне бандла (v1.4.0 layout: SCRIPT_DIR/install.sh,
+#     SCRIPT_DIR/bin/...) — BUNDLE_DIR = SCRIPT_DIR.
+#   - Если скрипт лежит в deploy/ (старый layout: deploy/install.sh,
+#     ../awg-portal_x86-64) — BUNDLE_DIR = SCRIPT_DIR/..
+#   - Если скрипт лежит в dist/ (после `make build`) — BUNDLE_DIR = SCRIPT_DIR.
+if [ -d "${SCRIPT_DIR}/bin" ] || [ -f "${SCRIPT_DIR}/awg-portal_x86-64" ]; then
+  BUNDLE_DIR="${SCRIPT_DIR}"
+else
+  BUNDLE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
 
 echo "==> awg-portal installer ${VERSION}"
 
@@ -22,17 +50,34 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Проверка зависимостей
-for cmd in install chmod cp mkdir systemctl; do
+for cmd in chown chmod cp id install mkdir systemctl useradd; do
   if ! command -v "$cmd" &>/dev/null; then
     echo "ERROR: Required command '$cmd' not found."
     exit 1
   fi
 done
 
-# 1. awg-portal binary
-echo "[1/4] Installing awg-portal..."
+# 1. awg-portal binary — поддерживаем все варианты бандла:
+#   bin/wg-portal-amd64            (v1.4.0 release bundle)
+#   bin/wg-portal-arm64 / bin/wg-portal-arm  (multi-arch release bundle)
+#   dist/wg-portal-amd64           (после `make build-amd64`)
+#   awg-portal_x86-64              (legacy/old bundle)
+#   awg-portal                     (legacy fallback)
+echo "[1/5] Installing awg-portal..."
 BINARY_SOURCE=""
-for candidate in "${BUNDLE_DIR}/awg-portal_x86-64" "${BUNDLE_DIR}/awg-portal" "${SCRIPT_DIR}/../awg-portal_x86-64"; do
+for candidate in \
+    "${BUNDLE_DIR}/bin/wg-portal-amd64" \
+    "${BUNDLE_DIR}/bin/wg-portal-arm64" \
+    "${BUNDLE_DIR}/bin/wg-portal-arm" \
+    "${BUNDLE_DIR}/wg-portal-amd64" \
+    "${BUNDLE_DIR}/wg-portal-arm64" \
+    "${BUNDLE_DIR}/wg-portal-arm" \
+    "${BUNDLE_DIR}/awg-portal_x86-64" \
+    "${BUNDLE_DIR}/awg-portal" \
+    "${SCRIPT_DIR}/wg-portal-amd64" \
+    "${SCRIPT_DIR}/wg-portal-arm64" \
+    "${SCRIPT_DIR}/awg-portal_x86-64" \
+    "${SCRIPT_DIR}/awg-portal"; do
   if [ -f "$candidate" ]; then
     BINARY_SOURCE="$candidate"
     break
@@ -40,16 +85,23 @@ for candidate in "${BUNDLE_DIR}/awg-portal_x86-64" "${BUNDLE_DIR}/awg-portal" "$
 done
 if [ -n "$BINARY_SOURCE" ]; then
   install -m 0755 "$BINARY_SOURCE" "${BIN_DIR}/awg-portal"
+  echo "  Installed ${BIN_DIR}/awg-portal (from ${BINARY_SOURCE})"
 else
   echo "  ERROR: awg-portal binary not found in bundle."
-  echo "  Expected: awg-portal_x86-64 or awg-portal"
+  echo "  Searched:"
+  echo "    bin/wg-portal-amd64, bin/wg-portal-arm64, bin/wg-portal-arm"
+  echo "    wg-portal-amd64, wg-portal-arm64, wg-portal-arm"
+  echo "    awg-portal_x86-64, awg-portal"
   exit 1
 fi
 
 # 2. amneziawg-go binary (bundled)
-echo "[2/4] Installing amneziawg-go..."
+echo "[2/5] Installing amneziawg-go..."
 AWG_SOURCE=""
-for candidate in "${BUNDLE_DIR}/amneziawg-go" "${SCRIPT_DIR}/../amneziawg-go"; do
+for candidate in \
+    "${BUNDLE_DIR}/bin/amneziawg-go" \
+    "${BUNDLE_DIR}/amneziawg-go" \
+    "${SCRIPT_DIR}/amneziawg-go"; do
   if [ -f "$candidate" ]; then
     AWG_SOURCE="$candidate"
     break
@@ -57,10 +109,11 @@ for candidate in "${BUNDLE_DIR}/amneziawg-go" "${SCRIPT_DIR}/../amneziawg-go"; d
 done
 if [ -n "$AWG_SOURCE" ]; then
   install -m 0755 "$AWG_SOURCE" "${BIN_DIR}/amneziawg-go"
+  echo "  Installed ${BIN_DIR}/amneziawg-go (from ${AWG_SOURCE})"
 else
   echo "  WARNING: amneziawg-go not found in bundle."
   echo "  AWG (обфускация) не будет работать. WG — будет."
-  echo "  Установите позже: wget .../amneziawg-go"
+  echo "  Установите позже в /usr/local/bin/amneziawg-go"
 fi
 
 # 3. Создаём системного пользователя (если нет)
@@ -68,18 +121,24 @@ echo "[3/5] Creating system user..."
 if ! id -u "${SERVICE_USER}" &>/dev/null; then
   useradd --system --no-create-home --shell /usr/sbin/nologin "${SERVICE_USER}"
   echo "  User ${SERVICE_USER} created."
+else
+  echo "  User ${SERVICE_USER} already exists."
 fi
 
-# 4. Portal directories
+# 4. Portal directories + конфиг
 echo "[4/5] Setting up directories..."
 mkdir -p "${PORTAL_DIR}/data"
 mkdir -p "${PORTAL_DIR}/config" # для wg-конфигов (save-config)
-mkdir -p /run/amneziawg # для UAPI-сокетов AWG
+mkdir -p /run/amneziawg          # для UAPI-сокетов AWG
 chown -R "${SERVICE_USER}:${SERVICE_USER}" /run/amneziawg
 chmod 0750 /run/amneziawg
 
 CONFIG_SOURCE=""
-for candidate in "${BUNDLE_DIR}/config.yml.sample" "${BUNDLE_DIR}/config.yml" "${SCRIPT_DIR}/../config.yml.sample"; do
+for candidate in \
+    "${BUNDLE_DIR}/config.yml.sample" \
+    "${BUNDLE_DIR}/config.yml" \
+    "${SCRIPT_DIR}/../config.yml.sample" \
+    "${SCRIPT_DIR}/config.yml.sample"; do
   if [ -f "$candidate" ]; then
     CONFIG_SOURCE="$candidate"
     break
@@ -89,6 +148,7 @@ done
 if [ -n "$CONFIG_SOURCE" ]; then
   if [ ! -f "${PORTAL_DIR}/config.yml" ]; then
     cp "$CONFIG_SOURCE" "${PORTAL_DIR}/config.yml"
+    chown "${SERVICE_USER}:${SERVICE_USER}" "${PORTAL_DIR}/config.yml"
     echo "  Sample config copied to ${PORTAL_DIR}/config.yml"
     echo "  ** EDIT THIS FILE before starting the service! **"
   else
@@ -112,13 +172,15 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=awg-portal
-AmbientCapabilities=CAP_NET_ADMIN
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
 Restart=on-failure
 RestartSec=3
 StartLimitBurst=5
 WorkingDirectory=/opt/awg-portal
 Environment=WG_PORTAL_CONFIG=/opt/awg-portal/config.yml
 ExecStart=/usr/local/bin/awg-portal
+RuntimeDirectory=amneziawg
+RuntimeDirectoryMode=0750
 
 # Hardening
 NoNewPrivileges=true
@@ -126,12 +188,11 @@ PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
 ReadWritePaths=/opt/awg-portal /etc/wireguard /run/amneziawg
-ReadOnlyPaths=-/dev/net/tun
 RestrictAddressFamilies=AF_NETLINK AF_INET AF_INET6 AF_UNIX
 RestrictRealtime=true
 RestrictSUIDSGID=true
 MemoryDenyWriteExecute=true
-CapabilityBoundingSet=CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
 
 [Install]
 WantedBy=multi-user.target
@@ -149,7 +210,7 @@ echo "  /opt/awg-portal/config.yml"
 echo "  /etc/systemd/system/awg-portal.service"
 echo ""
 echo "Next steps:"
-echo "  1. Edit /opt/awg-portal/config.yml — установите admin_email и admin_password"
+echo "  1. Edit /opt/awg-portal/config.yml — установите core.admin_user и core.admin_password"
 echo "  2. systemctl enable --now awg-portal"
 echo "  3. journalctl -u awg-portal -f"
 echo ""
