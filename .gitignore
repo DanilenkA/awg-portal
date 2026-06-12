@@ -39,7 +39,15 @@ sqlite.db
 /config/
 venv/
 .cache/
+
+# Agent/IDE contextual files
+CLAUDE.md
+AGENT.md
+AGENTS.md
+.claude/
+
 # ignore local frontend dist directory
 internal/app/api/core/frontend-dist
 # mkdocs output directory
 site/
+HANDOFF.md

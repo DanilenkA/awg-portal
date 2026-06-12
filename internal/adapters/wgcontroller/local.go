@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Jipok/wgctrl-go"
+	"github.com/Jipok/wgctrl-go/wgtypes"
 	probing "github.com/prometheus-community/pro-bing"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
-	"github.com/Jipok/wgctrl-go"
-	"github.com/Jipok/wgctrl-go/wgtypes"
 
 	"github.com/DanilenkA/awg-portal/internal"
 	"github.com/DanilenkA/awg-portal/internal/config"
@@ -235,7 +235,7 @@ func (c LocalController) SaveInterface(
 	if updateFunc != nil {
 		probePI := &domain.PhysicalInterface{Identifier: id}
 		if probedPI, probeErr := updateFunc(probePI); probeErr == nil {
-			_, needsAWG = probedPI.GetAWGParams()
+			needsAWG = probedPI.EmitAWG()
 		}
 	}
 
@@ -286,8 +286,7 @@ func (c LocalController) getOrCreateInterface(id domain.InterfaceIdentifier, nee
 	}
 
 	// Check for stale AWG socket (wgctrl-go dial unix socket failure)
-	if strings.Contains(err.Error(), "connection refused") &&
-		c.cfg.Backend.GetAWGMode() != config.AWGModeNever {
+	if isStaleAWGSocketError(err) && c.cfg.Backend.GetAWGMode() != config.AWGModeNever {
 		slog.Warn("stale AWG socket detected, restarting amneziawg-go", "iface", id)
 		// Kill any orphaned amneziawg-go process for this interface
 		_ = lowlevel.StopAWGProcess(string(id))
@@ -306,6 +305,15 @@ func (c LocalController) getOrCreateInterface(id domain.InterfaceIdentifier, nee
 	return nil, fmt.Errorf("device error: %w", err)
 }
 
+func isStaleAWGSocketError(err error) bool {
+	return errors.Is(err, unix.ECONNREFUSED)
+}
+
+func shouldTryAWG(awgMode string, needsAWG bool) bool {
+	return awgMode == config.AWGModeAlways ||
+		(awgMode == config.AWGModeAuto && needsAWG)
+}
+
 func (c LocalController) getInterface(id domain.InterfaceIdentifier) (*domain.PhysicalInterface, error) {
 	device, err := c.wg.Device(string(id))
 	if err != nil {
@@ -319,24 +327,46 @@ func (c LocalController) getInterface(id domain.InterfaceIdentifier) (*domain.Ph
 func (c LocalController) createLowLevelInterface(id domain.InterfaceIdentifier, needsAWG bool) error {
 	awgMode := c.cfg.Backend.GetAWGMode()
 
-	// Start amneziawg-go only when:
-	// - awg_mode=always: force userspace for all interfaces, OR
-	// - awg_mode=auto AND this specific interface needs AWG obfuscation.
-	// For awg_mode=auto with a plain WG interface (needsAWG=false), skip
-	// amneziawg-go and use the kernel wireguard module directly.
-	// This prevents creating a TUN device for interfaces that don't need it.
-	shouldTryAWG := awgMode == config.AWGModeAlways ||
-		(awgMode == config.AWGModeAuto && needsAWG)
+	// Decide whether to attempt amneziawg-go for this interface.
+	//
+	// Contract per awg_mode:
+	//   - awg_mode=always → ALWAYS try amneziawg-go, even for plain WG
+	//     interfaces (the user explicitly asked for userspace AWG for
+	//     EVERY interface on this backend).
+	//   - awg_mode=auto   → try amneziawg-go ONLY when the interface
+	//     itself has AWG obfuscation enabled / configured. Plain WG
+	//     interfaces stay on the kernel module to avoid creating a TUN
+	//     device that they don't need.
+	//   - awg_mode=never  → never start amneziawg-go, kernel WG only.
+	//
+	// needsAWG (from the PhysicalInterface) is independent of awg_mode;
+	// it reflects the *interface's* requirements, not the backend's
+	// policy. The two combine to determine shouldTryAWG.
+	shouldTryAWG := shouldTryAWG(awgMode, needsAWG)
 
 	if shouldTryAWG {
 		awgErr := lowlevel.StartAWGProcess(string(id))
 		if awgErr == nil {
 			return nil // amneziawg-go created the TUN device + UAPI socket
 		}
+		// awg_mode=always: never silently downgrade to kernel WG. The user
+		// explicitly asked for AWG and we couldn't honour that.
 		if awgMode == config.AWGModeAlways {
-			return fmt.Errorf("awg: amneziawg-go not available and awg_mode=always: %w", awgErr)
+			slog.Error("awg_mode=always but amneziawg-go is unavailable; refusing to fall back to kernel WireGuard",
+				"iface", id, "error", awgErr)
+			return fmt.Errorf("awg_mode=always: amneziawg-go unavailable for %s: %w", id, awgErr)
 		}
-		// awgMode is "auto" and amneziawg-go failed — fall through to kernel WG
+		// awg_mode=auto: amneziawg-go failed AND the interface requires
+		// AWG obfuscation. Surface the error rather than silently
+		// dropping the obfuscation and using kernel WG (silent downgrade).
+		if needsAWG {
+			slog.Error("awg_mode=auto and interface requires AWG obfuscation, but amneziawg-go is unavailable; refusing to fall back to kernel WireGuard",
+				"iface", id, "error", awgErr)
+			return fmt.Errorf("awg_mode=auto but interface %s requires AWG and amneziawg-go unavailable: %w", id, awgErr)
+		}
+		// awg_mode=auto and needsAWG=false: we shouldn't actually reach
+		// here (shouldTryAWG was false in that case), but if we do,
+		// fall through to kernel WG.
 		slog.Debug("amneziawg-go not available, falling back to kernel WireGuard", "iface", id)
 	}
 
@@ -434,7 +464,20 @@ func (c LocalController) updateWireGuardInterface(pi *domain.PhysicalInterface) 
 	// Jipok/wgctrl-go sends them natively through the UAPI.
 	// Note: wgtypes.Config uses *string for H1-H4 (UAPI protocol is string-based),
 	// so we convert our uint32 values via fmt.Sprintf.
-	if awgParams, ok := pi.GetAWGParams(); ok {
+	//
+	// Honour the awg_mode=never contract: when the backend is configured
+	// for plain kernel WireGuard, we MUST NOT pass AWG parameters to
+	// wgctrl, even if the interface model has them populated. Otherwise
+	// a Jipok wgctrl-go built with AWG support would forward them to the
+	// kernel UAPI socket, where they would either be rejected as unknown
+	// keys or, worse, silently accepted by a custom UAPI handler.
+	//
+	// Inside the non-never branch we additionally gate on
+	// pi.EmitAWG() — the single source of truth for "should we emit
+	// AWG?" — so a stale AWG params field with AWGEnabled=false
+	// cannot leak into the kernel UAPI either.
+	if awgMode := c.cfg.Backend.GetAWGMode(); awgMode != config.AWGModeNever && pi.EmitAWG() {
+		awgParams, _ := pi.GetAWGParams()
 		cfg.Jc = &awgParams.Jc
 		cfg.Jmin = &awgParams.Jmin
 		cfg.Jmax = &awgParams.Jmax
@@ -450,6 +493,16 @@ func (c LocalController) updateWireGuardInterface(pi *domain.PhysicalInterface) 
 		cfg.H2 = &h2
 		cfg.H3 = &h3
 		cfg.H4 = &h4
+	} else {
+		// awg_mode=never OR pi.EmitAWG()=false: ensure no AWG fields
+		// leak into wgtypes.Config. This is the safe path even though
+		// the cfg literal above starts with all nil pointers; defensive
+		// in case future refactors accidentally populate these fields.
+		cfg.Jc = nil
+		cfg.Jmin = nil
+		cfg.Jmax = nil
+		cfg.S1, cfg.S2, cfg.S3, cfg.S4 = nil, nil, nil, nil
+		cfg.H1, cfg.H2, cfg.H3, cfg.H4 = nil, nil, nil, nil
 	}
 
 	err = c.wg.ConfigureDevice(string(pi.Identifier), cfg)
@@ -570,7 +623,7 @@ func (c LocalController) saveAWGPeer(
 		allowedIPs = append(allowedIPs, cidr.String())
 	}
 
-		// Build endpoint string from the peer's endpoint (if set)
+	// Build endpoint string from the peer's endpoint (if set)
 	endpoint := ""
 	if pp.Endpoint != "" {
 		endpoint = pp.Endpoint
@@ -1247,7 +1300,7 @@ func (c LocalController) ensureAWGConnectedRoute(pi *domain.PhysicalInterface) e
 			Dst:       network.IpNet(),
 			Scope:     netlink.SCOPE_LINK,
 		}
-			if err := c.nl.RouteAdd(route); err != nil {
+		if err := c.nl.RouteAdd(route); err != nil {
 			if errors.Is(err, unix.EEXIST) {
 				continue // already exists, fine
 			}

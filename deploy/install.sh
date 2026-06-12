@@ -57,12 +57,11 @@ for cmd in chown chmod cp id install mkdir systemctl useradd; do
   fi
 done
 
-# 1. awg-portal binary — поддерживаем все варианты бандла:
-#   bin/wg-portal-amd64            (v1.4.0 release bundle)
-#   bin/wg-portal-arm64 / bin/wg-portal-arm  (multi-arch release bundle)
-#   dist/wg-portal-amd64           (после `make build-amd64`)
-#   awg-portal_x86-64              (legacy/old bundle)
-#   awg-portal                     (legacy fallback)
+# 1. awg-portal binary — все варианты бандла:
+#   bin/wg-portal-amd64 / arm64 / arm  (v1.4.0 release bundle)
+#   dist/wg-portal-amd64 / wg-portal  (после `make build-amd64` / `make build`)
+#   dist/wg-portal-arm64 / arm        (после `make build-arm64` / `make build-arm`)
+#   awg-portal_x86-64 / awg-portal    (legacy, плоский корень)
 echo "[1/5] Installing awg-portal..."
 BINARY_SOURCE=""
 for candidate in \
@@ -72,12 +71,14 @@ for candidate in \
     "${BUNDLE_DIR}/wg-portal-amd64" \
     "${BUNDLE_DIR}/wg-portal-arm64" \
     "${BUNDLE_DIR}/wg-portal-arm" \
+    "${BUNDLE_DIR}/dist/wg-portal" \
+    "${BUNDLE_DIR}/dist/wg-portal-amd64" \
+    "${BUNDLE_DIR}/dist/wg-portal-arm64" \
+    "${BUNDLE_DIR}/dist/wg-portal-arm" \
+    "${BUNDLE_DIR}/dist/awg-portal" \
+    "${BUNDLE_DIR}/dist/awg-portal_x86-64" \
     "${BUNDLE_DIR}/awg-portal_x86-64" \
-    "${BUNDLE_DIR}/awg-portal" \
-    "${SCRIPT_DIR}/wg-portal-amd64" \
-    "${SCRIPT_DIR}/wg-portal-arm64" \
-    "${SCRIPT_DIR}/awg-portal_x86-64" \
-    "${SCRIPT_DIR}/awg-portal"; do
+    "${BUNDLE_DIR}/awg-portal"; do
   if [ -f "$candidate" ]; then
     BINARY_SOURCE="$candidate"
     break
@@ -85,13 +86,11 @@ for candidate in \
 done
 if [ -n "$BINARY_SOURCE" ]; then
   install -m 0755 "$BINARY_SOURCE" "${BIN_DIR}/awg-portal"
-  echo "  Installed ${BIN_DIR}/awg-portal (from ${BINARY_SOURCE})"
+  echo "  Installed ${BIN_DIR}/awg-portal (from ${BINARY_SOURCE##*/})"
 else
   echo "  ERROR: awg-portal binary not found in bundle."
-  echo "  Searched:"
-  echo "    bin/wg-portal-amd64, bin/wg-portal-arm64, bin/wg-portal-arm"
-  echo "    wg-portal-amd64, wg-portal-arm64, wg-portal-arm"
-  echo "    awg-portal_x86-64, awg-portal"
+  echo "  Searched: bin/, dist/, flat root — {wg-portal,awg-portal}{,-amd64,-arm64,-arm,_x86-64}"
+  echo "  Build it: make build-amd64"
   exit 1
 fi
 
@@ -100,8 +99,10 @@ echo "[2/5] Installing amneziawg-go..."
 AWG_SOURCE=""
 for candidate in \
     "${BUNDLE_DIR}/bin/amneziawg-go" \
+    "${BUNDLE_DIR}/dist/amneziawg-go" \
     "${BUNDLE_DIR}/amneziawg-go" \
-    "${SCRIPT_DIR}/amneziawg-go"; do
+    "${SCRIPT_DIR}/amneziawg-go" \
+    "${SCRIPT_DIR}/../amneziawg-go"; do
   if [ -f "$candidate" ]; then
     AWG_SOURCE="$candidate"
     break

@@ -568,37 +568,110 @@ func (m Manager) saveInterface(ctx context.Context, iface *domain.Interface) (
 		oldEnabled, newEnabled, routeTableChanged = m.getInterfaceStateHistory(oldInterface, iface)
 	}
 
+	// We will need to know whether a mode switch is required both
+	// before the DB save (to log it / order the physical layer) and
+	// after (to drive peer restore). Compute it once and reuse.
+	modeSwitched := oldInterface != nil && awgModeChanged(oldInterface, iface)
+	var oldPeers []domain.Peer
+	if oldInterface != nil {
+		oldPeers, err = m.db.GetInterfacePeers(ctx, iface.Identifier)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load peers for interface %s: %w", iface.Identifier, err)
+		}
+	}
+
+	// 1. Pre-save hooks. Run BEFORE the mode switch so the user's
+	//    PreUp/PreDown scripts see a consistent interface state.
 	if err := m.handleInterfacePreSaveHooks(ctx, iface, oldEnabled, newEnabled); err != nil {
 		return nil, fmt.Errorf("pre-save hooks failed: %w", err)
 	}
 
+	// 2. Pre-save actions (DNS for client interfaces).
 	if err := m.handleInterfacePreSaveActions(ctx, iface); err != nil {
 		return nil, fmt.Errorf("pre-save actions failed: %w", err)
 	}
 
-	err = m.db.SaveInterface(ctx, iface.Identifier, func(i *domain.Interface) (*domain.Interface, error) {
-		iface.CopyCalculatedAttributes(i)
+	// 3. Physical-layer apply. THIS RUNS BEFORE THE DB SAVE. If physical
+	//    creation fails after teardown, or if the later DB save fails after
+	//    physical success, we compensate by restoring the previous physical
+	//    state from oldInterface/oldPeers.
+	//
+	//    In the mode-switch case we additionally tear down the old
+	//    low-level device before creating the new one. Without that
+	//    explicit teardown, wgctrl ConfigureDevice would land on a
+	//    soon-to-be-recreated device and the new driver (kernel vs.
+	//    amneziawg-go) would never come up.
+	if modeSwitched {
+		slog.Info("awg: detected WG↔AWG mode switch, recreating low-level interface",
+			"interface", iface.Identifier,
+			"was_awg_enabled", oldInterface.AWGEnabled,
+			"was_awg_params", oldInterface.HasAnyAWGParams(),
+			"now_awg_enabled", iface.AWGEnabled,
+			"now_awg_params", iface.HasAnyAWGParams())
 
-		err := m.wg.GetController(*iface).SaveInterface(ctx, iface.Identifier,
-			func(pi *domain.PhysicalInterface) (*domain.PhysicalInterface, error) {
-				domain.MergeToPhysicalInterface(pi, iface)
-				return pi, nil
-			})
-		if err != nil {
-			return nil, fmt.Errorf("failed to save physical interface %s: %w", iface.Identifier, err)
+		// 3a. Tear down old low-level interface (stops amneziawg-go
+		//     if any, removes the netlink link). Ignore ErrNotExist —
+		//     a previous failed save may have left us in a state where
+		//     the link is already gone.
+		if delErr := m.wg.GetController(*oldInterface).DeleteInterface(ctx, oldInterface.Identifier); delErr != nil {
+			if !errors.Is(delErr, os.ErrNotExist) {
+				return nil, fmt.Errorf("awg mode switch: failed to delete old interface %s: %w",
+					iface.Identifier, delErr)
+			}
 		}
 
+		// 3b. Create the new low-level interface. We call
+		//     controller.SaveInterface — its getOrCreateInterface
+		//     helper will run createLowLevelInterface for the
+		//     (possibly new) AWG/kernel mode, then apply the rest of
+		//     the config (keys, port, AWG params, IPs, MTU, routes).
+		if err := m.applyPhysicalInterface(ctx, iface); err != nil {
+			if rollbackErr := m.rollbackPhysicalInterface(ctx, oldInterface, oldPeers, iface, modeSwitched); rollbackErr != nil {
+				return nil, fmt.Errorf("awg mode switch: failed to create new interface %s: %w; rollback failed: %v",
+					iface.Identifier, err, rollbackErr)
+			}
+			return nil, fmt.Errorf("awg mode switch: failed to create new interface %s: %w",
+				iface.Identifier, err)
+		}
+	} else {
+		// 3c. Plain (non-mode-switch) physical layer apply. The
+		//     controller's SaveInterface is idempotent for enabled
+		//     interfaces (it just reconfigures the existing link) and
+		//     will create a new DOWN link for a freshly-disabled
+		//     interface so the next enable is a no-op for the
+		//     low-level device.
+		//
+		//     As above, a failure here is a HARD error: the DB
+		//     still describes the previous state and we do not
+		//     touch it.
+		if err := m.applyPhysicalInterface(ctx, iface); err != nil {
+			return nil, fmt.Errorf("failed to save physical interface %s: %w", iface.Identifier, err)
+		}
+	}
+
+	// 4. DB save. We only reach this point if the physical layer
+	//    has been brought to the desired state. If the DB save fails,
+	//    roll the physical layer back to the previous DB state before
+	//    returning the error.
+	err = m.db.SaveInterface(ctx, iface.Identifier, func(i *domain.Interface) (*domain.Interface, error) {
+		iface.CopyCalculatedAttributes(i)
 		return iface, nil
 	})
 	if err != nil {
+		if rollbackErr := m.rollbackPhysicalInterface(ctx, oldInterface, oldPeers, iface, modeSwitched); rollbackErr != nil {
+			slog.Error("awg: physical layer updated but DB save failed and rollback failed; manual reconciliation required",
+				"interface", iface.Identifier, "error", err, "rollback_error", rollbackErr)
+			return nil, fmt.Errorf("failed to save interface: %w; rollback failed: %v", err, rollbackErr)
+		}
+		slog.Warn("awg: DB save failed after physical apply; restored previous physical state",
+			"interface", iface.Identifier, "error", err)
 		return nil, fmt.Errorf("failed to save interface: %w", err)
 	}
 
-	// update the interface type of peers in db and propagate AWG obfuscation parameters
-	peers, err := m.db.GetInterfacePeers(ctx, iface.Identifier)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load peers for interface %s: %w", iface.Identifier, err)
-	}
+	// 5. Update the interface type of peers in db and propagate AWG
+	//    obfuscation parameters. Done after the DB save so that the
+	//    new iface row is visible to peer updates.
+	peers := oldPeers
 	for _, peer := range peers {
 		err := m.db.SavePeer(ctx, peer.Identifier, func(_ *domain.Peer) (*domain.Peer, error) {
 			switch iface.Type {
@@ -661,12 +734,24 @@ func (m Manager) saveInterface(ctx context.Context, iface *domain.Interface) (
 		}
 	}
 
+	// 6. Post-save hooks (PostUp / PostDown scripts). These are the
+	//    counterpart of the PreUp / PreDown scripts that ran before
+	//    the physical change, and they observe the new state.
 	if err := m.handleInterfacePostSaveHooks(ctx, iface, oldEnabled, newEnabled); err != nil {
 		return nil, fmt.Errorf("post-save hooks failed: %w", err)
 	}
 
-	// If the interface has just been enabled, restore its peers on the physical controller
-	if !oldEnabled && newEnabled && iface.Backend == config.LocalBackendName {
+	// 7. Peer restore. Three triggers:
+	//    - modeSwitched → physical peers were wiped by DeleteInterface
+	//      above; we have to re-add them.
+	//    - !oldEnabled && newEnabled → interface was just enabled
+	//      (or its record was re-created in RestoreInterfaceState).
+	//    In both cases we MUST be on an enabled, locally-backed
+	//    interface — peer restore on a disabled interface would
+	//    try to write to a non-existent low-level device.
+	if (modeSwitched || (!oldEnabled && newEnabled)) &&
+		iface.Backend == config.LocalBackendName &&
+		!iface.IsDisabled() {
 		peers, err := m.db.GetInterfacePeers(ctx, iface.Identifier)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load peers for interface %s: %w", iface.Identifier, err)
@@ -697,11 +782,90 @@ func (m Manager) saveInterface(ctx context.Context, iface *domain.Interface) (
 	return iface, nil
 }
 
+func (m Manager) applyPhysicalInterface(ctx context.Context, iface *domain.Interface) error {
+	return m.wg.GetController(*iface).SaveInterface(ctx, iface.Identifier,
+		func(pi *domain.PhysicalInterface) (*domain.PhysicalInterface, error) {
+			domain.MergeToPhysicalInterface(pi, iface)
+			return pi, nil
+		})
+}
+
+func (m Manager) rollbackPhysicalInterface(
+	ctx context.Context,
+	previous *domain.Interface,
+	previousPeers []domain.Peer,
+	desired *domain.Interface,
+	modeSwitched bool,
+) error {
+	var errs []error
+
+	if previous == nil {
+		if desired != nil {
+			if err := m.wg.GetController(*desired).DeleteInterface(ctx, desired.Identifier); err != nil &&
+				!errors.Is(err, os.ErrNotExist) {
+				errs = append(errs, fmt.Errorf("delete new physical interface %s: %w", desired.Identifier, err))
+			}
+		}
+		return errors.Join(errs...)
+	}
+
+	if modeSwitched && desired != nil {
+		if err := m.wg.GetController(*desired).DeleteInterface(ctx, desired.Identifier); err != nil &&
+			!errors.Is(err, os.ErrNotExist) {
+			errs = append(errs, fmt.Errorf("delete desired physical interface %s: %w", desired.Identifier, err))
+		}
+	}
+
+	if err := m.applyPhysicalInterface(ctx, previous); err != nil {
+		errs = append(errs, fmt.Errorf("restore previous physical interface %s: %w", previous.Identifier, err))
+		return errors.Join(errs...)
+	}
+
+	if previous.Backend == config.LocalBackendName && !previous.IsDisabled() {
+		for _, peer := range previousPeers {
+			if err := m.wg.GetController(*previous).SavePeer(ctx, previous.Identifier, peer.Identifier,
+				func(pp *domain.PhysicalPeer) (*domain.PhysicalPeer, error) {
+					domain.MergeToPhysicalPeer(pp, &peer)
+					return pp, nil
+				}); err != nil {
+				errs = append(errs, fmt.Errorf("restore peer %s for interface %s: %w",
+					peer.Identifier, previous.Identifier, err))
+			}
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
 func (m Manager) getInterfaceStateHistory(
 	oldInterface *domain.Interface,
 	iface *domain.Interface,
 ) (oldEnabled, newEnabled, routeTableChanged bool) {
 	return !oldInterface.IsDisabled(), !iface.IsDisabled(), oldInterface.RoutingTable != iface.RoutingTable
+}
+
+// awgModeChanged returns true when the user has toggled the
+// "is this an AWG interface" bit on or off. A mode switch is the only
+// case that requires tearing down the low-level device and recreating
+// it (kernel WireGuard link vs. userspace amneziawg-go TUN); for
+// everything else, the regular wgctrl ConfigureDevice call is enough
+// because amneziawg-go accepts AWG param updates through the UAPI
+// socket at runtime.
+//
+// Concretely we use EmitAWG() — AWGEnabled AND non-zero params — as
+// the canonical "is this an AWG interface?" predicate, so that:
+//   - flipping AWGEnabled on a plain WG interface (no params) is NOT
+//     a mode switch until params are also set (EmitAWG is false in
+//     the half-configured state), and
+//   - changing Jc / H1 / ... values is NOT a mode switch (the
+//     existing wgctrl path picks them up via UAPI).
+//
+// This keeps the recreate path narrow and predictable.
+func awgModeChanged(oldIface, newIface *domain.Interface) bool {
+	if oldIface == nil || newIface == nil {
+		return false
+	}
+	return oldIface.EmitAWG() != newIface.EmitAWG()
 }
 
 func (m Manager) handleInterfacePreSaveActions(ctx context.Context, iface *domain.Interface) error {

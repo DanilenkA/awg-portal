@@ -1,9 +1,9 @@
 ---
 services:
   awg-portal:
-    # Замените :v1.3.0 на актуальную версию из https://github.com/DanilenkA/awg-portal/pkgs/container/awg-portal
+    # Замените :v1.4.0 на актуальную версию из https://github.com/DanilenkA/awg-portal/pkgs/container/awg-portal
     # или используйте :stable для получения  стабильной версии или :latest для последней (но там могут быть баги :) )
-    image: ghcr.io/danilenka/awg-portal:v1.3.1
+    image: ghcr.io/danilenka/awg-portal:v1.4.0
     container_name: awg-portal
     restart: unless-stopped
 
@@ -73,14 +73,15 @@ services:
       - WG_PORTAL_ADVANCED_START_CIDR_V4=10.211.1.0/24
 
       # Путь к конфигурационным файлам WireGuard (wgX.conf).
-      # Важно: без этой директории save-config падает с nil pointer!
+      # Важно: без этой директории save-config вернёт ошибку
+      # "config persistence not configured".
       - WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH=/app/config
 
       # ── Backend ─────────────────────────────────────────────────
       # Режим AmneziaWG:
-      #   auto   — попробовать amneziawg-go, при ошибке — kernel WG
-      #   always — требовать amneziawg-go, ошибка если нет
-      #   never  — только kernel WireGuard
+      #   auto   — amneziawg-go только для интерфейсов с AWGEnabled=true
+      #   always — требовать amneziawg-go для всех интерфейсов, ошибка если нет
+      #   never  — только kernel WireGuard, AWG-параметры игнорируются
       - WG_PORTAL_BACKEND_AWG_MODE=auto
 
       # ── Auth ────────────────────────────────────────────────────
