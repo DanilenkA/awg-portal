@@ -110,7 +110,7 @@ jobs:
       - name: Export amneziawg-go binary
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          docker create --name awg-extract ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          docker create --name awg-extract ghcr.io/danilenka/awg-portal:${{ github.ref_name }}
           docker cp awg-extract:/usr/local/bin/amneziawg-go ./binaries/linux/amd64/amneziawg-go
           docker rm awg-extract
 
