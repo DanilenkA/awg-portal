@@ -32,7 +32,17 @@ done
 # 1. awg-portal binary
 echo "[1/5] Installing awg-portal..."
 BINARY_SOURCE=""
-for candidate in "${BUNDLE_DIR}/awg-portal_x86-64" "${BUNDLE_DIR}/awg-portal" "${SCRIPT_DIR}/../awg-portal_x86-64"; do
+# Поиск по приоритету: dist/ (после make build*) → корень бандла (back compat)
+# Имя в /usr/local/bin всегда awg-portal независимо от исходного имени.
+for candidate in \
+    "${BUNDLE_DIR}/dist/awg-portal_x86-64" \
+    "${BUNDLE_DIR}/dist/wg-portal" \
+    "${BUNDLE_DIR}/dist/wg-portal-amd64" \
+    "${BUNDLE_DIR}/dist/wg-portal-arm64" \
+    "${BUNDLE_DIR}/dist/wg-portal-arm" \
+    "${BUNDLE_DIR}/dist/awg-portal" \
+    "${BUNDLE_DIR}/awg-portal_x86-64" \
+    "${BUNDLE_DIR}/awg-portal"; do
   if [ -f "$candidate" ]; then
     BINARY_SOURCE="$candidate"
     break
@@ -40,16 +50,21 @@ for candidate in "${BUNDLE_DIR}/awg-portal_x86-64" "${BUNDLE_DIR}/awg-portal" "$
 done
 if [ -n "$BINARY_SOURCE" ]; then
   install -m 0755 "$BINARY_SOURCE" "${BIN_DIR}/awg-portal"
+  echo "  Installed ${BIN_DIR}/awg-portal (from ${BINARY_SOURCE##*/})"
 else
   echo "  ERROR: awg-portal binary not found in bundle."
-  echo "  Expected: awg-portal_x86-64 or awg-portal"
+  echo "  Searched: dist/{awg-portal_x86-64,wg-portal,wg-portal-amd64,wg-portal-arm64,wg-portal-arm,awg-portal}, {awg-portal_x86-64,awg-portal}"
+  echo "  Build it: make build-amd64"
   exit 1
 fi
 
 # 2. amneziawg-go binary (bundled)
 echo "[2/5] Installing amneziawg-go..."
 AWG_SOURCE=""
-for candidate in "${BUNDLE_DIR}/amneziawg-go" "${SCRIPT_DIR}/../amneziawg-go"; do
+for candidate in \
+    "${BUNDLE_DIR}/dist/amneziawg-go" \
+    "${BUNDLE_DIR}/amneziawg-go" \
+    "${SCRIPT_DIR}/../amneziawg-go"; do
   if [ -f "$candidate" ]; then
     AWG_SOURCE="$candidate"
     break

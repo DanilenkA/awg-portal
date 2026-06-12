@@ -75,8 +75,8 @@ docker compose up -d
 ### Бинарный релиз (рекомендовано)
 
 ```bash
-# 1. Скачать последний бандл
-curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v1.4.0-bundle.tar.gz
+# 1. Скачать последний бандл (подставьте нужную версию)
+curl -LO https://github.com/DanilenkA/awg-portal/releases/download/v1.4.0/awg-portal-v1.4.0-bundle.tar.gz
 
 # 2. Распаковать
 mkdir awg-portal && cd awg-portal
@@ -91,10 +91,11 @@ sudo systemctl enable --now awg-portal
 ```
 
 В бандле:
-- `awg-portal_x86-64` — основной бинарник
-- `amneziawg-go` — userspace AmneziaWG (для обфускации)
-- `config.yml.sample` — образец конфига
-- `deploy/install.sh` — скрипт установки systemd-юнита
+- `dist/wg-portal` (или `dist/wg-portal-amd64`) — основной бинарник
+- `dist/amneziawg-go` — userspace AmneziaWG (для обфускации)
+- `dist/config.yml.sample` — образец конфига
+- `dist/install.sh` — скрипт установки systemd-юнита
+- `deploy/install.sh` — альтернативный установщик (без переименования)
 
 Скрипт устанавливает основной бинарник в `/usr/local/bin/awg-portal`,
 создаёт `/opt/awg-portal/data` и `/opt/awg-portal/config`, а systemd-юнит
@@ -371,12 +372,33 @@ sudo awg-quick up ./awg-peer.conf
 git clone git@github.com:DanilenkA/awg-portal.git
 cd awg-portal
 
-# Docker-образ (включает amneziawg-go)
+# Makefile (рекомендовано, встраивает версию из git describe)
+make build-docker              # Docker-образ (latest + version tag)
+# или
+make build-docker-multiarch    # Мультиархитектурная сборка + push в ghcr.io
+
+# Прямая сборка через Docker (без Makefile)
 docker build --build-arg BUILD_VERSION=v1.4.0 -t ghcr.io/danilenka/awg-portal:v1.4.0 .
 
-# Или бинарник (требуется Go на хосте)
+# Прямая сборка бинарника (требуется Go на хосте)
 CGO_ENABLED=0 go build -ldflags "-X github.com/DanilenkA/awg-portal/internal.Version=v1.4.0" -o awg-portal_x86-64 cmd/wg-portal/main.go
 ```
+
+### Бинарный бандл (без Docker)
+
+```bash
+# Все бинарники кладутся в dist/
+make build-amd64          # → dist/wg-portal-amd64
+# или
+make build                # → dist/wg-portal
+
+# Установить на сервер из dist/
+sudo bash dist/install.sh
+```
+
+> Прямая сборка через `go build` без Makefile не рекомендуется — Makefile
+> инжектит версию через `-ldflags` (`internal.Version`), без неё бинарник
+> выдаёт `dev-dev` в `--version`. Используйте `make build-amd64`.
 
 ## Application stack
 
