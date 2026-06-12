@@ -22,6 +22,14 @@ SYSTEMD_DIR="/etc/systemd/system"
 PORTAL_DIR="/opt/awg-portal"
 SERVICE_USER="awg-portal"
 
+# Определение архитектуры хоста
+ARCH=""
+case "$(uname -m)" in
+  x86_64|amd64)        ARCH="amd64" ;;
+  aarch64|arm64)       ARCH="arm64" ;;
+  armv7l|armv8l|arm)   ARCH="arm" ;;
+esac
+
 # SCRIPT_DIR = директория, где лежит этот install.sh.
 #   - Если вызывается как `sudo bash deploy/install.sh` из корня бандла
 #     (старый layout) — SCRIPT_DIR = <bundle>/deploy, BUNDLE_DIR = <bundle>.
@@ -57,36 +65,46 @@ for cmd in chown chmod cp id install mkdir systemctl useradd; do
   fi
 done
 
-# 1. awg-portal binary — все варианты бандла:
-#   bin/wg-portal-amd64 / arm64 / arm  (v1.4.0 release bundle)
-#   dist/wg-portal-amd64 / wg-portal  (после `make build-amd64` / `make build`)
-#   dist/wg-portal-arm64 / arm        (после `make build-arm64` / `make build-arm`)
-#   awg-portal_x86-64 / awg-portal    (legacy, плоский корень)
+# 1. awg-portal binary — выбор по архитектуре
+#   Сначала ищем бинарник под архитектуру хоста, потом любой другой
 echo "[1/5] Installing awg-portal..."
 BINARY_SOURCE=""
+# Строгий поиск: только под архитектуру хоста
 for candidate in \
-    "${BUNDLE_DIR}/bin/wg-portal-amd64" \
-    "${BUNDLE_DIR}/bin/wg-portal-arm64" \
-    "${BUNDLE_DIR}/bin/wg-portal-arm" \
-    "${BUNDLE_DIR}/wg-portal-amd64" \
-    "${BUNDLE_DIR}/wg-portal-arm64" \
-    "${BUNDLE_DIR}/wg-portal-arm" \
-    "${BUNDLE_DIR}/dist/wg-portal" \
-    "${BUNDLE_DIR}/dist/wg-portal-amd64" \
-    "${BUNDLE_DIR}/dist/wg-portal-arm64" \
-    "${BUNDLE_DIR}/dist/wg-portal-arm" \
-    "${BUNDLE_DIR}/dist/awg-portal" \
-    "${BUNDLE_DIR}/dist/awg-portal_x86-64" \
-    "${BUNDLE_DIR}/awg-portal_x86-64" \
-    "${BUNDLE_DIR}/awg-portal"; do
+    "${BUNDLE_DIR}/bin/wg-portal-${ARCH}" \
+    "${BUNDLE_DIR}/wg-portal-${ARCH}" \
+    "${BUNDLE_DIR}/dist/wg-portal-${ARCH}"; do
   if [ -f "$candidate" ]; then
     BINARY_SOURCE="$candidate"
     break
   fi
 done
+# Fallback: любой бинарник (для обратной совместимости)
+if [ -z "$BINARY_SOURCE" ]; then
+  for candidate in \
+      "${BUNDLE_DIR}/bin/wg-portal-amd64" \
+      "${BUNDLE_DIR}/bin/wg-portal-arm64" \
+      "${BUNDLE_DIR}/bin/wg-portal-arm" \
+      "${BUNDLE_DIR}/wg-portal-amd64" \
+      "${BUNDLE_DIR}/wg-portal-arm64" \
+      "${BUNDLE_DIR}/wg-portal-arm" \
+      "${BUNDLE_DIR}/dist/wg-portal" \
+      "${BUNDLE_DIR}/dist/wg-portal-amd64" \
+      "${BUNDLE_DIR}/dist/wg-portal-arm64" \
+      "${BUNDLE_DIR}/dist/wg-portal-arm" \
+      "${BUNDLE_DIR}/dist/awg-portal" \
+      "${BUNDLE_DIR}/dist/awg-portal_x86-64" \
+      "${BUNDLE_DIR}/awg-portal_x86-64" \
+      "${BUNDLE_DIR}/awg-portal"; do
+    if [ -f "$candidate" ]; then
+      BINARY_SOURCE="$candidate"
+      break
+    fi
+  done
+fi
 if [ -n "$BINARY_SOURCE" ]; then
   install -m 0755 "$BINARY_SOURCE" "${BIN_DIR}/awg-portal"
-  echo "  Installed ${BIN_DIR}/awg-portal (from ${BINARY_SOURCE##*/})"
+  echo "  Installed ${BIN_DIR}/awg-portal (from ${BINARY_SOURCE##*/}, arch=${ARCH})"
 else
   echo "  ERROR: awg-portal binary not found in bundle."
   echo "  Searched: bin/, dist/, flat root — {wg-portal,awg-portal}{,-amd64,-arm64,-arm,_x86-64}"
@@ -94,15 +112,13 @@ else
   exit 1
 fi
 
-# 2. amneziawg-go binary (bundled)
+# 2. amneziawg-go binary — выбор по архитектуре
+#   Ищем amneziawg-go-{arch}, потом amneziawg-go (без суффикса)
 echo "[2/5] Installing amneziawg-go..."
 AWG_SOURCE=""
 for candidate in \
-    "${BUNDLE_DIR}/bin/amneziawg-go" \
-    "${BUNDLE_DIR}/dist/amneziawg-go" \
-    "${BUNDLE_DIR}/amneziawg-go" \
-    "${SCRIPT_DIR}/amneziawg-go" \
-    "${SCRIPT_DIR}/../amneziawg-go"; do
+    "${BUNDLE_DIR}/bin/amneziawg-go-${ARCH}" \
+    "${BUNDLE_DIR}/bin/amneziawg-go"; do
   if [ -f "$candidate" ]; then
     AWG_SOURCE="$candidate"
     break
@@ -110,7 +126,7 @@ for candidate in \
 done
 if [ -n "$AWG_SOURCE" ]; then
   install -m 0755 "$AWG_SOURCE" "${BIN_DIR}/amneziawg-go"
-  echo "  Installed ${BIN_DIR}/amneziawg-go (from ${AWG_SOURCE})"
+  echo "  Installed ${BIN_DIR}/amneziawg-go (from ${AWG_SOURCE##*/}, arch=${ARCH})"
 else
   echo "  WARNING: amneziawg-go not found in bundle."
   echo "  AWG (обфускация) не будет работать. WG — будет."
