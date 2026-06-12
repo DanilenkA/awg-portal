@@ -3,7 +3,7 @@
 # Run as root: bash deploy/install.sh (from bundle root)
 set -euo pipefail
 
-VERSION="v1.3.2"
+VERSION="v1.4.0"
 BIN_DIR="/usr/local/bin"
 SYSTEMD_DIR="/etc/systemd/system"
 PORTAL_DIR="/opt/awg-portal"
@@ -22,7 +22,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Проверка зависимостей
-for cmd in install chmod cp mkdir systemctl; do
+for cmd in chown chmod cp id install mkdir systemctl useradd; do
   if ! command -v "$cmd" &>/dev/null; then
     echo "ERROR: Required command '$cmd' not found."
     exit 1
@@ -30,7 +30,7 @@ for cmd in install chmod cp mkdir systemctl; do
 done
 
 # 1. awg-portal binary
-echo "[1/4] Installing awg-portal..."
+echo "[1/5] Installing awg-portal..."
 BINARY_SOURCE=""
 # Поиск по приоритету: dist/ (после make build*) → корень бандла (back compat)
 # Имя в /usr/local/bin всегда awg-portal независимо от исходного имени.
@@ -59,7 +59,7 @@ else
 fi
 
 # 2. amneziawg-go binary (bundled)
-echo "[2/4] Installing amneziawg-go..."
+echo "[2/5] Installing amneziawg-go..."
 AWG_SOURCE=""
 for candidate in \
     "${BUNDLE_DIR}/dist/amneziawg-go" \
@@ -134,6 +134,7 @@ StartLimitBurst=5
 WorkingDirectory=/opt/awg-portal
 Environment=WG_PORTAL_CONFIG=/opt/awg-portal/config.yml
 ExecStart=/usr/local/bin/awg-portal
+RuntimeDirectory=amneziawg
 
 # Hardening
 NoNewPrivileges=true
@@ -164,7 +165,7 @@ echo "  /opt/awg-portal/config.yml"
 echo "  /etc/systemd/system/awg-portal.service"
 echo ""
 echo "Next steps:"
-echo "  1. Edit /opt/awg-portal/config.yml — установите admin_email и admin_password"
+echo "  1. Edit /opt/awg-portal/config.yml — установите core.admin_user и core.admin_password"
 echo "  2. systemctl enable --now awg-portal"
 echo "  3. journalctl -u awg-portal -f"
 echo ""

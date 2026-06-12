@@ -50,13 +50,38 @@ var reservedUserIdentifiers = map[string]struct{}{
 // SanitizeString normalizes to NFC, trims leading and trailing whitespace, strips Unicode
 // control and format characters, drops invalid UTF-8 bytes, and truncates the result to
 // maxLen runes. If maxLen <= 0, returns "".
+//
+// The control/Cf filter MUST run BEFORE the NFC normalisation, not
+// after, otherwise it can break the canonical combining-sequence
+// invariant. Concrete counter-example that the old order
+// (NFC → filter → trim) mishandled:
+//
+//	input  = "A\t̀"   // A, TAB, combining grave accent
+//	once   = "A" + U+0300   // TAB was filtered, A and combining
+//	                         // left adjacent but in DECOMPOSED form
+//	                         // (NFC did not merge them because TAB
+//	                         // was sitting between them at NFC time)
+//	twice  = "À"      // NFC now merges A+U+0300 → U+00C0
+//	once != twice     //NOT idempotent
+//
+// The fix: filter first, normalise second. After the filter removes
+// the TAB, the surviving runes are A and U+0300 with nothing
+// between them, and the subsequent NFC pass correctly composes them
+// into U+00C0 in a single pass. A second NFC pass after the filter
+// is unnecessary because Unicode guarantees the result of a single
+// pass is canonical.
 func SanitizeString(s string, maxLen int) string {
 	if maxLen <= 0 {
 		return ""
 	}
 
-	s = norm.NFC.String(strings.TrimSpace(s))
+	s = strings.TrimSpace(s)
 
+	// 1. Strip invalid UTF-8 bytes and Unicode control / format
+	//    characters. We do this on the RAW input (before NFC) so
+	//    that a control character sitting between a base character
+	//    and its combining mark does not break the subsequent
+	//    canonical composition.
 	var b strings.Builder
 	b.Grow(len(s))
 	for len(s) > 0 {
@@ -70,6 +95,11 @@ func SanitizeString(s string, maxLen int) string {
 		}
 	}
 	s = b.String()
+
+	// 2. Canonical composition (NFC). Now that control chars are
+	//    gone, base + combining sequences that the original input
+	//    split up can be composed into precomposed forms.
+	s = norm.NFC.String(s)
 
 	if utf8.RuneCountInString(s) > maxLen {
 		runes := []rune(s)

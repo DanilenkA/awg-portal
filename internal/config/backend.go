@@ -8,7 +8,7 @@ import (
 const LocalBackendName = "local"
 
 // AWGMode controls how the local backend integrates with AmneziaWG.
-// - "auto": try amneziawg-go first, fall back to kernel WireGuard (default)
+// - "auto": use amneziawg-go only for interfaces with AWG params; plain WG stays kernel
 // - "always": require amneziawg-go, fail if not available
 // - "never": use kernel WireGuard only, ignore any AWG parameters
 const (

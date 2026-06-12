@@ -47,22 +47,39 @@ func TestPhysicalInterface_AWGParams(t *testing.T) {
 		H1: 100, H2: 200, H3: 300, H4: 400,
 	}
 
-	pi := &PhysicalInterface{}
+	// AWGEnabled + non-zero params → EmitAWG=true, GetAWGParams reports it.
+	pi := &PhysicalInterface{AWGEnabled: true}
 	pi.SetAWGParams(params)
 
 	got, ok := pi.GetAWGParams()
 	if !ok {
-		t.Fatal("GetAWGParams() should be ok when params are set")
+		t.Fatal("GetAWGParams() should be ok when AWGEnabled=true and params are set")
 	}
 	if got != params {
 		t.Errorf("GetAWGParams() = %+v, want %+v", got, params)
 	}
 
-	// Zero params on empty PhysicalInterface
+	// Zero params AND no AWGEnabled flag → not an AWG interface.
 	piZero := &PhysicalInterface{}
 	_, ok = piZero.GetAWGParams()
 	if ok {
-		t.Error("GetAWGParams() should not be ok when no params set")
+		t.Error("GetAWGParams() should not be ok when neither AWGEnabled nor params are set")
+	}
+
+	// Half-configured: AWGEnabled=true but no params → still NOT an AWG
+	// interface (guards against the "operator flipped the switch but
+	// never set params" case from leaking AWG into the kernel UAPI).
+	piHalf := &PhysicalInterface{AWGEnabled: true}
+	if _, ok := piHalf.GetAWGParams(); ok {
+		t.Error("GetAWGParams() should not be ok when AWGEnabled=true but params are all zero")
+	}
+
+	// Half-configured the other way: params set but AWGEnabled=false →
+	// still NOT an AWG interface. The flag is required to opt in.
+	piParamsOnly := &PhysicalInterface{}
+	piParamsOnly.SetAWGParams(params)
+	if _, ok := piParamsOnly.GetAWGParams(); ok {
+		t.Error("GetAWGParams() should not be ok when AWGEnabled=false even with non-zero params")
 	}
 }
 

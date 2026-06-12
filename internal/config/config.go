@@ -156,7 +156,7 @@ func defaultConfig() *Config {
 		Default:                LocalBackendName, // local backend is the default (using wgcrtl)
 		ReKeyTimeoutInterval:   getEnvDuration("WG_PORTAL_BACKEND_REKEY_TIMEOUT_INTERVAL", 180*time.Second),
 		IgnoredLocalInterfaces: getEnvStrSlice("WG_PORTAL_BACKEND_IGNORED_LOCAL_INTERFACES", nil),
-		AWGMode:                AWGModeAuto, // default: try amneziawg-go, fallback to kernel
+		AWGMode:                AWGModeAuto, // default: AWG only for interfaces with AWG params
 		// Most resolconf implementations use "tun." as a prefix for interface names.
 		// But systemd's implementation uses no prefix, for example.
 		LocalResolvconfPrefix: getEnvStr("WG_PORTAL_BACKEND_LOCAL_RESOLVCONF_PREFIX", "tun."),
