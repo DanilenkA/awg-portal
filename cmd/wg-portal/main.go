@@ -35,7 +35,8 @@ import (
 func main() {
 	ctx := internal.SignalAwareContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
 
-	slog.Info("Starting WireGuard Portal V2...", "version", internal.Version)
+	// Баг 1: лог запуска приводим к новому имени продукта "AWG Portal"
+	slog.Info("Starting AWG Portal...", "version", internal.Version)
 
 	cfg, err := config.GetConfig()
 	internal.AssertNoError(err)

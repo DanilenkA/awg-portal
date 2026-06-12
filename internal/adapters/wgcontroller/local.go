@@ -1117,6 +1117,19 @@ func (c LocalController) RemoveRoutes(_ context.Context, info domain.RoutingTabl
 		link = nil
 	}
 
+	// Bug 2 fix: при удалении AWG-интерфейса физический netlink-линк может
+	// быть уже снесён к моменту route cleanup (link == nil). В этом случае
+	// маршруты снимать бессмысленно — ядро само убирает их при удалении
+	// линка — а раньше код безусловно дёргал link.Attrs().Index и падал в
+	// nil pointer dereference, из-за чего весь сервис падал в panic при
+	// удалении AWG-интерфейса. Ранний выход безопасен: для оставшегося
+	// wgDev (если он есть) тоже нечего чистить — он исчезнет вместе с линком.
+	if link == nil {
+		slog.Debug("physical link already removed, skipping route cleanup",
+			"interface", interfaceId)
+		return nil
+	}
+
 	fwMark := info.FwMark
 	if wgDev != nil && info.FwMark == 0 {
 		fwMark = uint32(wgDev.FirewallMark)

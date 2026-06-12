@@ -16,8 +16,10 @@ const presharedKey = ref("")
  */
 async function generateKeypair() {
   // 1. Generate an X25519 key pair
+  // Баг 4: для алгоритма X25519 в Web Crypto API параметр `namedCurve` НЕ допустим.
+  // Он относится только к EC-алгоритмам (ECDH/ECDSA). Для X25519 — только { name: 'X25519' }.
   const keyPair = await crypto.subtle.generateKey(
-      { name: 'X25519', namedCurve: 'X25519' },
+      { name: 'X25519' },
       true,                 // extractable
       ['deriveBits']        // allowed usage for ECDH
   );
