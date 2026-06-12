@@ -39,7 +39,28 @@ cp config.yml.sample      "${BUNDLE}/"
 cd /tmp && tar czf "awg-portal-${VERSION}-bundle.tar.gz" "awg-portal-${VERSION}"
 ```
 
-## 3. Проверка на стенде
+## 3. Подпись бандла
+
+```bash
+cd /tmp
+
+# SHA256 хеш
+sha256sum awg-portal-<version>-bundle.tar.gz > SHA256SUMS
+
+# GPG подпись ключом DanilenkA
+gpg --default-key 95F966F1D92CB9D113F5E1E5C7EE105BD95C41BD \
+  --detach-sign --armor \
+  --output SHA256SUMS.sig \
+  SHA256SUMS
+
+# Проверка
+cat SHA256SUMS
+gpg --verify SHA256SUMS.sig SHA256SUMS
+```
+
+Файлы `SHA256SUMS` и `SHA256SUMS.sig` загружаются в релиз вместе с бандлом.
+
+## 4. Проверка на стенде
 
 ```bash
 # Очистить
@@ -69,7 +90,7 @@ sudo rm -rf /opt/awg-portal /etc/systemd/system/awg-portal.service /run/amneziaw
 sudo systemctl daemon-reload
 ```
 
-## 4. Коммит и пуш
+## 5. Коммит и пуш
 
 ```bash
 # Коммит изменений (install.sh, RELEASE.md и т.д.)
@@ -82,19 +103,21 @@ git tag -a -s "v<version>" -m "v<version> — <описание>"
 git push origin "v<version>"
 ```
 
-## 5. Публикация релиза
+## 6. Публикация релиза
 
 ```bash
 gh release create "v<version>" \
   --repo DanilenkA/awg-portal \
   --title "awg-portal v<version>" \
   --notes-file /tmp/release-notes.md \
-  "/tmp/awg-portal-${VERSION}-bundle.tar.gz#awg-portal-${VERSION}-bundle.tar.gz"
+  "/tmp/awg-portal-${VERSION}-bundle.tar.gz#awg-portal-${VERSION}-bundle.tar.gz" \
+  "/tmp/SHA256SUMS#SHA256SUMS" \
+  "/tmp/SHA256SUMS.sig#SHA256SUMS.sig"
 ```
 
 Формат release-notes.md — как в прошлом релизе: изменения, состав бандла, инструкция (из бандла и через Docker).
 
-## 6. Состав бандла
+## 7. Состав бандла
 
 ```
 awg-portal-v<version>/
