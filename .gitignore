@@ -51,3 +51,7 @@ internal/app/api/core/frontend-dist
 # mkdocs output directory
 site/
 HANDOFF.md
+
+# Local sibling checkouts used during development; do not commit them
+/amneziawg-go/
+/wg-portal/

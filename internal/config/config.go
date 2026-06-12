@@ -171,8 +171,9 @@ func defaultConfig() *Config {
 		SessionIdentifier: getEnvStr("WG_PORTAL_WEB_SESSION_IDENTIFIER", "wgPortalSession"),
 		SessionSecret:     getEnvStr("WG_PORTAL_WEB_SESSION_SECRET", "very_secret"),
 		CsrfSecret:        getEnvStr("WG_PORTAL_WEB_CSRF_SECRET", "extremely_secret"),
-		SiteTitle:         getEnvStr("WG_PORTAL_WEB_SITE_TITLE", "WireGuard Portal"),
-		SiteCompanyName:   getEnvStr("WG_PORTAL_WEB_SITE_COMPANY_NAME", "WireGuard Portal"),
+		// Баг 1: меняем "WireGuard Portal" на "AWG Portal" чтобы в футере отображалось корректное имя
+		SiteTitle:         getEnvStr("WG_PORTAL_WEB_SITE_TITLE", "AWG Portal"),
+		SiteCompanyName:   getEnvStr("WG_PORTAL_WEB_SITE_COMPANY_NAME", "AWG Portal"),
 		CertFile:          getEnvStr("WG_PORTAL_WEB_CERT_FILE", ""),
 		KeyFile:           getEnvStr("WG_PORTAL_WEB_KEY_FILE", ""),
 		FrontendFilePath:  getEnvStr("WG_PORTAL_WEB_FRONTEND_FILEPATH", ""),
