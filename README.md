@@ -5,11 +5,22 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/DanilenkA/awg-portal)](https://goreportcard.com/report/github.com/DanilenkA/awg-portal)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/DanilenkA/awg-portal)
 
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/login.png" width="45%" alt="Login Page" />
+  <img src="screenshots/dashboard.png" width="45%" alt="Dashboard" />
+</p>
+<p align="center">
+  <img src="screenshots/interface-amnezia.png" width="45%" alt="AmneziaWG Interface" />
+  <img src="screenshots/interface-wireguard.png" width="45%" alt="WireGuard Interface" />
+</p>
+
 ## Introduction
 
-**AWG-PORTAL** — это форк [h44z/wg-portal](https://github.com/h44z/wg-portal) с полной поддержкой [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go) — протокола, устойчивого к DPI и блокировкам.
+**AWG-PORTAL** (v2.0) — это форк [h44z/wg-portal](https://github.com/h44z/wg-portal) с полной поддержкой [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go) — протокола, устойчивого к DPI и блокировкам.
 
-Портал предоставляет веб-интерфейс для управления VPN-серверами на базе **WireGuard** и **AmneziaWG**. Поддерживает создание/удаление пиров, генерацию конфигов, QR-коды, email-рассылку, мониторинг и REST API.
+Портал предоставляет веб-интерфейс для управления VPN-серверами на базе **WireGuard** и **AmneziaWG**. Поддерживает создание/удаление пиров, генерацию конфигов, мониторинг трафика, глобальную мультиязычность и REST API.
 
 Обфускация AmneziaWG настраивается через веб-интерфейс для каждого интерфейса отдельно — параметры автоматически передаются в конфигурации клиентов.
 
@@ -18,8 +29,11 @@
 * Полная поддержка **WireGuard** и **AmneziaWG** (amneziawg-go v2.x / awg)
 * Обфускация трафика — защита от DPI (Deep Packet Inspection)
 * Автовыбор AWG-параметров с возможностью ручной настройки
+* **UI/UX v2:** адаптивный дизайн с тёмной темой, сайдбар с 3 брейкпоинтами (широкий / компактный / мобильный drawer)
+* **Мультиязычность (11 языков):** en, ru, de, fr, es, pt, uk, vi, ja, zh, ko
+* **Мониторинг трафика:** 30s polling, табло всех пиров с счётчиками за сессию
+* **Статус AWG-пиров:** handshake, connected, traffic counters (чтение через UAPI-сокет)
 * Самодостаточный бинарник — всё в одном файле
-* Адаптивный веб-интерфейс на Vue.js с тёмной темой и мультиязычностью
 * Автовыбор IP из пула сети при создании пира
 * QR-код для удобной настройки мобильных клиентов
 * Отправка конфига по email
@@ -44,6 +58,10 @@
 | amneziawg-go | ❌ | ✅ (v2.x) |
 | AWG-параметры в API | ❌ | ✅ |
 | UAPI для AWG | ❌ | ✅ |
+| Статус AWG-пиров (handshake/traffic) | ❌ | ✅ |
+| UI/UX v2 (адаптивный, тёмная тема) | ❌ | ✅ |
+| Мультиязычность (11 языков) | ❌ | ✅ |
+| Трафик-мониторинг (/traffic dashboard) | ❌ | ✅ |
 | AWG-бейдж в интерфейсе | ❌ | ✅ |
 | SVG-логотип | ❌ | ✅ |
 | PresharedKey/PrivateKey автогенерация в API | ❌ | ✅ |
@@ -75,14 +93,14 @@ docker compose up -d
 ### Бинарный релиз (рекомендовано)
 
 ```bash
-# 1. Скачать бандл (подставьте нужную версию)
-curl -LO https://github.com/DanilenkA/awg-portal/releases/download/v1.4.0/awg-portal-v1.4.0-bundle.tar.gz
+# 1. Скачать бандл (последняя версия)
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.0-bundle.tar.gz
 
 # 2. Распаковать
 mkdir awg-portal && cd awg-portal
-tar xzf ../awg-portal-v1.4.0-bundle.tar.gz --strip-components=1
+tar xzf ../awg-portal-v2.0.0-bundle.tar.gz --strip-components=1
 
-# 3. Запустить установку
+# 3. Запустить установку (автовыбор архитектуры)
 sudo bash install.sh
 
 # 4. Настроить конфиг и запустить
@@ -90,7 +108,7 @@ sudo nano /opt/awg-portal/config.yml
 sudo systemctl enable --now awg-portal
 ```
 
-В бандле (`awg-portal-v1.4.0/`):
+В бандле (`awg-portal-v2.0.0/`):
 - `bin/wg-portal-amd64` — основной бинарник (есть также `wg-portal-arm64` и `wg-portal-arm`)
 - `bin/amneziawg-go` — userspace AmneziaWG (для обфускации)
 - `config.yml.sample` — образец конфига
