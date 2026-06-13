@@ -76,6 +76,14 @@ const router = createRouter({
       // this generates a separate chunk (About.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/IPCalculatorView.vue')
+    },
+    {
+      path: '/traffic',
+      name: 'traffic',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('../views/TrafficView.vue')
     }
   ],
   linkActiveClass: "active",
@@ -126,7 +134,7 @@ router.beforeEach(async (to) => {
   }
 
   // redirect to login page if not logged in and trying to access a restricted page
-  const publicPages = ['/', '/login', '/key-generator', '/ip-calculator']
+  const publicPages = ['/', '/login', '/key-generator', '/ip-calculator', '/traffic']
   const authRequired = !publicPages.includes(to.path)
 
   if (authRequired && !auth.IsAuthenticated) {

@@ -6,7 +6,7 @@ import InterfaceEditModal from "@/components/InterfaceEditModal.vue";
 import InterfaceViewModal from "@/components/InterfaceViewModal.vue";
 import Pagination from "@/components/Pagination.vue";
 
-import {computed, onMounted, ref} from "vue";
+import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 import {peerStore} from "@/stores/peers";
 import {interfaceStore} from "@/stores/interfaces";
 import {notify} from "@kyvg/vue3-notification";
@@ -164,6 +164,57 @@ onMounted(async () => {
   await interfaces.LoadInterfaces()
   await peers.LoadPeers(undefined) // use default interface
   await peers.LoadStats(undefined) // use default interface
+  startStatsRefreshLoop()
+})
+
+// Periodic refresh of peer stats. The server only refreshes its own
+// peer-status table on the StatisticsCollector interval (default ~25s),
+// and the browser only knows about new traffic counters when it asks,
+// so we re-poll every 30s (slightly above the 25s keepalive so a missed
+// handshake is still caught within one tick).
+//
+// Cleanup is enforced in onBeforeUnmount; we also guard against
+// overlapping calls (in-flight Promise is dropped on the next tick) and
+// skip ticks when the tab is hidden so a backgrounded view doesn't
+// hammer the backend.
+let statsRefreshInterval = null
+const STATS_REFRESH_INTERVAL_MS = 30000
+let statsRefreshInFlight = false
+
+async function refreshStatsOnce() {
+  if (statsRefreshInFlight) return
+  if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+  statsRefreshInFlight = true
+  try {
+    await peers.LoadStats(undefined)
+  } catch (e) {
+    // store already notifies on failure — don't double-toast
+    console.debug('periodic stats refresh failed', e)
+  } finally {
+    statsRefreshInFlight = false
+  }
+}
+
+function startStatsRefreshLoop() {
+  stopStatsRefreshLoop()
+  statsRefreshInterval = setInterval(refreshStatsOnce, STATS_REFRESH_INTERVAL_MS)
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', refreshStatsOnce)
+  }
+}
+
+function stopStatsRefreshLoop() {
+  if (statsRefreshInterval) {
+    clearInterval(statsRefreshInterval)
+    statsRefreshInterval = null
+  }
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', refreshStatsOnce)
+  }
+}
+
+onBeforeUnmount(() => {
+  stopStatsRefreshLoop()
 })
 
 function friendlyLastHandshake(ts) {

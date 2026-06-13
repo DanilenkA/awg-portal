@@ -50,6 +50,7 @@
     "logout": "Logout",
     "keygen": "Key Generator",
     "calculator": "IP Calculator",
+    "traffic": "Traffic",
     "nav_main": "Main",
     "nav_account": "Account",
     "nav_system": "System",
@@ -93,6 +94,20 @@
       "content": "",
       "button-admin": "Open Server Administration",
       "button-user": "Open User Administration"
+    },
+    "traffic": {
+      "headline": "Traffic",
+      "abstract": "Per-peer session traffic — totals since this portal was started.",
+      "no_stats": "Statistics are disabled on the server.",
+      "no_stats_help": "Enable statistics collection to see per-peer traffic.",
+      "no_traffic": "No traffic observed this session.",
+      "no_traffic_help": "Once a peer sends or receives data, totals will appear here.",
+      "total_downloaded": "Downloaded (session)",
+      "total_uploaded": "Uploaded (session)",
+      "downloaded": "Downloaded",
+      "uploaded": "Uploaded",
+      "peers": "peers",
+      "last_handshake": "Last handshake"
     }
   },
   "interfaces": {

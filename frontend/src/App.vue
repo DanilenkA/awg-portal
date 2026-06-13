@@ -158,6 +158,7 @@ const topbarTitle = computed(() => {
     audit: t('menu.audit'),
     'key-generator': t('menu.keygen'),
     'ip-calculator': t('menu.calculator'),
+    traffic: t('menu.traffic'),
   }
   return titles[route.name] || ''
 })
@@ -231,6 +232,20 @@ const topbarTitle = computed(() => {
             <polyline points="12 6 12 12 16 14"/>
           </svg>
           <span class="nav-item-label">{{ $t('menu.calculator') }}</span>
+        </RouterLink>
+
+        <RouterLink
+          v-if="auth.IsAuthenticated"
+          :to="{ name: 'traffic' }"
+          class="nav-item"
+          :class="{ active: route.name === 'traffic' }"
+        >
+          <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="20" x2="12" y2="10"/>
+            <line x1="18" y1="20" x2="18" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="16"/>
+          </svg>
+          <span class="nav-item-label">{{ $t('menu.traffic', 'Traffic') }}</span>
         </RouterLink>
       </div>
 

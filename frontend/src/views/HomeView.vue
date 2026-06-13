@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { authStore } from "@/stores/auth";
 import { interfaceStore } from "@/stores/interfaces";
 import { peerStore } from "@/stores/peers";
@@ -77,6 +77,49 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  startStatsRefreshLoop()
+})
+
+// Periodic refresh of peer stats on the home dashboard, so the
+// "Connected peers" count and traffic totals stay live. Mirrors the
+// pattern used in InterfaceView.vue.
+let statsRefreshInterval = null
+const STATS_REFRESH_INTERVAL_MS = 30000
+let statsRefreshInFlight = false
+
+async function refreshStatsOnce() {
+  if (statsRefreshInFlight) return
+  if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+  statsRefreshInFlight = true
+  try {
+    await peers.LoadStats(undefined)
+  } catch (e) {
+    console.debug('periodic stats refresh failed', e)
+  } finally {
+    statsRefreshInFlight = false
+  }
+}
+
+function startStatsRefreshLoop() {
+  stopStatsRefreshLoop()
+  statsRefreshInterval = setInterval(refreshStatsOnce, STATS_REFRESH_INTERVAL_MS)
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', refreshStatsOnce)
+  }
+}
+
+function stopStatsRefreshLoop() {
+  if (statsRefreshInterval) {
+    clearInterval(statsRefreshInterval)
+    statsRefreshInterval = null
+  }
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', refreshStatsOnce)
+  }
+}
+
+onBeforeUnmount(() => {
+  stopStatsRefreshLoop()
 })
 
 const interfaceCount = computed(() => interfaces.Count || 0)
@@ -299,7 +342,7 @@ const login = async () => {
         <div class="stat-card-change">{{ $t('interfaces.peer-connected') }}</div>
       </RouterLink>
 
-      <div class="stat-card" v-if="statsEnabled">
+      <RouterLink :to="{ name: 'traffic' }" class="stat-card stat-card-link" v-if="statsEnabled">
         <div class="stat-card-icon warning">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -311,7 +354,7 @@ const login = async () => {
           <i class="fa-solid fa-arrow-down"></i> {{ humanFileSize(totalTrafficReceived) }}
           · <i class="fa-solid fa-arrow-up"></i> {{ humanFileSize(totalTrafficTransmitted) }}
         </div>
-      </div>
+      </RouterLink>
 
       <div class="stat-card" v-if="expiringPeers > 0">
         <div class="stat-card-icon danger">
