@@ -17,7 +17,12 @@
     "cancel": "Отмена",
     "close": "Закрыть",
     "save": "Сохранить",
-    "delete": "Удалить"
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "copy": "Копировать",
+    "copied": "Скопировано",
+    "selected": "выбрано",
+    "disabled": "Отключён"
   },
   "login": {
     "headline": "Пожалуйста, войдите в систему",
@@ -30,7 +35,8 @@
       "placeholder": "Пожалуйста, введите ваш пароль"
     },
     "button": "Войти",
-    "button-webauthn": "Использовать Passkey"
+    "button-webauthn": "Использовать Passkey",
+    "invalid_credentials": "Неверный email или пароль"
   },
   "menu": {
     "home": "Главная",
@@ -43,12 +49,21 @@
     "login": "Вход",
     "logout": "Выход",
     "keygen": "Генератор ключей",
-    "calculator": "Калькулятор IP-адресов"
+    "calculator": "Калькулятор IP-адресов",
+    "traffic": "Трафик",
+    "nav_main": "Основное",
+    "nav_account": "Аккаунт",
+    "nav_system": "Система",
+    "search_placeholder": "Поиск...",
+    "theme": "Тема оформления"
   },
   "home": {
-    "headline": "AWG-PORTAL",
-    "info-headline": "Быстрые ссылки",
+    "headline": "Панель управления",
+    "info-headline": "Быстрые действия",
     "abstract": "Веб-портал для WireGuard с поддержкой AmneziaWG — обфускация DPI, управление интерфейсами и пирами.",
+    "dashboard": {
+      "alerts_subtitle": "Скоро истекают"
+    },
     "installation": {
       "box-header": "Установка AWG-PORTAL",
       "headline": "Релиз на GitHub",
@@ -80,6 +95,20 @@
       "content": "",
       "button-admin": "Открыть администрирование сервера",
       "button-user": "Открыть администрирование пользователей"
+    },
+    "traffic": {
+      "headline": "Трафик",
+      "abstract": "Сессионный трафик по каждому пиру — суммарно с момента запуска портала.",
+      "no_stats": "Статистика отключена на сервере.",
+      "no_stats_help": "Включите сбор статистики, чтобы видеть трафик по пирам.",
+      "no_traffic": "За текущую сессию трафик не наблюдался.",
+      "no_traffic_help": "Как только пир начнёт передавать данные, здесь появятся суммы.",
+      "total_downloaded": "Скачано (за сессию)",
+      "total_uploaded": "Отправлено (за сессию)",
+      "downloaded": "Скачано",
+      "uploaded": "Отправлено",
+      "peers": "пиров",
+      "last_handshake": "Последний хендшейк"
     }
   },
   "interfaces": {
@@ -488,7 +517,11 @@
       },
       "button-apply-defaults": "Применить настройки пира по умолчанию",
       "button-create-default-peers": "Создать пиров по умолчанию",
-      "confirm-delete": "Вы уверены, что хотите удалить интерфейс «{id}»?"
+      "confirm-delete": "Вы уверены, что хотите удалить интерфейс «{id}»?",
+      "awg": {
+        "binary-missing": "amneziawg-go не найден. Установите его, чтобы включить обфускацию.",
+        "binary-missing-title": "amneziawg-go недоступен"
+      }
     },
     "peer-view": {
       "headline-peer": "Пир:",
@@ -628,5 +661,9 @@
         "description": "Префикс будет добавлен к отображаемому имени узла."
       }
     }
+  },
+  "errors": {
+    "perm_denied_title": "Insufficient privileges",
+    "perm_denied": "Operation not permitted. The awg-portal process requires CAP_NET_ADMIN to manage WireGuard interfaces. Grant it with: sudo setcap cap_net_admin+ep $(which awg-portal) — or run awg-portal as root."
   }
 }

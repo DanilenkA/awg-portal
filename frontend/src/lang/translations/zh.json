@@ -1,496 +1,674 @@
 {
-    "languages": {
-      "zh": "中文"
+  "languages": {
+    "en": "英语"
+  },
+  "general": {
+    "pagination": {
+      "size": "元件数量",
+      "all": "全部（慢速）"
     },
-    "general": {
-      "pagination": {
-        "size": "每页显示数量",
-        "all": "全部 (较慢)"
-      },
-      "search": {
-        "placeholder": "搜索...",
-        "button": "搜索"
-      },
-      "select-all": "全选",
-      "yes": "是",
-      "no": "否",
-      "cancel": "取消",
-      "close": "关闭",
-      "save": "保存",
-      "delete": "删除"
+    "search": {
+      "placeholder": "搜索...",
+      "button": "搜索"
     },
-    "login": {
-      "headline": "请登录",
-      "username": {
-        "label": "用户名",
-        "placeholder": "请输入用户名"
+    "select-all": "选择全部",
+    "yes": "是的",
+    "no": "不",
+    "cancel": "取消",
+    "close": "关闭",
+    "save": "节省",
+    "delete": "删除",
+    "edit": "编辑",
+    "copy": "复制",
+    "copied": "已复制",
+    "selected": "已选择",
+    "disabled": "残疾人"
+  },
+  "login": {
+    "headline": "请登录",
+    "username": {
+      "label": "用户名",
+      "placeholder": "请输入您的用户名"
+    },
+    "password": {
+      "label": "密码",
+      "placeholder": "请输入您的密码"
+    },
+    "button": "登入",
+    "button-webauthn": "使用密钥",
+    "invalid_credentials": "电子邮件或密码无效"
+  },
+  "menu": {
+    "home": "家",
+    "interfaces": "接口",
+    "users": "用户",
+    "lang": "语言",
+    "profile": "我的个人资料",
+    "settings": "设置",
+    "audit": "审核日志",
+    "login": "登录",
+    "logout": "退出",
+    "keygen": "密钥生成器",
+    "calculator": "知识产权计算器",
+    "nav_main": "主要的",
+    "nav_account": "帐户",
+    "nav_system": "系统",
+    "search_placeholder": "搜索...",
+    "theme": "主题"
+  },
+  "home": {
+    "headline": "仪表板",
+    "info-headline": "快速行动",
+    "abstract": "具有原生 AmneziaWG 支持的 WireGuard Portal — 通过 Web UI 进行 DPI 混淆、界面和对等管理。",
+    "dashboard": {
+      "alerts_subtitle": "即将到期"
+    },
+    "installation": {
+      "box-header": "安装 AWG-PORTAL",
+      "headline": "GitHub 发布",
+      "content": "从 GitHub 下载最新的发行包。",
+      "button": "开放版本"
+    },
+    "about-wg": {
+      "box-header": "客户端安装",
+      "headline": "WireGuard / AmneziaWG",
+      "content": "在您的设备上安装官方 WireGuard 客户端或 AmneziaWG 客户端以连接到门户。",
+      "button": "WireGuard 安装"
+    },
+    "about-portal": {
+      "box-header": "文档",
+      "headline": "来源和文档",
+      "content": "h44z/wg-portal 的分支与 AmneziaWG 集成。 ",
+      "button": "GitHub 存储库"
+    },
+    "profiles": {
+      "headline": "VPN 配置文件",
+      "abstract": "您可以通过您的用户个人资料访问和下载您的个人 VPN 配置。",
+      "content": "要查找您配置的所有配置文件，请单击下面的按钮。",
+      "button": "打开我的个人资料"
+    },
+    "admin": {
+      "headline": "行政区",
+      "abstract": "在管理区域中，您可以管理 WireGuard 对等点和服务器接口以及允许登录 WireGuard 门户的用户。",
+      "content": "",
+      "button-admin": "打开服务器管理",
+      "button-user": "打开用户管理"
+    }
+  },
+  "interfaces": {
+    "headline": "界面管理",
+    "headline-peers": "当前 VPN 对等点",
+    "headline-endpoints": "当前端点",
+    "no-interface": {
+      "default-selection": "无可用接口",
+      "headline": "没有找到接口...",
+      "abstract": "单击上面的加号按钮创建一个新的 WireGuard 界面。"
+    },
+    "no-peer": {
+      "headline": "没有可用的同行",
+      "abstract": "目前，所选 WireGuard 接口没有可用的对等点。"
+    },
+    "table-heading": {
+      "name": "姓名",
+      "user": "用户",
+      "ip": "IP 的",
+      "endpoint": "端点",
+      "status": "地位"
+    },
+    "interface": {
+      "headline": "接口状态为",
+      "backend": "后端",
+      "unknown-backend": "未知",
+      "wrong-backend": "后端无效，请使用本地 WireGuard 后端！",
+      "key": "公钥",
+      "endpoint": "公共端点",
+      "port": "监听端口",
+      "peers": "启用的对等点",
+      "total-peers": "同行总数",
+      "endpoints": "启用的端点",
+      "total-endpoints": "总端点数",
+      "ip": "IP地址",
+      "default-allowed-ip": "默认允许的 IP",
+      "dns": "域名服务器",
+      "mtu": "最大传输单元",
+      "default-keep-alive": "默认保活间隔",
+      "default-dns": "默认 DNS 服务器",
+      "button-show-config": "显示配置",
+      "button-download-config": "下载配置",
+      "button-store-config": "存储 wg-quick 的配置",
+      "button-edit": "编辑界面",
+      "protocol": "协议"
+    },
+    "button-add-interface": "添加接口",
+    "button-add-peer": "添加对等点",
+    "button-add-peers": "添加多个对等点",
+    "button-show-peer": "显示同行",
+    "button-edit-peer": "编辑同级",
+    "button-bulk-delete": "删除选定的对等点",
+    "button-bulk-enable": "启用选定的对等点",
+    "button-bulk-disable": "禁用选定的对等点",
+    "confirm-bulk-delete": "您确定要删除 {count} 个对等点吗？",
+    "confirm-bulk-disable": "您确定要禁用 {count} 个对等点吗？",
+    "peer-disabled": "对等点被禁用，原因：",
+    "peer-expiring": "对等体的到期时间为",
+    "peer-connected": "已连接",
+    "peer-not-connected": "未连接",
+    "peer-handshake": "最后一次握手："
+  },
+  "users": {
+    "headline": "用户管理",
+    "table-heading": {
+      "id": "ID",
+      "email": "电子邮件",
+      "firstname": "名",
+      "lastname": "姓",
+      "sources": "来源",
+      "peers": "同行",
+      "admin": "行政"
+    },
+    "no-user": {
+      "headline": "没有可用的用户",
+      "abstract": "目前，没有用户在 WireGuard Portal 注册。"
+    },
+    "button-add-user": "添加用户",
+    "button-show-user": "显示用户",
+    "button-edit-user": "编辑用户",
+    "button-bulk-delete": "删除选定的用户",
+    "button-bulk-enable": "启用选定的用户",
+    "button-bulk-disable": "禁用选定的用户",
+    "button-bulk-lock": "锁定选定的用户",
+    "button-bulk-unlock": "解锁选定的用户",
+    "confirm-bulk-delete": "您确定要删除 {count} 个用户吗？",
+    "confirm-bulk-disable": "您确定要禁用 {count} 个用户吗？",
+    "confirm-bulk-lock": "您确定要锁定 {count} 个用户吗？",
+    "user-disabled": "用户被禁用，原因：",
+    "user-locked": "帐户被锁定，原因：",
+    "admin": "用户具有管理员权限",
+    "no-admin": "用户没有管理员权限"
+  },
+  "profile": {
+    "headline": "我的 VPN 对等点",
+    "table-heading": {
+      "name": "姓名",
+      "ip": "IP 的",
+      "stats": "地位",
+      "interface": "服务器接口"
+    },
+    "no-peer": {
+      "headline": "没有可用的同行",
+      "abstract": "目前，没有与您的用户个人资料关联的对等点。"
+    },
+    "peer-connected": "已连接",
+    "button-add-peer": "添加对等点",
+    "button-show-peer": "显示同行",
+    "button-edit-peer": "编辑同级"
+  },
+  "settings": {
+    "headline": "设置",
+    "abstract": "在这里您可以更改您的个人设置。",
+    "api": {
+      "headline": "API设置",
+      "abstract": "您可以在此处配置 RESTful API 设置。",
+      "active-description": "该 API 当前对您的用户帐户有效。",
+      "inactive-description": "该 API 目前处于非活动状态。",
+      "user-label": "API用户名：",
+      "user-placeholder": "API用户",
+      "token-label": "接口密码：",
+      "token-placeholder": "API 令牌",
+      "token-created-label": "API 访问权限授予：",
+      "button-disable-title": "禁用 API，这将使当前令牌失效。",
+      "button-disable-text": "禁用API",
+      "button-enable-title": "启用API，这将生成一个新的令牌。",
+      "button-enable-text": "启用API",
+      "api-link": "API文档"
+    },
+    "webauthn": {
+      "headline": "密钥设置",
+      "abstract": "密钥是一种无需密码即可对用户进行身份验证的现代方法。",
+      "active-description": "您的用户帐户当前至少有一个激活密钥。",
+      "inactive-description": "当前没有为您的用户帐户注册任何密钥。",
+      "table": {
+        "name": "姓名",
+        "created": "已创建",
+        "actions": ""
+      },
+      "credentials-list": "当前注册的密钥",
+      "modal-delete": {
+        "headline": "删除密钥",
+        "abstract": "您确定要删除此密钥吗？",
+        "created": "创建：",
+        "button-delete": "删除",
+        "button-cancel": "取消"
+      },
+      "button-rename-title": "重命名",
+      "button-rename-text": "重命名密钥。",
+      "button-save-title": "节省",
+      "button-save-text": "保存密钥的新名称。",
+      "button-cancel-title": "取消",
+      "button-cancel-text": "取消密钥重命名。",
+      "button-delete-title": "删除",
+      "button-delete-text": "删除密钥。",
+      "button-register-title": "注册密码",
+      "button-register-text": "注册一个新的密钥以保护您的帐户。"
+    },
+    "password": {
+      "headline": "密码设置",
+      "abstract": "您可以在这里更改您的密码。",
+      "current-label": "当前密码",
+      "new-label": "新密码",
+      "new-confirm-label": "确认新密码",
+      "change-button-text": "更改密码",
+      "invalid-confirm-label": "密码不匹配",
+      "weak-label": "密码太弱"
+    }
+  },
+  "audit": {
+    "headline": "审核日志",
+    "abstract": "您可以在此处找到 WireGuard 门户中执行的所有操作的审核日志。",
+    "no-entries": {
+      "headline": "没有可用的日志条目",
+      "abstract": "目前，没有记录审核日志。"
+    },
+    "entries-headline": "日志条目",
+    "table-heading": {
+      "id": "#",
+      "time": "时间",
+      "user": "用户",
+      "severity": "严重性",
+      "origin": "起源",
+      "message": "信息"
+    }
+  },
+  "keygen": {
+    "headline": "WireGuard 密钥生成器",
+    "abstract": "生成新的 WireGuard 密钥。",
+    "headline-keypair": "新密钥对",
+    "headline-preshared-key": "新的预共享密钥",
+    "button-generate": "产生",
+    "private-key": {
+      "label": "私钥",
+      "placeholder": "私钥"
+    },
+    "public-key": {
+      "label": "公钥",
+      "placeholder": "公钥"
+    },
+    "preshared-key": {
+      "label": "预共享密钥",
+      "placeholder": "预共享密钥"
+    }
+  },
+  "calculator": {
+    "headline": "WireGuard IP 计算器",
+    "abstract": "生成 WireGuard 允许的 IP。 ",
+    "headline-allowed-ip": "新允许的 IP",
+    "button-exclude-private": "排除私有 IP 范围",
+    "allowed-ip": {
+      "label": "允许的 IP",
+      "placeholder": "0.0.0.0/0,::/0",
+      "empty": "值不能为空"
+    },
+    "dissallowed-ip": {
+      "label": "不允许的 IP",
+      "placeholder": "10.0.0.0/8、192.168.0.0/16",
+      "invalid": "无效地址：{addr}"
+    },
+    "new-allowed-ip": {
+      "label": "允许的 IP",
+      "placeholder": ""
+    }
+  },
+  "modals": {
+    "user-view": {
+      "headline": "用户帐户：",
+      "tab-user": "信息",
+      "tab-peers": "同行",
+      "headline-info": "用户信息：",
+      "headline-notes": "笔记：",
+      "email": "电子邮件",
+      "firstname": "名",
+      "lastname": "姓",
+      "phone": "电话号码",
+      "department": "部门",
+      "api-enabled": "API访问",
+      "disabled": "帐户已停用",
+      "locked": "帐户被锁定",
+      "no-peers": "用户没有关联的对等方。",
+      "peers": {
+        "name": "姓名",
+        "interface": "界面",
+        "ip": "IP 的"
+      }
+    },
+    "user-edit": {
+      "headline-edit": "编辑用户：",
+      "headline-new": "新用户",
+      "header-general": "一般的",
+      "header-personal": "用户信息",
+      "header-notes": "笔记",
+      "header-state": "状态",
+      "identifier": {
+        "label": "标识符",
+        "placeholder": "唯一的用户标识符"
+      },
+      "source": {
+        "label": "来源",
+        "placeholder": "用户来源"
       },
       "password": {
         "label": "密码",
-        "placeholder": "请输入密码"
+        "placeholder": "超级保密的密码",
+        "description": "将此字段留空以保留当前密码。",
+        "too-weak": "密码太弱。"
       },
-      "button": "登录"
-    },
-    "menu": {
-      "home": "首页",
-      "interfaces": "接口",
-      "users": "用户",
-      "lang": "切换语言",
-      "profile": "个人资料",
-      "login": "登录",
-      "logout": "注销"
-    },
-    "home": {
-      "headline": "WireGuard® VPN Portal",
-      "info-headline": "更多信息",
-      "abstract": "WireGuard® 是一种极其简单但又快速现代的 VPN，采用先进的加密技术。它旨在比 IPsec 更快、更简单、更轻量、更实用，同时避免了大量的麻烦。它的性能显著优于 OpenVPN。",
-      "installation": {
-        "box-header": "WireGuard 安装",
-        "headline": "安装",
-        "content": "客户端软件的安装说明可在官方 WireGuard 网站上找到。",
-        "button": "打开说明"
+      "email": {
+        "label": "电子邮件",
+        "placeholder": "电子邮件地址"
       },
-      "about-wg": {
-        "box-header": "关于 WireGuard",
-        "headline": "关于",
-        "content": "WireGuard® 是一种极其简单但又快速现代的 VPN，采用先进的加密技术。",
-        "button": "更多"
+      "phone": {
+        "label": "电话",
+        "placeholder": "电话号码"
       },
-      "about-portal": {
-        "box-header": "关于 WireGuard Portal",
-        "headline": "WireGuard Portal",
-        "content": "WireGuard Portal 是一个简单的基于网页的 WireGuard 配置平台。",
-        "button": "更多"
+      "department": {
+        "label": "部门",
+        "placeholder": "部门"
       },
-      "profiles": {
-        "headline": "VPN 配置文件",
-        "abstract": "您可以通过您的用户个人资料访问并下载个人 VPN 配置。",
-        "content": "要查找您所有的配置文件，请点击下面的按钮。",
-        "button": "打开我的个人资料"
+      "firstname": {
+        "label": "名",
+        "placeholder": "名"
+      },
+      "lastname": {
+        "label": "姓",
+        "placeholder": "姓"
+      },
+      "notes": {
+        "label": "笔记",
+        "placeholder": ""
+      },
+      "disabled": {
+        "label": "已禁用（没有 WireGuard 连接且无法登录）"
+      },
+      "locked": {
+        "label": "已锁定（无法登录，WireGuard 连接仍然有效）"
       },
       "admin": {
-        "headline": "后台管理",
-        "abstract": "在后台管理，您可以管理 WireGuard 节点和服务器接口，以及允许登录 WireGuard Portal 的用户。",
-        "content": "",
-        "button-admin": "打开服务器管理",
-        "button-user": "打开用户管理"
-      }
+        "label": "是管理员"
+      },
+      "persist-local-changes": {
+        "label": "保留本地更改"
+      },
+      "sync-warning": "要修改此同步用户，请启用本地更改持久性。",
+      "confirm-delete": "您确定要删除用户“{id}”吗？"
     },
-    "interfaces": {
-      "headline": "接口管理",
-      "headline-peers": "当前 VPN 节点",
-      "headline-endpoints": "当前节点",
-      "no-interface": {
-        "default-selection": "没有可用接口",
-        "headline": "未找到接口...",
-        "abstract": "点击上面的加号按钮以创建新的 WireGuard 接口。"
-      },
-      "no-peer": {
-        "headline": "没有可用节点",
-        "abstract": "当前没有可用的节点与所选的 WireGuard 接口关联。"
-      },
-      "table-heading": {
-        "name": "名称",
-        "user": "用户",
-        "ip": "IP 地址",
-        "endpoint": "节点",
-        "status": "状态"
-      },
-      "interface": {
-        "headline": "接口状态",
-        "backend": "后端",
-        "key": "公钥",
-        "endpoint": "公开节点",
-        "port": "监听端口",
-        "peers": "启用节点",
-        "total-peers": "节点总数",
-        "endpoints": "启用节点",
-        "total-endpoints": "节点总数",
-        "ip": "IP 地址",
-        "default-allowed-ip": "默认允许的 IP",
-        "dns": "DNS 服务器",
-        "mtu": "MTU",
-        "default-keep-alive": "默认心跳包间隔",
-        "button-show-config": "显示配置",
-        "button-download-config": "下载配置",
-        "button-store-config": "为 wg-quick 保存配置",
-        "button-edit": "编辑接口"
-      },
-      "button-add-interface": "添加接口",
-      "button-add-peer": "添加节点",
-      "button-add-peers": "添加多个节点",
-      "button-show-peer": "显示节点",
-      "button-edit-peer": "编辑节点",
-      "peer-disabled": "节点已禁用，原因: ",
-      "peer-expiring": "节点将在以下时间过期: ",
-      "peer-connected": "已连接",
-      "peer-not-connected": "未连接",
-      "peer-handshake": "最后一次握手: "
+    "interface-view": {
+      "headline": "接口配置："
     },
-    "users": {
-      "headline": "用户管理",
-      "table-heading": {
-        "id": "ID",
-        "email": "电子邮件",
-        "firstname": "名",
-        "lastname": "姓",
-        "sources": "来源",
-        "peers": "节点",
-        "admin": "管理员"
+    "interface-edit": {
+      "headline-edit": "编辑界面：",
+      "headline-new": "新界面",
+      "tab-interface": "界面",
+      "tab-peerdef": "对等默认值",
+      "header-general": "一般的",
+      "header-network": "网络",
+      "header-crypto": "密码学",
+      "header-hooks": "接口挂钩",
+      "header-peer-hooks": "挂钩",
+      "header-state": "状态",
+      "identifier": {
+        "label": "标识符",
+        "placeholder": "唯一的接口标识符"
       },
-      "no-user": {
-        "headline": "没有可用用户",
-        "abstract": "当前没有用户注册 WireGuard 门户。"
+      "mode": {
+        "label": "接口方式",
+        "server": "服务器模式",
+        "client": "客户端模式",
+        "any": "未知模式"
       },
-      "button-add-user": "添加用户",
-      "button-show-user": "显示用户",
-      "button-edit-user": "编辑用户",
-      "user-disabled": "用户已禁用, 原因: ",
-      "user-locked": "账户已锁定, 原因: ",
-      "admin": "用户具有管理员权限",
-      "no-admin": "用户没有管理员权限"
-    },
-    "profile": {
-      "headline": "我的 VPN 节点列表",
-      "table-heading": {
-        "name": "名称",
-        "ip": "IP 地址",
-        "stats": "状态",
-        "interface": "服务器接口"
+      "backend": {
+        "label": "接口后端",
+        "invalid-label": "原始后端不再可用，请使用本地 WireGuard 后端！",
+        "local": "本地 WireGuard 后端"
       },
-      "no-peer": {
-        "headline": "没有可用节点",
-        "abstract": "当前没有与您的用户个人资料关联的节点。"
+      "display-name": {
+        "label": "显示名称",
+        "placeholder": "接口的描述性名称"
       },
-      "peer-connected": "已连接",
-      "button-add-peer": "添加节点",
-      "button-show-peer": "显示节点",
-      "button-edit-peer": "编辑节点"
-    },
-    "modals": {
-      "user-view": {
-        "headline": "用户账户: ",
-        "tab-user": "信息",
-        "tab-peers": "节点",
-        "headline-info": "用户信息: ",
-        "headline-notes": "备注: ",
-        "email": "电子邮件",
-        "firstname": "名",
-        "lastname": "姓",
-        "phone": "电话号码",
-        "department": "部门",
-        "disabled": "账户已禁用",
-        "locked": "账户已锁定",
-        "no-peers": "用户没有关联的节点。",
-        "peers": {
-          "name": "名称",
-          "interface": "接口",
-          "ip": "IP 地址"
-        }
+      "private-key": {
+        "label": "私钥",
+        "placeholder": "私钥"
       },
-      "user-edit": {
-        "headline-edit": "编辑用户: ",
-        "headline-new": "新用户",
-        "header-general": "常规",
-        "header-personal": "用户信息",
-        "header-notes": "备注",
-        "header-state": "状态",
-        "identifier": {
-          "label": "标识符",
-          "placeholder": "唯一用户标识符"
-        },
-        "source": {
-          "label": "来源",
-          "placeholder": "用户来源"
-        },
-        "password": {
-          "label": "密码",
-          "placeholder": "一个复杂的密码",
-          "description": "留空保持当前密码不变。"
-        },
-        "email": {
-          "label": "电子邮件",
-          "placeholder": "电子邮件地址"
-        },
-        "phone": {
-          "label": "电话",
-          "placeholder": "电话号码"
-        },
-        "department": {
-          "label": "部门",
-          "placeholder": "部门"
-        },
-        "firstname": {
-          "label": "名",
-          "placeholder": "名"
-        },
-        "lastname": {
-          "label": "姓",
-          "placeholder": "姓"
-        },
-        "notes": {
-          "label": "备注",
-          "placeholder": ""
-        },
-        "disabled": {
-          "label": "禁用 (无法连接 WireGuard 和登录)"
-        },
-        "locked": {
-          "label": "锁定 (无法登录，但 WireGuard 仍然可以连接)"
-        },
-        "admin": {
-          "label": "管理员"
-        }
+      "public-key": {
+        "label": "公钥",
+        "placeholder": "公钥"
       },
-      "confirm-delete": "确定要删除用户“{id}”吗？",
-      "interface-view": {
-        "headline": "接口配置: "
+      "ip": {
+        "label": "IP地址",
+        "placeholder": "IP 地址（CIDR 格式）"
       },
-      "interface-edit": {
-        "headline-edit": "编辑接口: ",
-        "headline-new": "新接口",
-        "tab-interface": "接口",
-        "tab-peerdef": "节点默认值",
-        "header-general": "常规",
-        "header-network": "网络",
-        "header-crypto": "加密",
-        "header-hooks": "接口 Hooks",
-        "header-peer-hooks": "Hooks",
-        "header-state": "状态",
-        "identifier": {
-          "label": "标识符",
-          "placeholder": "唯一接口标识符"
-        },
-        "mode": {
-          "label": "接口模式",
-          "server": "服务器模式",
-          "client": "客户端模式",
-          "any": "未知模式"
-        },
-        "display-name": {
-          "label": "显示名称",
-          "placeholder": "接口的描述性名称"
-        },
-        "private-key": {
-          "label": "私钥",
-          "placeholder": "私钥"
-        },
-        "public-key": {
-          "label": "公钥",
-          "placeholder": "公钥"
-        },
-        "ip": {
-          "label": "IP 地址",
-          "placeholder": "IP 地址 (CIDR 格式)"
-        },
-        "listen-port": {
-          "label": "监听端口",
-          "placeholder": "监听端口"
-        },
-        "dns": {
-          "label": "DNS 服务器",
-          "placeholder": "应使用的 DNS 服务器"
-        },
-        "dns-search": {
-          "label": "DNS 搜索域",
-          "placeholder": "DNS 搜索前缀"
-        },
-        "mtu": {
-          "label": "MTU",
-          "placeholder": "接口 MTU (0 = 保持默认)"
-        },
-        "firewall-mark": {
-          "label": "防火墙掩码",
-          "placeholder": "应用于出站流量的防火墙掩码 (0 = 自动)"
-        },
-        "routing-table": {
-          "label": "路由表",
-          "placeholder": "路由表 ID",
-          "description": "特殊情况: off = 不管理路由, 0 = 自动"
-        },
-        "pre-up": {
-          "label": "启动前脚本",
-          "placeholder": "一个或多个用分号分隔的 bash 命令"
-        },
-        "post-up": {
-          "label": "启动后脚本",
-          "placeholder": "一个或多个用分号分隔的 bash 命令"
-        },
-        "pre-down": {
-          "label": "停止前脚本",
-          "placeholder": "一个或多个用分号分隔的 bash 命令"
-        },
-        "post-down": {
-          "label": "停止后脚本",
-          "placeholder": "一个或多个用分号分隔的 bash 命令"
-        },
-        "disabled": {
-          "label": "接口已禁用"
-        },
-        "save-config": {
-          "label": "自动保存 wg-quick 配置"
-        },
-        "defaults": {
-          "endpoint": {
-            "label": "服务器地址",
-            "placeholder": "服务器地址",
-            "description": "节点将连接到服务器的地址。"
-          },
-          "networks": {
-            "label": "IP 地址",
-            "placeholder": "IP 地址",
-            "description": "节点将从这些子网获取 IP 地址。"
-          },
-          "allowed-ip": {
-            "label": "允许的 IP 地址",
-            "placeholder": "默认允许的 IP 地址"
-          },
-          "mtu": {
-            "label": "MTU",
-            "placeholder": "客户端 MTU (0 = 保持默认)"
-          },
-          "keep-alive": {
-            "label": "心跳包间隔",
-            "placeholder": "持久保持连接 (0 = 默认)"
-          }
-        },
-        "button-apply-defaults": "应用节点默认值",
-        "button-create-default-peers": "创建默认节点",
-        "confirm-delete": "确定要删除接口“{id}”吗？"
+      "listen-port": {
+        "label": "监听端口",
+        "placeholder": "监听端口"
       },
-      "peer-view": {
-        "headline-peer": "节点: ",
-        "headline-endpoint": "节点: ",
-        "section-info": "节点信息",
-        "section-status": "当前状态",
-        "section-config": "配置",
-        "identifier": "标识符",
-        "ip": "IP 地址",
-        "user": "关联用户",
-        "notes": "备注",
-        "expiry-status": "过期时间",
-        "disabled-status": "禁用时间",
-        "traffic": "流量",
-        "connection-status": "连接状态",
-        "upload": "上传字节 (服务器到节点)",
-        "download": "下载字节 (节点到服务器)",
-        "pingable": "连通状态",
-        "handshake": "最后握手",
-        "connected-since": "首次成功连接",
-        "endpoint": "节点地址",
-        "button-download": "下载配置",
-        "button-email": "通过电子邮件发送配置"
+      "dns": {
+        "label": "DNS服务器",
+        "placeholder": "应使用的 DNS 服务器"
       },
-      "peer-edit": {
-        "headline-edit-peer": "编辑节点: ",
-        "headline-edit-endpoint": "编辑节点: ",
-        "headline-new-peer": "创建节点",
-        "headline-new-endpoint": "创建节点",
-        "header-general": "常规",
-        "header-network": "网络",
-        "header-crypto": "加密",
-        "header-hooks": "Hooks (在节点执行)",
-        "header-state": "状态",
-        "display-name": {
-          "label": "显示名称",
-          "placeholder": "节点的描述性名称"
-        },
-        "linked-user": {
-          "label": "关联用户",
-          "placeholder": "拥有此节点的用户账户"
-        },
-        "private-key": {
-          "label": "私钥",
-          "placeholder": "私钥"
-        },
-        "public-key": {
-          "label": "公钥",
-          "placeholder": "公钥"
-        },
-        "preshared-key": {
-          "label": "预共享密钥",
-          "placeholder": "可选的预共享密钥"
-        },
-        "endpoint-public-key": {
-          "label": "节点公钥",
-          "placeholder": "远程节点的公钥"
-        },
+      "dns-search": {
+        "label": "DNS 搜索域",
+        "placeholder": "DNS 搜索前缀"
+      },
+      "mtu": {
+        "label": "最大传输单元",
+        "placeholder": "接口 MTU（0 = 保持默认值）"
+      },
+      "firewall-mark": {
+        "label": "防火墙标记",
+        "placeholder": "应用于传出流量的防火墙标记。 "
+      },
+      "routing-table": {
+        "label": "路由表",
+        "placeholder": "路由表ID",
+        "description": "特殊情况：off = 不管理路由，0 = 自动"
+      },
+      "pre-up": {
+        "label": "准备工作",
+        "placeholder": "一个或多个 bash 命令以 ; 分隔"
+      },
+      "post-up": {
+        "label": "后投",
+        "placeholder": "一个或多个 bash 命令以 ; 分隔"
+      },
+      "pre-down": {
+        "label": "预下降",
+        "placeholder": "一个或多个 bash 命令以 ; 分隔"
+      },
+      "post-down": {
+        "label": "下降后",
+        "placeholder": "一个或多个 bash 命令以 ; 分隔"
+      },
+      "disabled": {
+        "label": "接口已禁用"
+      },
+      "create-default-peer": {
+        "label": "为新用户创建默认对等点"
+      },
+      "save-config": {
+        "label": "自动保存wg-quick配置"
+      },
+      "defaults": {
         "endpoint": {
-          "label": "节点地址",
-          "placeholder": "远程节点的地址"
+          "label": "端点地址",
+          "placeholder": "端点地址",
+          "description": "对等点将连接到的端点地址。 "
         },
-        "ip": {
-          "label": "IP 地址",
-          "placeholder": "IP 地址(CIDR 格式)"
+        "networks": {
+          "label": "IP网络",
+          "placeholder": "网络地址",
+          "description": "对等点将从这些子网获取 IP 地址。"
         },
         "allowed-ip": {
           "label": "允许的 IP 地址",
-          "placeholder": "允许的 IP 地址(CIDR 格式)"
-        },
-        "extra-allowed-ip": {
-          "label": "额外允许的 IP 地址",
-          "placeholder": "额外允许的 IP 地址(服务器端)",
-          "description": "这些 IP 将作为允许的 IP 添加到远程 WireGuard 接口。"
-        },
-        "dns": {
-          "label": "DNS 服务器",
-          "placeholder": "要使用的 DNS 服务器"
-        },
-        "dns-search": {
-          "label": "DNS 搜索域",
-          "placeholder": "DNS 搜索前缀"
-        },
-        "keep-alive": {
-          "label": "心跳包间隔",
-          "placeholder": "持久保持连接 (0 = 默认)"
+          "placeholder": "默认允许的 IP 地址"
         },
         "mtu": {
-          "label": "MTU",
-          "placeholder": "客户端 MTU (0 = 保持默认)"
+          "label": "最大传输单元",
+          "placeholder": "客户端 MTU（0 = 保持默认值）"
         },
-        "pre-up": {
-          "label": "启动前脚本",
-          "placeholder": "一个或多个用分号分隔的 bash 命令"
-        },
-        "post-up": {
-          "label": "启动后脚本",
-          "placeholder": "一个或多个用分号分隔的 bash 命令"
-        },
-        "pre-down": {
-          "label": "停止前脚本",
-          "placeholder": "一个或多个用分号分隔的 bash 命令"
-        },
-        "post-down": {
-          "label": "停止后脚本",
-          "placeholder": "一个或多个用分号分隔的 bash 命令"
-        },
-        "disabled": {
-          "label": "节点已禁用"
-        },
-        "ignore-global": {
-          "label": "忽略全局设置"
-        },
-        "expires-at": {
-          "label": "过期日期"
-        },
-        "confirm-delete": "确定要删除对等点“{id}”吗？"
-      },
-      "peer-multi-create": {
-        "headline-peer": "创建多个节点",
-        "headline-endpoint": "创建多个节点",
-        "identifiers": {
-          "label": "用户标识符",
-          "placeholder": "用户标识符",
-          "description": "要为其创建节点 的用户标识符(用户名)。"
-        },
-        "prefix": {
-          "headline-peer": "节点: ",
-          "headline-endpoint": "节点: ",
-          "label": "显示名称前缀",
-          "placeholder": "前缀",
-          "description": "添加到节点 显示名称的前缀。"
+        "keep-alive": {
+          "label": "保持存活间隔",
+          "placeholder": "持久保持活动（0 = 默认）"
         }
+      },
+      "button-apply-defaults": "应用对等默认值",
+      "button-create-default-peers": "创建默认对等点",
+      "confirm-delete": "您确定要删除接口“{id}”吗？",
+      "awg": {
+        "binary-missing": "未找到 amneziawg-go。",
+        "binary-missing-title": "amneziawg-go 不可用"
+      }
+    },
+    "peer-view": {
+      "headline-peer": "同行：",
+      "headline-endpoint": "端点：",
+      "section-info": "同行信息",
+      "section-status": "目前状况",
+      "section-config": "配置",
+      "identifier": "标识符",
+      "ip": "IP地址",
+      "allowed-ip": "允许的 IP 地址",
+      "extra-allowed-ip": "服务器端允许的 IP 地址",
+      "user": "关联用户",
+      "notes": "笔记",
+      "expiry-status": "到期时间",
+      "disabled-status": "禁用于",
+      "traffic": "交通",
+      "connection-status": "连接统计",
+      "upload": "上传的字节（从服务器到对等点）",
+      "download": "下载的字节数（从对等点到服务器）",
+      "pingable": "可 ping 通",
+      "handshake": "最后一次握手",
+      "connected-since": "连接自",
+      "endpoint": "端点",
+      "endpoint-key": "端点公钥",
+      "keepalive": "持久保活",
+      "button-download": "下载配置",
+      "button-email": "通过电子邮件发送配置",
+      "style-label": "配置风格"
+    },
+    "peer-edit": {
+      "headline-edit-peer": "编辑同级：",
+      "headline-edit-endpoint": "编辑端点：",
+      "headline-new-peer": "创建对等点",
+      "headline-new-endpoint": "创建端点",
+      "header-general": "一般的",
+      "header-network": "网络",
+      "header-crypto": "密码学",
+      "header-hooks": "挂钩（在对等点上执行）",
+      "header-state": "状态",
+      "display-name": {
+        "label": "显示名称",
+        "placeholder": "对等点的描述性名称"
+      },
+      "linked-user": {
+        "label": "关联用户",
+        "placeholder": "拥有该对等点的用户帐户"
+      },
+      "private-key": {
+        "label": "私钥",
+        "placeholder": "私钥",
+        "help": "私钥安全地存储在服务器上。"
+      },
+      "public-key": {
+        "label": "公钥",
+        "placeholder": "公钥"
+      },
+      "preshared-key": {
+        "label": "预共享密钥",
+        "placeholder": "可选的预共享密钥"
+      },
+      "endpoint-public-key": {
+        "label": "端点公钥",
+        "placeholder": "远程端点的公钥"
+      },
+      "endpoint": {
+        "label": "端点地址",
+        "placeholder": "远程端点的地址"
+      },
+      "ip": {
+        "label": "IP地址",
+        "placeholder": "IP 地址（CIDR 格式）"
+      },
+      "allowed-ip": {
+        "label": "允许的 IP 地址",
+        "placeholder": "允许的 IP 地址（CIDR 格式）"
+      },
+      "extra-allowed-ip": {
+        "label": "额外允许的 IP 地址",
+        "placeholder": "额外允许的 IP（服务器端）",
+        "description": "这些 IP 将作为允许的 IP 添加到远程 WireGuard 接口上。"
+      },
+      "dns": {
+        "label": "DNS服务器",
+        "placeholder": "应使用的 DNS 服务器"
+      },
+      "dns-search": {
+        "label": "DNS 搜索域",
+        "placeholder": "DNS 搜索前缀"
+      },
+      "keep-alive": {
+        "label": "保持存活间隔",
+        "placeholder": "持久保持活动（0 = 默认）"
+      },
+      "mtu": {
+        "label": "最大传输单元",
+        "placeholder": "客户端 MTU（0 = 保持默认值）"
+      },
+      "pre-up": {
+        "label": "准备工作",
+        "placeholder": "一个或多个 bash 命令以 ; 分隔"
+      },
+      "post-up": {
+        "label": "后投",
+        "placeholder": "一个或多个 bash 命令以 ; 分隔"
+      },
+      "pre-down": {
+        "label": "预下降",
+        "placeholder": "一个或多个 bash 命令以 ; 分隔"
+      },
+      "post-down": {
+        "label": "下降后",
+        "placeholder": "一个或多个 bash 命令以 ; 分隔"
+      },
+      "disabled": {
+        "label": "同伴禁用"
+      },
+      "ignore-global": {
+        "label": "忽略全局设置"
+      },
+      "expires-at": {
+        "label": "到期日"
+      },
+      "confirm-delete": "您确定要删除对等点“{id}”吗？"
+    },
+    "peer-multi-create": {
+      "headline-peer": "创建多个对等点",
+      "headline-endpoint": "创建多个端点",
+      "identifiers": {
+        "label": "用户标识符",
+        "placeholder": "用户标识符",
+        "description": "应为其创建对等点的用户标识符（用户名）。"
+      },
+      "prefix": {
+        "headline-peer": "同行：",
+        "headline-endpoint": "端点：",
+        "label": "显示名称前缀",
+        "placeholder": "前缀",
+        "description": "添加到对等点显示名称的前缀。"
       }
     }
+  },
+  "errors": {
+    "perm_denied_title": "权限不足",
+    "perm_denied": "不允许操作。 "
   }
-  
+}

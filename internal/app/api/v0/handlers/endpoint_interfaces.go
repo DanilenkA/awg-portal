@@ -2,10 +2,14 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
+	"os/exec"
+	"strings"
 
 	"github.com/go-pkgz/routegroup"
+	"golang.org/x/sys/unix"
 
 	"github.com/DanilenkA/awg-portal/internal/app/api/core/request"
 	"github.com/DanilenkA/awg-portal/internal/app/api/core/respond"
@@ -272,14 +276,45 @@ func (e InterfaceEndpoint) handleCreatePost() http.HandlerFunc {
 
 		newInterface, err := e.interfaceService.CreateInterface(r.Context(), model.NewDomainInterface(&in))
 		if err != nil {
-			respond.JSON(w, http.StatusInternalServerError, model.Error{
-				Code: http.StatusInternalServerError, Message: err.Error(),
-			})
+			e.writeCreateError(w, err)
 			return
 		}
 
 		respond.JSON(w, http.StatusOK, model.NewInterface(newInterface, nil))
 	}
+}
+
+// writeCreateError translates a CreateInterface error into the appropriate HTTP
+// response. EPERM (no CAP_NET_ADMIN) is mapped to 403 with a human-readable
+// hint; amneziawg-go missing on PATH is mapped to 400 with a hint pointing at
+// the binary; everything else falls back to 500 with the raw error.
+func (e InterfaceEndpoint) writeCreateError(w http.ResponseWriter, err error) {
+	if errors.Is(err, unix.EPERM) {
+		respond.JSON(w, http.StatusForbidden, model.Error{
+			Code:    http.StatusForbidden,
+			Message: "operation not permitted: awg-portal requires CAP_NET_ADMIN to manage WireGuard interfaces. Grant it with: sudo setcap cap_net_admin+ep $(which awg-portal), or run awg-portal as root.",
+		})
+		return
+	}
+	// Bug 2 fix: surface a human-readable 400 when the operator enabled AWG
+	// obfuscation but the amneziawg-go binary is missing on the host. We
+	// detect the standard exec.LookPath error message because the lower
+	// layers wrap it (e.g. "awg: start foo failed: exec: \"amneziawg-go\":
+	// executable file not found in $PATH"). The frontend can also detect
+	// this ahead of time via the AWGAvailable field in /config/settings
+	// and disable the toggle, but we still translate the error here so a
+	// stale UI (or API consumer) gets a clean response.
+	if errors.Is(err, exec.ErrNotFound) || strings.Contains(err.Error(), "amneziawg-go") && (strings.Contains(err.Error(), "executable file not found") || strings.Contains(err.Error(), "no such file")) {
+		respond.JSON(w, http.StatusBadRequest, model.Error{
+			Code:    http.StatusBadRequest,
+			Message: "amneziawg-go not found. Install it to enable obfuscation. See https://github.com/amnezia-vpn/amneziawg-go for installation instructions.",
+		})
+		return
+	}
+	respond.JSON(w, http.StatusInternalServerError, model.Error{
+		Code:    http.StatusInternalServerError,
+		Message: err.Error(),
+	})
 }
 
 // handlePeersGet returns a gorm Handler function.

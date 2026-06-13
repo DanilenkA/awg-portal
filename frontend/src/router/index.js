@@ -76,6 +76,14 @@ const router = createRouter({
       // this generates a separate chunk (About.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/IPCalculatorView.vue')
+    },
+    {
+      path: '/traffic',
+      name: 'traffic',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('../views/TrafficView.vue')
     }
   ],
   linkActiveClass: "active",
@@ -126,7 +134,7 @@ router.beforeEach(async (to) => {
   }
 
   // redirect to login page if not logged in and trying to access a restricted page
-  const publicPages = ['/', '/login', '/key-generator', '/ip-calculator']
+  const publicPages = ['/', '/login', '/key-generator', '/ip-calculator', '/traffic']
   const authRequired = !publicPages.includes(to.path)
 
   if (authRequired && !auth.IsAuthenticated) {
@@ -137,10 +145,14 @@ router.beforeEach(async (to) => {
 
 router.afterEach(async (to, from) => {
   const sec = securityStore()
-  const csrfPages = ['/', '/login']
-
-  if (csrfPages.includes(to.path)) {
-    await sec.LoadSecurityProperties() // make sure we have a valid csrf token
+  const auth = authStore()
+  // Refresh CSRF on every navigation while authenticated. The session cookie
+  // outlives the CSRF token, so a stale CSRF after a refresh would cause
+  // every POST (e.g. interface save) to 403 and trigger an automatic logout,
+  // which surfaces as a "white screen" because the user is bounced to /login
+  // mid-action.
+  if (auth.IsAuthenticated) {
+    await sec.LoadSecurityProperties()
   }
 })
 

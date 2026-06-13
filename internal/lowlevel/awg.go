@@ -1,21 +1,26 @@
 package lowlevel
 
 import (
+	"bufio"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/Jipok/wgctrl-go/wgtypes"
 )
 
 // ─────────────────────────────────────────────────────────────
@@ -135,6 +140,17 @@ type awgProcEntry struct {
 
 func SocketPath(ifaceName string) string {
 	return filepath.Join(sockDir, ifaceName+".sock")
+}
+
+// IsAWGAvailable reports whether the "amneziawg-go" binary is reachable
+// through the current PATH. We use exec.LookPath so the result is
+// authoritative even if the binary lives outside well-known locations
+// (e.g. /usr/local/bin on a custom build). Callers should treat the
+// false return as "AWG obfuscation cannot be enabled on this host" and
+// surface a human-readable error to the operator.
+func IsAWGAvailable() bool {
+	_, err := exec.LookPath("amneziawg-go")
+	return err == nil
 }
 
 // StartAWGProcess starts "amneziawg-go --foreground <ifaceName>" and
@@ -565,4 +581,198 @@ func GenerateAWGParams() (AWGParams, error) {
 		S1:   s1, S2: s2, S3: s3, S4: s4,
 		H1: h(), H2: h(), H3: h(), H4: h(),
 	}, nil
+}
+
+// ─────────────────────────────────────────────────────────────
+// Direct UAPI device dump (fallback for AWG TUN interfaces)
+// ─────────────────────────────────────────────────────────────
+
+// AWGDeviceFromUAPI reads a device dump (peers, keys, listen_port, traffic
+// counters) directly from the AmneziaWG UAPI socket for ifaceName. This is
+// the fallback path used when the kernel netlink client in wgctrl-go rejects
+// an AWG TUN device with a non-`os.ErrNotExist` error (the wireguard
+// genetlink family has no record of the AWG TUN, so the wrapper
+// short-circuits and never falls through to the userspace client).
+//
+// Returns os.ErrNotExist when the UAPI socket file is missing — callers
+// can then treat the device as not-managed-by-AWG and proceed normally.
+//
+// Protocol (per https://www.wireguard.com/xplatform/#cross-platform-userspace-implementation):
+//   - send "get=1\n\n"
+//   - read line-by-line until blank line
+//   - parse key=value pairs
+//
+// We implement the UAPI parser locally (rather than reusing the unexported
+// wguser package internals) so the dependency stays on public types only.
+func AWGDeviceFromUAPI(ifaceName string) (*wgtypes.Device, error) {
+	sock := SocketPath(ifaceName)
+	if _, err := os.Stat(sock); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, os.ErrNotExist
+		}
+		return nil, fmt.Errorf("awg uapi: stat %s: %w", sock, err)
+	}
+
+	conn, err := net.DialTimeout("unix", sock, 3*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("awg uapi: dial %s: %w", sock, err)
+	}
+	defer conn.Close()
+
+	if _, err := io.WriteString(conn, "get=1\n\n"); err != nil {
+		return nil, fmt.Errorf("awg uapi: write get=1: %w", err)
+	}
+
+	// Cap the read so a misbehaving server can't keep us reading forever.
+	if err := conn.SetReadDeadline(time.Now().Add(3 * time.Second)); err != nil {
+		return nil, fmt.Errorf("awg uapi: set read deadline: %w", err)
+	}
+
+	dev, err := parseAWGUAPIDevice(conn)
+	if err != nil {
+		return nil, err
+	}
+	dev.Name = ifaceName
+	dev.Type = wgtypes.Userspace
+	// The userspace protocol doesn't expose the public key directly; it
+	// is derived from the private key (mirrors wguser.parseDevice).
+	dev.PublicKey = dev.PrivateKey.PublicKey()
+	return dev, nil
+}
+
+// parseAWGUAPIDevice parses a WireGuard userspace UAPI dump from r.
+// On success it returns a populated *wgtypes.Device with Type set to
+// the kernel default; the caller is expected to overwrite Type to
+// wgtypes.Userspace and set Name after the fact.
+func parseAWGUAPIDevice(r io.Reader) (*wgtypes.Device, error) {
+	var (
+		dev    wgtypes.Device
+		cur    *wgtypes.Peer
+		hsSec  int64
+		hsNano int64
+	)
+
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			break // empty line terminates dump
+		}
+		eq := bytesIndexByte(line, '=')
+		if eq < 0 {
+			continue // not key=value, skip
+		}
+		key := string(line[:eq])
+		val := string(line[eq+1:])
+
+		switch key {
+		case "errno":
+			if errnoVal, perr := strconv.Atoi(val); perr == nil && errnoVal != 0 {
+				return nil, fmt.Errorf("awg uapi: errno=%d", errnoVal)
+			}
+		case "public_key":
+			// New peer entry. Public_key on the device dump line signals
+			// the start of a peer block.
+			dev.Peers = append(dev.Peers, wgtypes.Peer{})
+			cur = &dev.Peers[len(dev.Peers)-1]
+			cur.PublicKey = parseUAPIHexKey(val)
+		default:
+			if cur != nil {
+				parseAWGUAPIPeerField(cur, &hsSec, &hsNano, key, val)
+			} else {
+				parseAWGUIDeviceField(&dev, key, val)
+			}
+		}
+	}
+	if serr := scanner.Err(); serr != nil && !errors.Is(serr, io.EOF) {
+		return nil, fmt.Errorf("awg uapi: scan: %w", serr)
+	}
+	return &dev, nil
+}
+
+// bytesIndexByte is a local equivalent of bytes.IndexByte that avoids
+// pulling in the bytes package for a single call site.
+func bytesIndexByte(b []byte, c byte) int {
+	for i, x := range b {
+		if x == c {
+			return i
+		}
+	}
+	return -1
+}
+
+// parseUAPIHexKey decodes a hex-encoded WireGuard key (32 bytes when
+// correctly formatted) and returns the wgtypes.Key.
+func parseUAPIHexKey(s string) wgtypes.Key {
+	raw, derr := hex.DecodeString(s)
+	if derr != nil || len(raw) != wgtypes.KeyLen {
+		return wgtypes.Key{}
+	}
+	k, kerr := wgtypes.NewKey(raw)
+	if kerr != nil {
+		return wgtypes.Key{}
+	}
+	return k
+}
+
+// parseAWGUIDeviceField populates device-level fields from a UAPI
+// key/value pair. Unknown keys are silently ignored (forward compat).
+func parseAWGUIDeviceField(dev *wgtypes.Device, key, val string) {
+	switch key {
+	case "private_key":
+		dev.PrivateKey = parseUAPIHexKey(val)
+	case "listen_port":
+		if n, err := strconv.Atoi(val); err == nil {
+			dev.ListenPort = n
+		}
+	case "fwmark":
+		if n, err := strconv.Atoi(val); err == nil {
+			dev.FirewallMark = n
+		}
+	}
+}
+
+// parseAWGUAPIPeerField populates a peer field from a UAPI key/value
+// pair. The hsSec/hsNano accumulators carry the split-handshake
+// timestamp until both halves are seen.
+func parseAWGUAPIPeerField(p *wgtypes.Peer, hsSec, hsNano *int64, key, val string) {
+	switch key {
+	case "preshared_key":
+		p.PresharedKey = parseUAPIHexKey(val)
+	case "endpoint":
+		if addr, err := net.ResolveUDPAddr("udp", val); err == nil {
+			p.Endpoint = addr
+		}
+	case "last_handshake_time_sec":
+		if n, err := strconv.ParseInt(val, 10, 64); err == nil {
+			*hsSec = n
+		}
+	case "last_handshake_time_nsec":
+		if n, err := strconv.ParseInt(val, 10, 64); err == nil {
+			*hsNano = n
+		}
+		if *hsSec > 0 || *hsNano > 0 {
+			p.LastHandshakeTime = time.Unix(*hsSec, *hsNano)
+		}
+	case "tx_bytes":
+		if n, err := strconv.ParseInt(val, 10, 64); err == nil {
+			p.TransmitBytes = n
+		}
+	case "rx_bytes":
+		if n, err := strconv.ParseInt(val, 10, 64); err == nil {
+			p.ReceiveBytes = n
+		}
+	case "persistent_keepalive_interval":
+		if n, err := strconv.Atoi(val); err == nil {
+			p.PersistentKeepaliveInterval = time.Duration(n) * time.Second
+		}
+	case "protocol_version":
+		if n, err := strconv.Atoi(val); err == nil {
+			p.ProtocolVersion = n
+		}
+	case "allowed_ip":
+		if _, ipnet, err := net.ParseCIDR(val); err == nil {
+			p.AllowedIPs = append(p.AllowedIPs, *ipnet)
+		}
+	}
 }

@@ -88,110 +88,113 @@ onMounted(() => {
   <UserEditModal :userId="editUserId" :visible="editUserId!==''" @close="editUserId=''"></UserEditModal>
   <UserViewModal :userId="viewedUserId" :visible="viewedUserId!==''" @close="viewedUserId=''"></UserViewModal>
 
-  <!-- User list -->
-  <div class="mt-4 row">
-    <div class="col-12 col-lg-5">
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
       <h1>{{ $t('users.headline') }}</h1>
+      <p>{{ $t('home.abstract') }}</p>
     </div>
-    <div class="col-12 col-lg-4 text-lg-end">
-      <div class="form-group d-inline">
-        <div class="input-group mb-3">
-          <input v-model="users.filter" class="form-control" :placeholder="$t('general.search.placeholder')" type="text" @keyup="users.afterPageSizeChange">
-          <button class="btn btn-primary" :title="$t('general.search.button')"><i class="fa-solid fa-search"></i></button>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-lg-3 text-lg-end">
-      <a class="btn btn-primary ms-2" href="#" :title="$t('users.button-add-user')" @click.prevent="editUserId='#NEW#'">
-        <i class="fa fa-plus me-1"></i><i class="fa fa-user"></i>
-      </a>
+    <div class="page-header__actions">
+      <input v-model="users.filter" class="form-control" :placeholder="$t('general.search.placeholder')" type="text" @keyup="users.afterPageSizeChange" style="max-width: 280px;">
+      <button class="btn btn-primary" :title="$t('users.button-add-user')" @click.prevent="editUserId='#NEW#'">
+        <i class="fa-solid fa-plus me-1"></i> {{ $t('users.button-add-user') }}
+      </button>
     </div>
   </div>
-  <div class="row" v-if="selectedUsers.length > 0">
-    <div class="col-12 text-lg-end">
-      <a class="btn btn-outline-primary btn-sm ms-2" href="#" :title="$t('users.button-bulk-enable')" @click.prevent="bulkEnable"><i class="fa-regular fa-circle-check"></i></a>
-      <a class="btn btn-outline-primary btn-sm ms-2" href="#" :title="$t('users.button-bulk-disable')" @click.prevent="bulkDisable"><i class="fa fa-ban"></i></a>
-      <a class="btn btn-outline-primary btn-sm ms-2" href="#" :title="$t('users.button-bulk-unlock')" @click.prevent="bulkUnlock"><i class="fa-solid fa-lock-open"></i></a>
-      <a class="btn btn-outline-primary btn-sm ms-2" href="#" :title="$t('users.button-bulk-lock')" @click.prevent="bulkLock"><i class="fa-solid fa-lock"></i></a>
-      <a class="btn btn-outline-danger btn-sm ms-2" href="#" :title="$t('users.button-bulk-delete')" @click.prevent="bulkDelete"><i class="fa fa-trash-can"></i></a>
-    </div>
+
+  <div class="d-flex gap-2 mb-3" v-if="selectedUsers.length > 0">
+    <button class="btn btn-outline-primary btn-sm" :title="$t('users.button-bulk-enable')" @click.prevent="bulkEnable"><i class="fa-regular fa-circle-check"></i></button>
+    <button class="btn btn-outline-primary btn-sm" :title="$t('users.button-bulk-disable')" @click.prevent="bulkDisable"><i class="fa fa-ban"></i></button>
+    <button class="btn btn-outline-primary btn-sm" :title="$t('users.button-bulk-unlock')" @click.prevent="bulkUnlock"><i class="fa-solid fa-lock-open"></i></button>
+    <button class="btn btn-outline-primary btn-sm" :title="$t('users.button-bulk-lock')" @click.prevent="bulkLock"><i class="fa-solid fa-lock"></i></button>
+    <button class="btn btn-outline-danger btn-sm" :title="$t('users.button-bulk-delete')" @click.prevent="bulkDelete"><i class="fa fa-trash-can"></i></button>
+    <span class="text-muted-sm ms-2 align-self-center">{{ selectedUsers.length }} {{ $t('general.selected') }}</span>
   </div>
-  <div class="mt-2 table-responsive">
-    <div v-if="users.Count===0">
-      <h4>{{ $t('users.no-user.headline') }}</h4>
-      <p>{{ $t('users.no-user.abstract') }}</p>
-    </div>
-    <table v-if="users.Count!==0"  id="userTable" class="table table-sm">
+
+  <div v-if="users.Count===0" class="empty-state card">
+    <div class="empty-state-icon"><i class="fa-solid fa-users-slash"></i></div>
+    <h3>{{ $t('users.no-user.headline') }}</h3>
+    <p>{{ $t('users.no-user.abstract') }}</p>
+  </div>
+
+  <div v-else class="card">
+    <table class="data-table">
       <thead>
         <tr>
-          <th scope="col">
+          <th style="width: 32px;">
             <input class="form-check-input" :title="$t('general.select-all')" type="checkbox" v-model="selectAll" @change="toggleSelectAll">
-          </th><!-- select -->
-          <th scope="col"></th><!-- status -->
-          <th scope="col">{{ $t('users.table-heading.id') }}</th>
-          <th scope="col">{{ $t('users.table-heading.email') }}</th>
-          <th scope="col">{{ $t('users.table-heading.firstname') }}</th>
-          <th scope="col">{{ $t('users.table-heading.lastname') }}</th>
-          <th class="text-center" scope="col">{{ $t('users.table-heading.sources') }}</th>
-          <th class="text-center" scope="col">{{ $t('users.table-heading.peers') }}</th>
-          <th class="text-center" scope="col">{{ $t('users.table-heading.admin') }}</th>
-          <th scope="col"></th><!-- Actions -->
+          </th>
+          <th style="width: 60px;"></th>
+          <th>{{ $t('users.table-heading.id') }}</th>
+          <th>{{ $t('users.table-heading.email') }}</th>
+          <th>{{ $t('users.table-heading.firstname') }}</th>
+          <th>{{ $t('users.table-heading.lastname') }}</th>
+          <th>{{ $t('users.table-heading.sources') }}</th>
+          <th class="text-center">{{ $t('users.table-heading.peers') }}</th>
+          <th class="text-center">{{ $t('users.table-heading.admin') }}</th>
+          <th class="text-end" style="width: 100px;"></th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="user in users.FilteredAndPaged" :key="user.Identifier">
-          <th scope="row">
+          <td>
             <input class="form-check-input" type="checkbox" v-model="user.IsSelected">
-          </th>
+          </td>
           <td class="text-center">
             <span v-if="user.Disabled" class="text-danger" :title="$t('users.user-disabled') + ' ' + user.DisabledReason"><i class="fa fa-circle-xmark"></i></span>
-            <span v-if="user.Locked" class="text-danger" :title="$t('users.user-locked') + ' ' + user.LockedReason"><i class="fas fa-lock"></i></span>
+            <span v-else-if="user.Locked" class="text-warning" :title="$t('users.user-locked') + ' ' + user.LockedReason"><i class="fas fa-lock"></i></span>
+            <span v-else class="text-success"><i class="fa-solid fa-circle-check"></i></span>
           </td>
-          <td>{{user.Identifier}}</td>
-          <td>{{user.Email}}</td>
-          <td>{{user.Firstname}}</td>
-          <td>{{user.Lastname}}</td>
-          <td><span class="badge bg-light me-1" v-for="src in user.AuthSources" :key="src">{{src}}</span></td>
-          <td class="text-center">{{user.PeerCount}}</td>
-          <td class="text-center">
-            <span v-if="user.IsAdmin" class="text-danger" :title="$t('users.admin')"><i class="fa fa-check-circle"></i></span>
-            <span v-else><i class="fa fa-circle-xmark" :title="$t('users.no-admin')"></i></span>
+          <td class="peer-name">{{ user.Identifier }}</td>
+          <td>{{ user.Email }}</td>
+          <td>{{ user.Firstname }}</td>
+          <td>{{ user.Lastname }}</td>
+          <td>
+            <span class="tag tag-secondary me-1" v-for="src in user.AuthSources" :key="src">{{ src }}</span>
           </td>
+          <td class="text-center text-mono-sm">{{ user.PeerCount }}</td>
           <td class="text-center">
-            <a href="#" :title="$t('users.button-show-user')" @click.prevent="viewedUserId=user.Identifier"><i class="fas fa-eye me-2"></i></a>
-            <a href="#" :title="$t('users.button-edit-user')" @click.prevent="editUserId=user.Identifier"><i class="fas fa-cog me-2"></i></a>
+            <span v-if="user.IsAdmin" class="tag tag-success" :title="$t('users.admin')">
+              <i class="fa-solid fa-shield-halved"></i> {{ $t('users.admin') }}
+            </span>
+            <span v-else class="text-muted">—</span>
+          </td>
+          <td>
+            <div class="cell-actions">
+              <button class="btn btn-ghost btn-icon" :title="$t('users.button-show-user')" @click.prevent="viewedUserId=user.Identifier">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn btn-ghost btn-icon" :title="$t('users.button-edit-user')" @click.prevent="editUserId=user.Identifier">
+                <i class="fas fa-cog"></i>
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
-  <hr>
-    <div class="row">
-      <div class="col-12 col-md-6">
-        <Pagination
-            :currentPage="users.currentPage"
-            :totalCount="users.FilteredCount"
-            :pageSize="users.pageSize"
-            :hasNextPage="users.hasNextPage"
-            :hasPrevPage="users.hasPrevPage"
-            :onGotoPage="users.gotoPage"
-            :onNextPage="users.nextPage"
-            :onPrevPage="users.previousPage"
-        />
-      </div>
-      <div class="col-12 col-md-6">
-        <div class="form-group row">
-          <label class="col-sm-6 col-form-label text-md-end" for="paginationSelector">{{ $t('general.pagination.size') }}:</label>
-          <div class="col-sm-6">
-            <select id="paginationSelector" v-model.number="users.pageSize" class="form-select" @change="users.afterPageSizeChange()">
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-              <option value="999999999">{{ $t('general.pagination.all') }}</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
+
+  <Pagination
+    v-if="users.Count!==0"
+    class="mt-4"
+    :currentPage="users.currentPage"
+    :totalCount="users.FilteredCount"
+    :pageSize="users.pageSize"
+    :hasNextPage="users.hasNextPage"
+    :hasPrevPage="users.hasPrevPage"
+    :onGotoPage="users.gotoPage"
+    :onNextPage="users.nextPage"
+    :onPrevPage="users.previousPage"
+  />
+
+  <div class="d-flex justify-content-end align-items-center gap-3 mt-3" v-if="users.Count !== 0">
+    <label class="text-muted-sm" for="paginationSelector">{{ $t('general.pagination.size') }}:</label>
+    <select id="paginationSelector" v-model.number="users.pageSize" class="form-select" style="max-width: 120px;" @change="users.afterPageSizeChange()">
+      <option value="10">10</option>
+      <option value="25">25</option>
+      <option value="50">50</option>
+      <option value="100">100</option>
+      <option value="999999999">{{ $t('general.pagination.all') }}</option>
+    </select>
+  </div>
 </template>

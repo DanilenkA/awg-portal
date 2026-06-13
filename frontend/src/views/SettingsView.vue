@@ -4,12 +4,37 @@ import { profileStore } from "@/stores/profile";
 import { settingsStore } from "@/stores/settings";
 import { authStore } from "../stores/auth";
 import {notify} from "@kyvg/vue3-notification";
+import { useI18n } from "vue-i18n";
 
+const { locale } = useI18n()
 const profile = profileStore()
 const settings = settingsStore()
 const auth = authStore()
 
 const webBasePath = ref(WGPORTAL_BASE_PATH);
+const currentLang = ref(locale.value)
+
+const switchLanguage = (lang) => {
+  if (locale.value !== lang) {
+    localStorage.setItem('wgLang', lang);
+    locale.value = lang;
+    currentLang.value = lang;
+  }
+}
+
+const availableLanguages = [
+  { code: 'en', label: 'English' },
+  { code: 'ru', label: 'Русский' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'fr', label: 'Français' },
+  { code: 'pt', label: 'Português' },
+  { code: 'uk', label: 'Українська' },
+  { code: 'vi', label: 'Tiếng Việt' },
+  { code: 'zh', label: '中文' },
+  { code: 'es', label: 'Español' },
+  { code: 'ja', label: '日本語' },
+  { code: 'ko', label: '한국어' },
+]
 
 onMounted(async () => {
   await profile.LoadUser()
@@ -75,186 +100,188 @@ const updatePassword = async () => {
   }
 }
 
-
 </script>
 
 <template>
   <div class="page-header">
-    <h1>{{ $t('settings.headline') }}</h1>
+    <div>
+      <h1>{{ $t('settings.headline') }}</h1>
+      <p>{{ $t('settings.abstract') }}</p>
+    </div>
   </div>
 
-  <p class="lead">{{ $t('settings.abstract') }}</p>
-
-  <div class="card border-secondary p-5 mt-5" v-if="profile.user.Source === 'db'">
-    <h2 class="display-7">{{ $t('settings.password.headline') }}</h2>
-    <p class="lead">{{ $t('settings.password.abstract') }}</p>
-    <hr class="my-4">
-
-    <div class="row">
-      <div class="col-6">
-        <div class="form-group">
-          <label class="form-label mt-4" for="oldpw">{{ $t('settings.password.current-label') }}</label>
-          <input id="oldpw" v-model="pwFormData.OldPassword" class="form-control" :class="{ 'is-invalid': pwFormData.Password && !pwFormData.OldPassword }" type="password">
-        </div>
-      </div>
-      <div class="col-6">
+  <!-- Language settings -->
+  <div class="card" v-if="auth.IsAuthenticated">
+    <div class="card-header">
+      <h3><i class="fa-solid fa-globe me-2"></i>{{ $t('menu.lang') }}</h3>
+    </div>
+    <div class="card-body">
+      <p class="text-muted-sm mb-3">{{ $t('settings.abstract') }}</p>
+      <div class="d-flex flex-wrap gap-2">
+        <button
+          v-for="lang in availableLanguages"
+          :key="lang.code"
+          class="btn"
+          :class="currentLang === lang.code ? 'btn-primary' : 'btn-secondary'"
+          @click.prevent="switchLanguage(lang.code)"
+        >
+          <i v-if="currentLang === lang.code" class="fa-solid fa-check me-1"></i>
+          {{ lang.label }}
+        </button>
       </div>
     </div>
-    <div class="row">
-      <div class="col-6">
-        <div class="form-group has-success">
-          <label class="form-label mt-4" for="newpw">{{ $t('settings.password.new-label') }}</label>
+  </div>
+
+  <!-- Password change -->
+  <div class="card" v-if="profile.user.Source === 'db'">
+    <div class="card-header">
+      <h3><i class="fa-solid fa-lock me-2"></i>{{ $t('settings.password.headline') }}</h3>
+    </div>
+    <div class="card-body">
+      <p class="text-muted-sm mb-4">{{ $t('settings.password.abstract') }}</p>
+
+      <div class="form-group">
+        <label class="form-label" for="oldpw">{{ $t('settings.password.current-label') }}</label>
+        <input id="oldpw" v-model="pwFormData.OldPassword" class="form-control" :class="{ 'is-invalid': pwFormData.Password && !pwFormData.OldPassword }" type="password">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="newpw">{{ $t('settings.password.new-label') }}</label>
           <input id="newpw" v-model="pwFormData.Password" class="form-control" :class="{ 'is-invalid': passwordWeak,  'is-valid': pwFormData.Password !== '' && !passwordWeak }" type="password">
           <div class="invalid-feedback" v-if="passwordWeak">{{ $t('settings.password.weak-label') }}</div>
         </div>
-      </div>
-      <div class="col-6">
         <div class="form-group">
-          <label class="form-label mt-4" for="confirmnewpw">{{ $t('settings.password.new-confirm-label') }}</label>
+          <label class="form-label" for="confirmnewpw">{{ $t('settings.password.new-confirm-label') }}</label>
           <input id="confirmnewpw" v-model="pwFormData.PasswordRepeat" class="form-control" :class="{ 'is-invalid': pwFormData.PasswordRepeat !== ''&& pwFormData.Password !== pwFormData.PasswordRepeat,  'is-valid': pwFormData.PasswordRepeat !== '' && pwFormData.Password === pwFormData.PasswordRepeat && !passwordWeak }" type="password">
           <div class="invalid-feedback" v-if="pwFormData.PasswordRepeat !== ''&& pwFormData.Password !== pwFormData.PasswordRepeat">{{ $t('settings.password.invalid-confirm-label') }}</div>
         </div>
       </div>
-    </div>
-    <div class="row mt-5">
-      <div class="col-6">
-        <button class="btn btn-primary" :title="$t('settings.api.button-disable-title')" @click.prevent="updatePassword" :disabled="profile.isFetching || !passwordChangeAllowed">
-          <i class="fa-solid fa-floppy-disk"></i> {{ $t('settings.password.change-button-text') }}
+      <div class="form-actions">
+        <button class="btn btn-primary" :title="$t('settings.password.change-button-text')" @click.prevent="updatePassword" :disabled="profile.isFetching || !passwordChangeAllowed">
+          <i class="fa-solid fa-floppy-disk me-1"></i> {{ $t('settings.password.change-button-text') }}
         </button>
-      </div>
-      <div class="col-6">
       </div>
     </div>
   </div>
 
-  <div class="card border-secondary p-5 mt-5" v-if="settings.Setting('WebAuthnEnabled')">
-    <h2 class="display-7">{{ $t('settings.webauthn.headline') }}</h2>
-    <p class="lead">{{ $t('settings.webauthn.abstract') }}</p>
-    <hr class="my-4">
-    <p v-if="auth.IsWebAuthnEnabled">{{ $t('settings.webauthn.active-description') }}</p>
-    <p v-else>{{ $t('settings.webauthn.inactive-description') }}</p>
+  <!-- WebAuthn -->
+  <div class="card" v-if="settings.Setting('WebAuthnEnabled')">
+    <div class="card-header">
+      <h3><i class="fa-solid fa-fingerprint me-2"></i>{{ $t('settings.webauthn.headline') }}</h3>
+      <button class="btn btn-primary btn-sm" :title="$t('settings.webauthn.button-register-text')" @click.prevent="auth.RegisterWebAuthn" :disabled="auth.isFetching">
+        <i class="fa-solid fa-plus me-1"></i> {{ $t('settings.webauthn.button-register-title') }}
+      </button>
+    </div>
+    <div class="card-body">
+      <p class="text-muted-sm mb-4">{{ $t('settings.webauthn.abstract') }}</p>
+      <p v-if="auth.IsWebAuthnEnabled" class="text-success"><i class="fa-solid fa-circle-check me-1"></i> {{ $t('settings.webauthn.active-description') }}</p>
+      <p v-else class="text-muted"><i class="fa-solid fa-circle-info me-1"></i> {{ $t('settings.webauthn.inactive-description') }}</p>
 
-    <div class="row">
-      <div class="col-6">
-        <button class="btn btn-primary" :title="$t('settings.webauthn.button-register-text')" @click.prevent="auth.RegisterWebAuthn" :disabled="auth.isFetching">
-          <i class="fa-solid fa-plus-circle"></i> {{ $t('settings.webauthn.button-register-title') }}
-        </button>
+      <div v-if="auth.WebAuthnCredentials.length > 0" class="mt-4">
+        <h4>{{ $t('settings.webauthn.credentials-list') }}</h4>
+        <table class="data-table mt-3">
+          <thead>
+          <tr>
+            <th style="width: 50%;">{{ $t('settings.webauthn.table.name') }}</th>
+            <th style="width: 20%;">{{ $t('settings.webauthn.table.created') }}</th>
+            <th class="text-end" style="width: 30%;">{{ $t('settings.webauthn.table.actions') }}</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="credential in auth.webAuthnCredentials" :key="credential.ID">
+            <td>
+              <div v-if="credential.renameMode">
+                <input v-model="credential.tempName" class="form-control" type="text">
+              </div>
+              <div v-else>
+                <i class="fa-solid fa-key me-2 text-muted"></i>{{ credential.Name }}
+              </div>
+            </td>
+            <td class="text-mono-sm">{{ credential.CreatedAt }}</td>
+            <td>
+              <div class="cell-actions" v-if="credential.renameMode">
+                <button class="btn btn-primary btn-sm" :title="$t('settings.webauthn.button-save-text')" @click.prevent="saveRename(credential)" :disabled="auth.isFetching">
+                  <i class="fa-solid fa-check"></i>
+                </button>
+                <button class="btn btn-ghost btn-icon" :title="$t('settings.webauthn.button-cancel-text')" @click.prevent="cancelRename(credential)">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+              <div class="cell-actions" v-else>
+                <button class="btn btn-ghost btn-icon" :title="$t('settings.webauthn.button-rename-text')" @click.prevent="enableRename(credential)">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn btn-ghost btn-icon text-danger" :title="$t('settings.webauthn.button-delete-text')" data-bs-toggle="modal" data-bs-target="#webAuthnDeleteModal" :disabled="auth.isFetching" @click="selectedCredential=credential">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
 
-    <div v-if="auth.WebAuthnCredentials.length > 0" class="mt-4">
-      <h3>{{ $t('settings.webauthn.credentials-list') }}</h3>
-      <table class="table table-striped">
-        <thead>
-        <tr>
-          <th style="width: 50%">{{ $t('settings.webauthn.table.name') }}</th>
-          <th style="width: 20%">{{ $t('settings.webauthn.table.created') }}</th>
-          <th style="width: 30%">{{ $t('settings.webauthn.table.actions') }}</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-for="credential in auth.webAuthnCredentials" :key="credential.ID">
-          <td class="align-middle">
-            <div v-if="credential.renameMode">
-              <input v-model="credential.tempName" class="form-control" type="text" />
+      <div class="modal fade" id="webAuthnDeleteModal" tabindex="-1" aria-labelledby="webAuthnDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header" style="background: var(--danger-subtle);">
+              <h5 class="modal-title text-danger" id="webAuthnDeleteModalLabel">{{ $t('settings.webauthn.modal-delete.headline') }}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" :aria-label="$t('settings.webauthn.modal-delete.button-cancel')"></button>
             </div>
-            <div v-else>
-              {{ credential.Name }}
+            <div class="modal-body">
+              <h5 class="mb-3">{{ selectedCredential.Name }} <small class="text-muted">({{ $t('settings.webauthn.modal-delete.created') }} {{ selectedCredential.CreatedAt }})</small></h5>
+              <p class="mb-0">{{ $t('settings.webauthn.modal-delete.abstract') }}</p>
             </div>
-          </td>
-          <td class="align-middle">
-            {{ credential.CreatedAt }}
-          </td>
-          <td class="align-middle text-center">
-            <div v-if="credential.renameMode">
-              <button class="btn btn-success me-1" :title="$t('settings.webauthn.button-save-text')" @click.prevent="saveRename(credential)" :disabled="auth.isFetching">
-                {{ $t('settings.webauthn.button-save-title') }}
-              </button>
-              <button class="btn btn-secondary" :title="$t('settings.webauthn.button-cancel-text')" @click.prevent="cancelRename(credential)">
-                {{ $t('settings.webauthn.button-cancel-title') }}
-              </button>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ $t('settings.webauthn.modal-delete.button-cancel') }}</button>
+              <button type="button" class="btn btn-danger" id="confirmWebAuthnDelete" @click="auth.DeleteWebAuthnCredential(selectedCredential.ID)" :disabled="auth.isFetching" data-bs-dismiss="modal">{{ $t('settings.webauthn.modal-delete.button-delete') }}</button>
             </div>
-            <div v-else>
-              <button class="btn btn-secondary me-1" :title="$t('settings.webauthn.button-rename-text')" @click.prevent="enableRename(credential)">
-                {{ $t('settings.webauthn.button-rename-title') }}
-              </button>
-              <button class="btn btn-danger" :title="$t('settings.webauthn.button-delete-text')" data-bs-toggle="modal" data-bs-target="#webAuthnDeleteModal" :disabled="auth.isFetching" @click="selectedCredential=credential">
-                {{ $t('settings.webauthn.button-delete-title') }}
-              </button>
-            </div>
-          </td>
-        </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="modal fade" id="webAuthnDeleteModal" tabindex="-1" aria-labelledby="webAuthnDeleteModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title" id="webAuthnDeleteModalLabel">{{ $t('settings.webauthn.modal-delete.headline') }}</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" :aria-label="$t('settings.webauthn.modal-delete.button-cancel')"></button>
-          </div>
-          <div class="modal-body">
-            <h5 class="mb-3">{{ selectedCredential.Name }} <small class="text-body-secondary">({{ $t('settings.webauthn.modal-delete.created') }} {{ selectedCredential.CreatedAt }})</small></h5>
-            <p class="mb-0">{{ $t('settings.webauthn.modal-delete.abstract') }}</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ $t('settings.webauthn.modal-delete.button-cancel') }}</button>
-            <button type="button" class="btn btn-danger" id="confirmWebAuthnDelete" @click="auth.DeleteWebAuthnCredential(selectedCredential.ID)" :disabled="auth.isFetching" data-bs-dismiss="modal">{{ $t('settings.webauthn.modal-delete.button-delete') }}</button>
           </div>
         </div>
       </div>
     </div>
-
   </div>
 
-  <div class="mt-5" v-if="auth.IsAdmin || !settings.Setting('ApiAdminOnly')">
-    <div class="card border-secondary p-5" v-if="profile.user.ApiToken">
-      <h2 class="display-7">{{ $t('settings.api.headline') }}</h2>
-      <p class="lead">{{ $t('settings.api.abstract') }}</p>
-      <hr class="my-4">
-      <p>{{ $t('settings.api.active-description') }}</p>
-      <div class="row">
-        <div class="col-6">
+  <!-- API -->
+  <div v-if="auth.IsAdmin || !settings.Setting('ApiAdminOnly')">
+    <div class="card" v-if="profile.user.ApiToken">
+      <div class="card-header">
+        <h3><i class="fa-solid fa-code me-2"></i>{{ $t('settings.api.headline') }}</h3>
+        <button class="btn btn-danger btn-sm" :title="$t('settings.api.button-disable-title')" @click.prevent="profile.disableApi()" :disabled="profile.isFetching">
+          <i class="fa-solid fa-circle-xmark me-1"></i> {{ $t('settings.api.button-disable-text') }}
+        </button>
+      </div>
+      <div class="card-body">
+        <p class="text-muted-sm mb-4">{{ $t('settings.api.abstract') }}</p>
+        <p>{{ $t('settings.api.active-description') }}</p>
+        <div class="form-row">
           <div class="form-group">
-            <label class="form-label mt-4">{{ $t('settings.api.user-label') }}</label>
+            <label class="form-label">{{ $t('settings.api.user-label') }}</label>
             <input v-model="profile.user.Identifier" class="form-control" :placeholder="$t('settings.api.user-placeholder')" type="text" readonly>
           </div>
-        </div>
-        <div class="col-6">
           <div class="form-group">
-            <label class="form-label mt-4">{{ $t('settings.api.token-label') }}</label>
-            <input v-model="profile.user.ApiToken" class="form-control" :placeholder="$t('settings.api.token-placeholder')" type="text" readonly>
+            <label class="form-label">{{ $t('settings.api.token-label') }}</label>
+            <input v-model="profile.user.ApiToken" class="form-control text-mono-sm" :placeholder="$t('settings.api.token-placeholder')" type="text" readonly>
           </div>
         </div>
-      </div>
-      <div class="row">
-        <div class="col-12">
-          <div class="form-group">
-            <p class="form-label mt-4">{{ $t('settings.api.token-created-label') }} {{profile.user.ApiTokenCreated}}</p>
-          </div>
-        </div>
-      </div>
-      <div class="row mt-5">
-        <div class="col-6">
-          <button class="btn btn-primary" :title="$t('settings.api.button-disable-title')" @click.prevent="profile.disableApi()" :disabled="profile.isFetching">
-            <i class="fa-solid fa-minus-circle"></i> {{ $t('settings.api.button-disable-text') }}
-          </button>
-        </div>
-        <div class="col-6">
-          <a :href="webBasePath + '/api/v1/doc.html'" target="_blank" :alt="$t('settings.api.api-link')">{{ $t('settings.api.api-link') }}</a>
-        </div>
+        <p class="text-muted-sm mt-2">{{ $t('settings.api.token-created-label') }} {{ profile.user.ApiTokenCreated }}</p>
+        <a :href="webBasePath + '/api/v1/doc.html'" target="_blank" :alt="$t('settings.api.api-link')" class="btn btn-secondary btn-sm mt-3">
+          <i class="fa-solid fa-book me-1"></i> {{ $t('settings.api.api-link') }}
+        </a>
       </div>
     </div>
-    <div class="card border-secondary p-5" v-else>
-      <h2 class="display-7">{{ $t('settings.api.headline') }}</h2>
-      <p class="lead">{{ $t('settings.api.abstract') }}</p>
-      <hr class="my-4">
-      <p>{{ $t('settings.api.inactive-description') }}</p>
-      <button class="btn btn-primary" :title="$t('settings.api.button-enable-title')" @click.prevent="profile.enableApi()" :disabled="profile.isFetching">
-        <i class="fa-solid fa-plus-circle"></i> {{ $t('settings.api.button-enable-text') }}
-      </button>
+    <div class="card" v-else>
+      <div class="card-header">
+        <h3><i class="fa-solid fa-code me-2"></i>{{ $t('settings.api.headline') }}</h3>
+      </div>
+      <div class="card-body">
+        <p class="text-muted-sm mb-4">{{ $t('settings.api.abstract') }}</p>
+        <p>{{ $t('settings.api.inactive-description') }}</p>
+        <button class="btn btn-primary" :title="$t('settings.api.button-enable-title')" @click.prevent="profile.enableApi()" :disabled="profile.isFetching">
+          <i class="fa-solid fa-plus me-1"></i> {{ $t('settings.api.button-enable-text') }}
+        </button>
+      </div>
     </div>
   </div>
 </template>

@@ -171,7 +171,7 @@ func (c LocalController) GetPeers(_ context.Context, deviceId domain.InterfaceId
 	[]domain.PhysicalPeer,
 	error,
 ) {
-	device, err := c.wg.Device(string(deviceId))
+	device, err := c.getDeviceWithAWGFallback(string(deviceId))
 	if err != nil {
 		return nil, fmt.Errorf("device error: %w", err)
 	}
@@ -314,8 +314,60 @@ func shouldTryAWG(awgMode string, needsAWG bool) bool {
 		(awgMode == config.AWGModeAuto && needsAWG)
 }
 
+// getDeviceWithAWGFallback returns the WireGuard device for name, falling
+// back to a direct AmneziaWG UAPI socket read when the kernel netlink
+// client in wgctrl-go rejects the device with a non-`os.ErrNotExist` error.
+//
+// Background: wgctrl-go's Linux client tries the kernel netlink first, and
+// only falls through to the userspace (UAPI) client when the kernel
+// returns `os.ErrNotExist` (ENODEV). For an AWG TUN device the kernel's
+// wireguard genetlink family does not recognise the interface and returns
+// a different error (typically ENOTSUP / EBUSY), so the wrapper bails out
+// with an empty device — and the dashboard shows zero peers / no
+// handshake / no traffic for the AWG interface.
+//
+// Fallback policy:
+//   - If the kernel client returns the device directly, use it.
+//   - If the kernel client returns `os.ErrNotExist`, return that error
+//     unchanged so the existing "interface not found" path applies.
+//   - If the kernel client returns any other error AND a UAPI socket for
+//     the interface exists AND AWG mode is not "never", read the device
+//     dump straight from the UAPI socket.
+//
+// On fallback success, the original kernel error is wrapped so a
+// forensic reader can see why we deviated. On fallback failure, the
+// original error is returned (the UAPI path didn't make things worse).
+func (c LocalController) getDeviceWithAWGFallback(name string) (*wgtypes.Device, error) {
+	dev, err := c.wg.Device(name)
+	if err == nil {
+		return dev, nil
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
+	// Non-NotExist error: maybe it's an AWG TUN that the kernel netlink
+	// doesn't recognise. Try the UAPI socket fallback.
+	if c.cfg.Backend.GetAWGMode() == config.AWGModeNever {
+		return nil, err
+	}
+	if _, statErr := os.Stat(lowlevel.SocketPath(name)); statErr != nil {
+		// No UAPI socket → not an AWG TUN (or AWG is down). Surface the
+		// original kernel error unchanged.
+		return nil, err
+	}
+	awgDev, awgErr := lowlevel.AWGDeviceFromUAPI(name)
+	if awgErr != nil {
+		slog.Warn("AWG UAPI fallback failed, returning original kernel error",
+			"iface", name, "kernel_err", err, "uapi_err", awgErr)
+		return nil, err
+	}
+	slog.Debug("AWG UAPI fallback succeeded for kernel-rejected device",
+		"iface", name, "peers", len(awgDev.Peers))
+	return awgDev, nil
+}
+
 func (c LocalController) getInterface(id domain.InterfaceIdentifier) (*domain.PhysicalInterface, error) {
-	device, err := c.wg.Device(string(id))
+	device, err := c.getDeviceWithAWGFallback(string(id))
 	if err != nil {
 		return nil, err
 	}
@@ -684,7 +736,7 @@ func (c LocalController) getPeer(deviceId domain.InterfaceIdentifier, id domain.
 		return nil, errors.New("invalid public key")
 	}
 
-	device, err := c.wg.Device(string(deviceId))
+	device, err := c.getDeviceWithAWGFallback(string(deviceId))
 	if err != nil {
 		return nil, err
 	}
