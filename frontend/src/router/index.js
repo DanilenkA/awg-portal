@@ -137,10 +137,14 @@ router.beforeEach(async (to) => {
 
 router.afterEach(async (to, from) => {
   const sec = securityStore()
-  const csrfPages = ['/', '/login']
-
-  if (csrfPages.includes(to.path)) {
-    await sec.LoadSecurityProperties() // make sure we have a valid csrf token
+  const auth = authStore()
+  // Refresh CSRF on every navigation while authenticated. The session cookie
+  // outlives the CSRF token, so a stale CSRF after a refresh would cause
+  // every POST (e.g. interface save) to 403 and trigger an automatic logout,
+  // which surfaces as a "white screen" because the user is bounced to /login
+  // mid-action.
+  if (auth.IsAuthenticated) {
+    await sec.LoadSecurityProperties()
   }
 })
 

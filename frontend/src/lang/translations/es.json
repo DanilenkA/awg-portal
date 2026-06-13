@@ -1,247 +1,255 @@
 {
   "languages": {
-    "es": "Español"
-  },
-  "calculator": {
-    "abstract": "Genera direcciones IP permitidas de WireGuard. Las subredes IP se generan en tu navegador local y nunca se envían al servidor.",
-    "allowed-ip": {
-      "empty": "El valor no puede estar vacío",
-      "label": "IPs permitidas",
-      "placeholder": "0.0.0.0/0, ::/0"
-    },
-    "button-exclude-private": "Excluir rangos de IP privadas",
-    "dissallowed-ip": {
-      "invalid": "Dirección inválida: {addr}",
-      "label": "IPs no permitidas",
-      "placeholder": "10.0.0.0/8, 192.168.0.0/16"
-    },
-    "headline": "Calculadora de IPs de WireGuard",
-    "headline-allowed-ip": "Nuevas IPs permitidas",
-    "new-allowed-ip": {
-      "label": "IPs permitidas",
-      "placeholder": ""
-    }
+    "en": "Inglés"
   },
   "general": {
     "pagination": {
-      "size": "Numero de elementos",
-      "all": "Todos (Lento)"
+      "size": "Número de elementos",
+      "all": "Todo (lento)"
     },
     "search": {
       "placeholder": "Buscar...",
       "button": "Buscar"
     },
-    "select-all": "Buscar todos",
+    "select-all": "Seleccionar todo",
     "yes": "Sí",
     "no": "No",
     "cancel": "Cancelar",
-    "close": "Cerrar",
-    "save": "Guardar",
-    "delete": "Eliminar"
+    "close": "Cerca",
+    "save": "Ahorrar",
+    "delete": "Borrar",
+    "edit": "Editar",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "selected": "seleccionado",
+    "disabled": "Desactivado"
   },
   "login": {
-    "headline": "Por favor inicie sesión",
+    "headline": "Por favor inicia sesión",
     "username": {
-      "label": "Usuario",
-      "placeholder": "Por favor ingrese su usuario"
+      "label": "Nombre de usuario",
+      "placeholder": "Por favor ingrese su nombre de usuario"
     },
     "password": {
       "label": "Contraseña",
       "placeholder": "Por favor ingrese su contraseña"
     },
-    "button": "Ingresar",
-    "button-webauthn": "Usar clave de acceso"
+    "button": "Iniciar sesión",
+    "button-webauthn": "Usar clave de acceso",
+    "invalid_credentials": "Correo electrónico o contraseña no válidos"
   },
   "menu": {
-    "calculator": "Calculadora IP",
-    "home": "Inicio",
+    "home": "Hogar",
     "interfaces": "Interfaces",
     "users": "Usuarios",
-    "lang": "Cambiar idioma",
+    "lang": "Idioma",
     "profile": "Mi perfil",
-    "settings": "Configuración",
+    "settings": "Ajustes",
     "audit": "Registro de auditoría",
-    "login": "Iniciar sesión",
+    "login": "Acceso",
     "logout": "Cerrar sesión",
-    "keygen": "Generador de claves"
+    "keygen": "Generador de claves",
+    "calculator": "Calculadora de propiedad intelectual",
+    "nav_main": "Principal",
+    "nav_account": "Cuenta",
+    "nav_system": "Sistema",
+    "search_placeholder": "Buscar...",
+    "theme": "Tema"
   },
   "home": {
-    "headline": "Portal VPN WireGuard®",
-    "info-headline": "Más información",
-    "abstract": "WireGuard® es una VPN extremadamente simple pero rápida y moderna que utiliza criptografía de última generación. Su objetivo es ser más rápida, simple, ligera y útil que IPsec, a la vez que evita los enormes problemas que supone. Su objetivo es ofrecer un rendimiento considerablemente superior al de OpenVPN.",
+    "headline": "Panel",
+    "info-headline": "Acciones rápidas",
+    "abstract": "Portal WireGuard con soporte nativo de AmneziaWG: ofuscación de DPI, interfaz y gestión de pares a través de la interfaz de usuario web.",
+    "dashboard": {
+      "alerts_subtitle": "Expira pronto"
+    },
     "installation": {
-      "box-header": "Instalación de WireGuard",
-      "headline": "Instalación",
-      "content": "Las instrucciones de instalación del cliente se pueden encontrar en el sitio web oficial de WireGuard.",
-      "button": "Abrir instrucciones"
+      "box-header": "Instalar AWG-PORTAL",
+      "headline": "Lanzamiento de GitHub",
+      "content": "Descargue el paquete de versión más reciente de GitHub. ",
+      "button": "Lanzamientos abiertos"
     },
     "about-wg": {
-      "box-header": "Acerca de WireGuard",
-      "headline": "Acerca de",
-      "content": "WireGuard® es una VPN extremadamente simple pero rápida y moderna que utiliza criptografía de última generación.",
-      "button": "Más"
+      "box-header": "Instalación del cliente",
+      "headline": "WireGuard / AmneziaWG",
+      "content": "Instale el cliente oficial WireGuard o el cliente AmneziaWG en sus dispositivos para conectarse al portal.",
+      "button": "Instalación de WireGuard"
     },
     "about-portal": {
-      "box-header": "Acerca del Portal WireGuard",
-      "headline": "Portal WireGuard",
-      "content": "WireGuard Portal es un portal web simple para la configuración de WireGuard.",
-      "button": "Más"
+      "box-header": "Documentación",
+      "headline": "Fuente y documentos",
+      "content": "Bifurcación del portal h44z/wg con integración AmneziaWG. ",
+      "button": "Repositorio GitHub"
     },
     "profiles": {
       "headline": "Perfiles VPN",
-      "abstract": "Puedes acceder y descargar tus configuraciones personales de VPN desde tu perfil de usuario.",
-      "content": "Para ver todos tus perfiles configurados, haz clic en el botón de abajo.",
-      "button": "Abrir mi perfil"
+      "abstract": "Puede acceder y descargar sus configuraciones personales de VPN a través de su perfil de usuario.",
+      "content": "Para encontrar todos sus perfiles configurados, haga clic en el botón a continuación.",
+      "button": "abrir mi perfil"
     },
     "admin": {
       "headline": "Área de administración",
-      "abstract": "En el área de administración puedes gestionar los peers de WireGuard, la interfaz del servidor, así como los usuarios que tienen acceso al Portal WireGuard.",
+      "abstract": "En el área de administración puede administrar los pares de WireGuard y la interfaz del servidor, así como los usuarios a los que se les permite iniciar sesión en el Portal WireGuard.",
       "content": "",
       "button-admin": "Abrir administración del servidor",
       "button-user": "Abrir administración de usuarios"
     }
   },
   "interfaces": {
-    "headline": "Administración de interfaces",
-    "headline-peers": "Peers VPN actuales",
-    "headline-endpoints": "Extremos actuales",
+    "headline": "Administración de interfaz",
+    "headline-peers": "Pares VPN actuales",
+    "headline-endpoints": "Puntos finales actuales",
     "no-interface": {
-      "default-selection": "No hay interfaces disponibles",
+      "default-selection": "No hay interfaz disponible",
       "headline": "No se encontraron interfaces...",
-      "abstract": "Haz clic en el botón + para crear una nueva interfaz WireGuard."
+      "abstract": "Haga clic en el botón más de arriba para crear una nueva interfaz WireGuard."
     },
     "no-peer": {
-      "headline": "No hay peers disponibles",
-      "abstract": "Actualmente no hay peers disponibles para la interfaz WireGuard seleccionada."
+      "headline": "No hay compañeros disponibles",
+      "abstract": "Actualmente, no hay pares disponibles para la interfaz WireGuard seleccionada."
     },
     "table-heading": {
       "name": "Nombre",
       "user": "Usuario",
-      "ip": "IPs",
-      "endpoint": "Endpoint",
+      "ip": "IP",
+      "endpoint": "Punto final",
       "status": "Estado"
     },
     "interface": {
       "headline": "Estado de la interfaz para",
-      "backend": "Backend",
+      "backend": "backend",
       "unknown-backend": "Desconocido",
-      "wrong-backend": "Backend inválido, usando backend local de WireGuard en su lugar.",
+      "wrong-backend": "Backend no válido, en su lugar se utiliza el backend local WireGuard.",
       "key": "Clave pública",
-      "endpoint": "Endpoint público",
+      "endpoint": "Punto final público",
       "port": "Puerto de escucha",
-      "peers": "Peers habilitados",
-      "total-peers": "Peers totales",
-      "endpoints": "Endpoints habilitados",
-      "total-endpoints": "Endpoints totales",
+      "peers": "Compañeros habilitados",
+      "total-peers": "Total de pares",
+      "endpoints": "Puntos finales habilitados",
+      "total-endpoints": "Puntos finales totales",
       "ip": "Dirección IP",
-      "default-allowed-ip": "IPs permitidas por defecto",
-      "default-dns": "Servidores DNS por defecto",
+      "default-allowed-ip": "IP permitidas por defecto",
       "dns": "Servidores DNS",
       "mtu": "MTU",
-      "default-keep-alive": "Intervalo Keepalive por defecto",
+      "default-keep-alive": "Intervalo de mantenimiento de actividad predeterminado",
+      "default-dns": "Servidores DNS predeterminados",
       "button-show-config": "Mostrar configuración",
       "button-download-config": "Descargar configuración",
-      "button-store-config": "Guardar configuración para wg-quick",
-      "button-edit": "Editar interfaz"
+      "button-store-config": "Configuración de la tienda para wg-quick",
+      "button-edit": "Editar interfaz",
+      "protocol": "Protocolo"
     },
     "button-add-interface": "Agregar interfaz",
-    "button-add-peer": "Agregar peer",
-    "button-add-peers": "Agregar múltiples peers",
-    "button-show-peer": "Mostrar peer",
-    "button-edit-peer": "Editar peer",
-    "peer-disabled": "Peer deshabilitado, motivo:",
-    "peer-expiring": "El peer expira en",
+    "button-add-peer": "Agregar par",
+    "button-add-peers": "Agregar varios pares",
+    "button-show-peer": "Mostrar compañero",
+    "button-edit-peer": "Editar par",
+    "button-bulk-delete": "Eliminar pares seleccionados",
+    "button-bulk-enable": "Habilitar pares seleccionados",
+    "button-bulk-disable": "Deshabilitar pares seleccionados",
+    "confirm-bulk-delete": "¿Está seguro de que desea eliminar {count} pares?",
+    "confirm-bulk-disable": "¿Está seguro de que desea inhabilitar {count} pares?",
+    "peer-disabled": "El par está deshabilitado, motivo:",
+    "peer-expiring": "El par está expirando a las",
     "peer-connected": "Conectado",
     "peer-not-connected": "No conectado",
-    "peer-handshake": "Último handshake:"
+    "peer-handshake": "Último apretón de manos:"
   },
   "users": {
     "headline": "Administración de usuarios",
     "table-heading": {
-      "id": "ID",
+      "id": "IDENTIFICACIÓN",
       "email": "Correo electrónico",
-      "firstname": "Nombre",
+      "firstname": "Nombre de pila",
       "lastname": "Apellido",
-      "sources": "Origen",
-      "peers": "Peers",
-      "admin": "Administrador"
+      "sources": "Fuentes",
+      "peers": "Colegas",
+      "admin": "Administración"
     },
     "no-user": {
       "headline": "No hay usuarios disponibles",
-      "abstract": "Actualmente no hay usuarios registrados en el Portal WireGuard."
+      "abstract": "Actualmente no hay usuarios registrados en WireGuard Portal."
     },
     "button-add-user": "Agregar usuario",
     "button-show-user": "Mostrar usuario",
     "button-edit-user": "Editar usuario",
-    "user-disabled": "Usuario deshabilitado, motivo:",
-    "user-locked": "Cuenta bloqueada, motivo:",
+    "button-bulk-delete": "Eliminar usuarios seleccionados",
+    "button-bulk-enable": "Habilitar usuarios seleccionados",
+    "button-bulk-disable": "Deshabilitar usuarios seleccionados",
+    "button-bulk-lock": "Bloquear usuarios seleccionados",
+    "button-bulk-unlock": "Desbloquear usuarios seleccionados",
+    "confirm-bulk-delete": "¿Está seguro de que desea eliminar {count} usuarios?",
+    "confirm-bulk-disable": "¿Está seguro de que desea inhabilitar a {count} usuarios?",
+    "confirm-bulk-lock": "¿Estás seguro de que deseas bloquear a {count} usuarios?",
+    "user-disabled": "El usuario está deshabilitado, motivo:",
+    "user-locked": "La cuenta está bloqueada, motivo:",
     "admin": "El usuario tiene privilegios de administrador",
     "no-admin": "El usuario no tiene privilegios de administrador"
   },
   "profile": {
-    "headline": "Mis peers VPN",
+    "headline": "Mis pares VPN",
     "table-heading": {
       "name": "Nombre",
-      "ip": "IPs",
+      "ip": "IP",
       "stats": "Estado",
       "interface": "Interfaz del servidor"
     },
     "no-peer": {
-      "headline": "No hay peers disponibles",
-      "abstract": "Actualmente no hay peers asociados a tu perfil de usuario."
+      "headline": "No hay compañeros disponibles",
+      "abstract": "Actualmente, no hay pares asociados con su perfil de usuario."
     },
     "peer-connected": "Conectado",
-    "button-add-peer": "Agregar peer",
-    "button-show-peer": "Mostrar peer",
-    "button-edit-peer": "Editar peer"
+    "button-add-peer": "Agregar par",
+    "button-show-peer": "Mostrar compañero",
+    "button-edit-peer": "Editar par"
   },
   "settings": {
-    "headline": "Configuración",
-    "abstract": "Aquí puedes cambiar tu configuración personal.",
+    "headline": "Ajustes",
+    "abstract": "Aquí puede cambiar su configuración personal.",
     "api": {
       "headline": "Configuración de API",
-      "abstract": "Aquí puedes configurar los ajustes de la API RESTful.",
-      "active-description": "La API está actualmente activa para tu cuenta. Todas las solicitudes están autenticadas con Basic Auth. Usa las siguientes credenciales.",
-      "inactive-description": "La API está actualmente inactiva. Presiona el botón de abajo para activarla.",
-      "user-label": "Usuario de la API:",
-      "user-placeholder": "Usuario de la API",
-      "token-label": "Contraseña de la API:",
-      "token-placeholder": "Token de la API",
-      "token-created-label": "Acceso API concedido en: ",
-      "button-disable-title": "Desactivar API, invalidará el token actual.",
-      "button-disable-text": "Desactivar API",
-      "button-enable-title": "Activar API, generará un nuevo token.",
-      "button-enable-text": "Activar API",
-      "api-link": "Documentación de API"
+      "abstract": "Aquí puede configurar los ajustes de la API RESTful.",
+      "active-description": "La API está actualmente activa para su cuenta de usuario. ",
+      "inactive-description": "La API está actualmente inactiva. ",
+      "user-label": "Nombre de usuario API:",
+      "user-placeholder": "El usuario API",
+      "token-label": "Contraseña API:",
+      "token-placeholder": "El token API",
+      "token-created-label": "Acceso API otorgado en:",
+      "button-disable-title": "Deshabilite la API, esto invalidará el token actual.",
+      "button-disable-text": "Deshabilitar API",
+      "button-enable-title": "Habilite la API, esto generará un nuevo token.",
+      "button-enable-text": "Habilitar API",
+      "api-link": "Documentación API"
     },
     "webauthn": {
-      "headline": "Configuración de llave de acceso",
-      "abstract": "Las llaves de acceso son una forma moderna de autenticar usuarios sin necesidad de contraseñas. Se almacenan de forma segura en tu navegador y pueden usarse para iniciar sesión en el Portal WireGuard.",
-      "active-description": "Al menos una llave de acceso está activa en tu cuenta.",
-      "inactive-description": "Actualmente no hay llaves de acceso registradas. Presiona el botón de abajo para registrar una.",
+      "headline": "Configuración de clave de acceso",
+      "abstract": "Las claves de acceso son una forma moderna de autenticar usuarios sin necesidad de contraseñas. ",
+      "active-description": "Actualmente hay al menos una clave activa para su cuenta de usuario.",
+      "inactive-description": "Actualmente no hay claves de acceso registradas para su cuenta de usuario. ",
       "table": {
         "name": "Nombre",
-        "created": "Creada",
+        "created": "Creado",
         "actions": ""
       },
-      "credentials-list": "Llaves de acceso registradas actualmente",
+      "credentials-list": "Claves de acceso registradas actualmente",
       "modal-delete": {
-        "headline": "Eliminar llaves de acceso",
-        "abstract": "¿Seguro que deseas eliminar esta llave de acceso? Ya no podrás usarla para iniciar sesión.",
-        "created": "Creada:",
-        "button-delete": "Eliminar",
+        "headline": "Eliminar clave de acceso",
+        "abstract": "¿Está seguro de que desea eliminar esta clave de acceso? ",
+        "created": "Creado:",
+        "button-delete": "Borrar",
         "button-cancel": "Cancelar"
       },
-      "button-rename-title": "Renombrar",
-      "button-rename-text": "Renombrar la llave de acceso.",
-      "button-save-title": "Guardar",
-      "button-save-text": "Guardar el nuevo nombre de la llave de acceso.",
+      "button-rename-title": "Rebautizar",
+      "button-rename-text": "Cambie el nombre de la clave de acceso.",
+      "button-save-title": "Ahorrar",
+      "button-save-text": "Guarde el nuevo nombre de la clave de acceso.",
       "button-cancel-title": "Cancelar",
-      "button-cancel-text": "Cancelar el renombrado de la llave de acceso.",
-      "button-delete-title": "Eliminar",
-      "button-delete-text": "Eliminar la llave de acceso. Ya no podrás iniciar sesión con ella.",
-      "button-register-title": "Registrar llave de acceso",
-      "button-register-text": "Registrar una nueva llave de acceso para proteger tu cuenta."
+      "button-cancel-text": "Cancele el cambio de nombre de la clave de acceso.",
+      "button-delete-title": "Borrar",
+      "button-delete-text": "Elimine la clave de acceso. ",
+      "button-register-title": "Registrar clave de acceso",
+      "button-register-text": "Registre una nueva clave de acceso para proteger su cuenta."
     },
     "password": {
       "headline": "Configuración de contraseña",
@@ -249,105 +257,125 @@
       "current-label": "Contraseña actual",
       "new-label": "Nueva contraseña",
       "new-confirm-label": "Confirmar nueva contraseña",
-      "change-button-text": "Cambiar contraseña",
+      "change-button-text": "Cambiar la contraseña",
       "invalid-confirm-label": "Las contraseñas no coinciden",
       "weak-label": "La contraseña es demasiado débil"
     }
   },
   "audit": {
-    "headline": "Registro de Auditoría",
-    "abstract": "Aquí puedes encontrar el registro de auditoría de todas las acciones realizadas en el Portal WireGuard.",
+    "headline": "Registro de auditoría",
+    "abstract": "Aquí puede encontrar el registro de auditoría de todas las acciones realizadas en el Portal WireGuard.",
     "no-entries": {
-      "headline": "No hay entradas en el registro",
-      "abstract": "Actualmente no se han registrado auditorías."
+      "headline": "No hay entradas de registro disponibles",
+      "abstract": "Actualmente, no hay registros de auditoría registrados."
     },
-    "entries-headline": "Entradas del Registro",
+    "entries-headline": "Entradas de registro",
     "table-heading": {
       "id": "#",
-      "time": "Hora",
+      "time": "Tiempo",
       "user": "Usuario",
-      "severity": "Severidad",
+      "severity": "Gravedad",
       "origin": "Origen",
       "message": "Mensaje"
     }
   },
   "keygen": {
     "headline": "Generador de claves WireGuard",
-    "abstract": "Genera nuevas claves de WireGuard. Las claves se generan en tu navegador local y nunca se envían al servidor.",
+    "abstract": "Genere nuevas claves WireGuard. ",
     "headline-keypair": "Nuevo par de claves",
-    "headline-preshared-key": "Nueva clave pre-compartida",
+    "headline-preshared-key": "Nueva clave previamente compartida",
     "button-generate": "Generar",
     "private-key": {
       "label": "Clave privada",
-      "placeholder": "La clave privada"
+      "placeholder": "la clave privada"
     },
     "public-key": {
       "label": "Clave pública",
-      "placeholder": "La clave pública"
+      "placeholder": "la clave publica"
     },
     "preshared-key": {
-      "label": "Clave pre-compartida",
-      "placeholder": "La clave pre-compartida"
+      "label": "Clave previamente compartida",
+      "placeholder": "La clave precompartida"
+    }
+  },
+  "calculator": {
+    "headline": "Calculadora de IP WireGuard",
+    "abstract": "Genere una IP permitida por WireGuard. ",
+    "headline-allowed-ip": "Nuevas IP permitidas",
+    "button-exclude-private": "Excluir rangos de IP privados",
+    "allowed-ip": {
+      "label": "IP permitidas",
+      "placeholder": "0.0.0.0/0, ::/0",
+      "empty": "El valor no puede estar vacío."
+    },
+    "dissallowed-ip": {
+      "label": "IP no permitidas",
+      "placeholder": "10.0.0.0/8, 192.168.0.0/16",
+      "invalid": "Dirección no válida: {addr}"
+    },
+    "new-allowed-ip": {
+      "label": "IP permitidas",
+      "placeholder": ""
     }
   },
   "modals": {
     "user-view": {
-      "headline": "Cuenta de Usuario:",
+      "headline": "Cuenta de usuario:",
       "tab-user": "Información",
-      "tab-peers": "Peers",
-      "headline-info": "Información del Usuario:",
+      "tab-peers": "Colegas",
+      "headline-info": "Información del usuario:",
       "headline-notes": "Notas:",
-      "email": "Correo Electrónico",
-      "firstname": "Nombre",
+      "email": "Correo electrónico",
+      "firstname": "Nombre de pila",
       "lastname": "Apellido",
-      "phone": "Número de Teléfono",
+      "phone": "Número de teléfono",
       "department": "Departamento",
       "api-enabled": "Acceso API",
-      "disabled": "Cuenta Deshabilitada",
-      "locked": "Cuenta Bloqueada",
-      "no-peers": "El usuario no tiene peers asociados.",
+      "disabled": "Cuenta deshabilitada",
+      "locked": "Cuenta bloqueada",
+      "no-peers": "El usuario no tiene pares asociados.",
       "peers": {
         "name": "Nombre",
         "interface": "Interfaz",
-        "ip": "IPs"
+        "ip": "IP"
       }
     },
     "user-edit": {
       "headline-edit": "Editar usuario:",
       "headline-new": "Nuevo usuario",
       "header-general": "General",
-      "header-personal": "Información del Usuario",
+      "header-personal": "Información del usuario",
       "header-notes": "Notas",
       "header-state": "Estado",
       "identifier": {
         "label": "Identificador",
-        "placeholder": "El identificador único del usuario"
+        "placeholder": "El identificador de usuario único"
       },
       "source": {
-        "label": "Origen",
-        "placeholder": "El origen del usuario"
+        "label": "Fuente",
+        "placeholder": "La fuente del usuario"
       },
       "password": {
         "label": "Contraseña",
-        "placeholder": "Una contraseña súper segura",
-        "description": "Deja este campo en blanco para mantener la contraseña actual.",
-        "too-weak": "La contraseña es demasiado débil. Por favor usa una más fuerte."
+        "placeholder": "Una contraseña súper secreta",
+        "description": "Deje este campo en blanco para mantener la contraseña actual.",
+        "too-weak": "La contraseña es demasiado débil. "
       },
       "email": {
-        "label": "Correo",
-        "placeholder": "La dirección de correo"
+        "label": "Correo electrónico",
+        "placeholder": "La dirección de correo electrónico"
       },
       "phone": {
         "label": "Teléfono",
-        "placeholder": "El número de teléfono"
+        "placeholder": "el numero de telefono"
       },
       "department": {
         "label": "Departamento",
-        "placeholder": "El departamento"
+        "placeholder": "el departamento"
       },
       "firstname": {
-        "label": "Nombre",
-        "placeholder": "Nombre"
+        "label": "Nombre de pila",
+        "placeholder": "Nombre de pila"
       },
       "lastname": {
         "label": "Apellido",
@@ -358,210 +386,213 @@
         "placeholder": ""
       },
       "disabled": {
-        "label": "Deshabilitado (sin conexión WireGuard y sin posibilidad de inicio de sesión)"
+        "label": "Deshabilitado (no es posible realizar conexión WireGuard ni iniciar sesión)"
       },
       "locked": {
         "label": "Bloqueado (no es posible iniciar sesión, las conexiones WireGuard aún funcionan)"
       },
       "admin": {
-        "label": "Es administrador"
+        "label": "es administrador"
       },
-      "confirm-delete": "Seguro que desea eliminar el usuario '{id}'?"
+      "persist-local-changes": {
+        "label": "Persistir los cambios locales"
+      },
+      "sync-warning": "Para modificar este usuario sincronizado, habilite la persistencia de cambios locales. ",
+      "confirm-delete": "¿Está seguro de que desea eliminar el usuario '{id}'?"
     },
     "interface-view": {
-      "headline": "Configuración de la interfaz:"
-    },
-    "password": {
-      "abstract": "Aquí puedes cambiar tu contraseña.",
-      "change-button-text": "Cambiar contraseña",
-      "current-label": "Contraseña actual",
-      "headline": "Configuración de contraseña",
-      "invalid-confirm-label": "Las contraseñas no coinciden",
-      "new-confirm-label": "Confirmar nueva contraseña",
-      "new-label": "Nueva contraseña",
-      "weak-label": "La contraseña es demasiado débil"
+      "headline": "Configuración para la interfaz:"
     },
     "interface-edit": {
       "headline-edit": "Editar interfaz:",
       "headline-new": "Nueva interfaz",
       "tab-interface": "Interfaz",
-      "tab-peerdef": "Valores predeterminados del peer",
+      "tab-peerdef": "Valores predeterminados de pares",
       "header-general": "General",
       "header-network": "Red",
       "header-crypto": "Criptografía",
-      "header-hooks": "Hooks de interfaz",
-      "header-peer-hooks": "Hooks",
+      "header-hooks": "Ganchos de interfaz",
+      "header-peer-hooks": "Manos",
       "header-state": "Estado",
       "identifier": {
         "label": "Identificador",
-        "placeholder": "El identificador único de la interfaz"
+        "placeholder": "El identificador único de interfaz"
       },
       "mode": {
-        "label": "Modo de Interfaz",
-        "server": "Modo Servidor",
-        "client": "Modo Cliente",
-        "any": "Modo Desconocido"
+        "label": "Modo de interfaz",
+        "server": "Modo servidor",
+        "client": "Modo cliente",
+        "any": "Modo desconocido"
       },
       "backend": {
-        "label": "Backend de la Interfaz",
-        "invalid-label": "El backend original ya no está disponible, usando el backend local de WireGuard en su lugar.",
+        "label": "Interfaz de fondo",
+        "invalid-label": "El backend original ya no está disponible; en su lugar, se utiliza el backend local WireGuard.",
         "local": "Backend local de WireGuard"
       },
       "display-name": {
-        "label": "Nombre para Mostrar",
-        "placeholder": "El nombre descriptivo de la interfaz"
+        "label": "Nombre para mostrar",
+        "placeholder": "El nombre descriptivo de la interfaz."
       },
       "private-key": {
-        "label": "La clave Privada",
-        "placeholder": "La clave privada"
+        "label": "Clave privada",
+        "placeholder": "la clave privada"
       },
       "public-key": {
-        "label": "La clave pública",
-        "placeholder": "La clave pública"
+        "label": "Clave pública",
+        "placeholder": "la clave publica"
       },
       "ip": {
         "label": "Direcciones IP",
         "placeholder": "Direcciones IP (formato CIDR)"
       },
       "listen-port": {
-        "label": "Puerto de Escucha",
+        "label": "Puerto de escucha",
         "placeholder": "El puerto de escucha"
       },
       "dns": {
         "label": "Servidor DNS",
-        "placeholder": "Los servidores DNS que deben usarse"
+        "placeholder": "Los servidores DNS que se deben utilizar"
       },
       "dns-search": {
-        "label": "Dominios de Búsqueda DNS",
+        "label": "Dominios de búsqueda DNS",
         "placeholder": "Prefijos de búsqueda DNS"
       },
       "mtu": {
         "label": "MTU",
-        "placeholder": "La MTU de la interfaz (0 = mantener por defecto)"
+        "placeholder": "La interfaz MTU (0 = mantener predeterminado)"
       },
       "firewall-mark": {
-        "label": "Marca de Firewall",
-        "placeholder": "Marca de firewall que se aplica al tráfico saliente. (0 = automático)"
+        "label": "Marca de cortafuegos",
+        "placeholder": "Marca de firewall que se aplica al tráfico saliente. "
       },
       "routing-table": {
-        "label": "Tabla de Enrutamiento",
+        "label": "Tabla de enrutamiento",
         "placeholder": "El ID de la tabla de enrutamiento",
-        "description": "Casos especiales: off = no administrar rutas, 0 = automático"
+        "description": "Casos especiales: off = no gestionar rutas, 0 = automático"
       },
       "pre-up": {
-        "label": "Pre-Up",
+        "label": "Pre-arriba",
         "placeholder": "Uno o varios comandos bash separados por ;"
       },
       "post-up": {
-        "label": "Post-Up",
+        "label": "Post-up",
         "placeholder": "Uno o varios comandos bash separados por ;"
       },
       "pre-down": {
-        "label": "Pre-Down",
+        "label": "Pre-abajo",
         "placeholder": "Uno o varios comandos bash separados por ;"
       },
       "post-down": {
-        "label": "Post-Down",
+        "label": "Post-abajo",
         "placeholder": "Uno o varios comandos bash separados por ;"
       },
       "disabled": {
-        "label": "Interfaz Deshabilitada"
+        "label": "Interfaz deshabilitada"
+      },
+      "create-default-peer": {
+        "label": "Crear igual predeterminado para nuevos usuarios"
       },
       "save-config": {
         "label": "Guardar automáticamente la configuración de wg-quick"
       },
       "defaults": {
         "endpoint": {
-          "label": "Dirección del Endpoint",
-          "placeholder": "Dirección del Endpoint",
-          "description": "La dirección del endpoint al que los peers se conectarán. (ej: wg.ejemplo.com o wg.ejemplo.com:51820)"
+          "label": "Dirección de punto final",
+          "placeholder": "Dirección de punto final",
+          "description": "La dirección del punto final a la que se conectarán los pares. "
         },
         "networks": {
           "label": "Redes IP",
-          "placeholder": "Direcciones de Red",
-          "description": "Los peers obtendrán direcciones IP de esas subredes."
+          "placeholder": "Direcciones de red",
+          "description": "Los pares obtendrán direcciones IP de esas subredes."
         },
         "allowed-ip": {
-          "label": "Direcciones IP Permitidas",
-          "placeholder": "Direcciones IP Permitidas por Defecto"
+          "label": "Direcciones IP permitidas",
+          "placeholder": "Direcciones IP permitidas por defecto"
         },
         "mtu": {
           "label": "MTU",
-          "placeholder": "La MTU del cliente (0 = mantener por defecto)"
+          "placeholder": "La MTU del cliente (0 = mantener predeterminado)"
         },
         "keep-alive": {
-          "label": "Intervalo de Keep Alive",
-          "placeholder": "Keepalive Persistente (0 = por defecto)"
+          "label": "Intervalo de mantenimiento vivo",
+          "placeholder": "Keepalive persistente (0 = predeterminado)"
         }
       },
-      "button-apply-defaults": "Aplicar Valores Predeterminados de peers",
-      "button-create-default-peers": "Crear Peers Predeterminados",
-      "confirm-delete": "Seguro que desea eliminar la interfaz '{id}'?"
+      "button-apply-defaults": "Aplicar valores predeterminados de pares",
+      "button-create-default-peers": "Crear pares predeterminados",
+      "confirm-delete": "¿Está seguro de que desea eliminar la interfaz '{id}'?",
+      "awg": {
+        "binary-missing": "amneziawg-go no encontrado. ",
+        "binary-missing-title": "amneziawg-go no disponible"
+      }
     },
     "peer-view": {
-      "headline-peer": "Peer:",
-      "headline-endpoint": "Endpoint:",
-      "section-info": "Información del peer",
-      "section-status": "Estado Actual",
+      "headline-peer": "Par:",
+      "headline-endpoint": "Punto final:",
+      "section-info": "Información de pares",
+      "section-status": "Estado actual",
       "section-config": "Configuración",
       "identifier": "Identificador",
       "ip": "Direcciones IP",
       "allowed-ip": "Direcciones IP permitidas",
       "extra-allowed-ip": "Direcciones IP permitidas del lado del servidor",
-      "user": "Usuario Asociado",
+      "user": "Usuario asociado",
       "notes": "Notas",
-      "expiry-status": "Expira en",
-      "disabled-status": "Deshabilitado en",
+      "expiry-status": "Vence en",
+      "disabled-status": "Discapacitado en",
       "traffic": "Tráfico",
-      "connection-status": "Estadísticas de Conexión",
-      "upload": "Bytes Subidos (del Servidor al peer)",
-      "download": "Bytes Descargados (del peer al Servidor)",
-      "pingable": "Alcanzable (ping)",
-      "handshake": "Último handshake",
+      "connection-status": "Estadísticas de conexión",
+      "upload": "Bytes cargados (del servidor al par)",
+      "download": "Bytes descargados (de igual a servidor)",
+      "pingable": "Se puede hacer ping",
+      "handshake": "último apretón de manos",
       "connected-since": "Conectado desde",
-      "endpoint": "Dirección del host remoto",
+      "endpoint": "Punto final",
+      "endpoint-key": "Clave pública del terminal",
+      "keepalive": "Keepalive persistente",
       "button-download": "Descargar configuración",
-      "button-email": "Enviar configuración por Correo Electrónico",
-      "style-label": "Estilo de Configuración"
+      "button-email": "Enviar configuración por correo electrónico",
+      "style-label": "Estilo de configuración"
     },
     "peer-edit": {
-      "headline-edit-peer": "Editar peer:",
-      "headline-edit-endpoint": "Editar endpoint:",
-      "headline-new-peer": "Crear peer",
-      "headline-new-endpoint": "Crear endpoint",
+      "headline-edit-peer": "Editar compañero:",
+      "headline-edit-endpoint": "Editar punto final:",
+      "headline-new-peer": "Crear par",
+      "headline-new-endpoint": "Crear punto final",
       "header-general": "General",
       "header-network": "Red",
       "header-crypto": "Criptografía",
-      "header-hooks": "Hooks (Ejecutados en el peer)",
+      "header-hooks": "Ganchos (ejecutados en pares)",
       "header-state": "Estado",
       "display-name": {
         "label": "Nombre para mostrar",
-        "placeholder": "El nombre descriptivo para el peer"
+        "placeholder": "El nombre descriptivo del par."
       },
       "linked-user": {
-        "label": "Usuario Vinculado",
-        "placeholder": "La cuenta de usuario que posee este peer"
+        "label": "Usuario vinculado",
+        "placeholder": "La cuenta de usuario propietaria de este par."
       },
       "private-key": {
-        "label": "Clave Privada",
-        "placeholder": "Clave privada",
-        "help": "La clave privada se almacena de forma segura en el servidor. Si el usuario ya posee una copia, puedes omitir este campo. El servidor sigue funcionando exclusivamente con la clave pública del peer."
+        "label": "Clave privada",
+        "placeholder": "la clave privada",
+        "help": "La clave privada se almacena de forma segura en el servidor. "
       },
       "public-key": {
-        "label": "Clave Pública",
-        "placeholder": "La Clave pública"
+        "label": "Clave pública",
+        "placeholder": "la clave publica"
       },
       "preshared-key": {
-        "label": "Clave pre-compartida",
-        "placeholder": "Clave pre-compartida opcional"
-      },
-      "endpoint": {
-        "label": "Dirección del endpoint",
-        "placeholder": "La dirección del endpoint remoto"
+        "label": "Clave previamente compartida",
+        "placeholder": "Clave precompartida opcional"
       },
       "endpoint-public-key": {
-        "label": "Clave pública del punto del endpoint",
-        "placeholder": "La clave pública del endpoint remoto"
+        "label": "Clave pública del punto final",
+        "placeholder": "La clave pública del punto final remoto."
+      },
+      "endpoint": {
+        "label": "Dirección de punto final",
+        "placeholder": "La dirección del punto final remoto."
       },
       "ip": {
         "label": "Direcciones IP",
@@ -572,68 +603,72 @@
         "placeholder": "Direcciones IP permitidas (formato CIDR)"
       },
       "extra-allowed-ip": {
-        "label": "Direcciones IP permitidas extra",
-        "placeholder": "IPs extra permitidas (lado del servidor)",
-        "description": "Esas IPs serán agregadas en la interfaz remota de WireGuard como direcciones IP permitidas."
+        "label": "Direcciones IP permitidas adicionales",
+        "placeholder": "IP adicionales permitidas (del lado del servidor)",
+        "description": "Esas IP se agregarán en la interfaz remota de WireGuard como IP permitidas."
       },
       "dns": {
         "label": "Servidor DNS",
-        "placeholder": "Los servidores DNS que deben usarse"
+        "placeholder": "Los servidores DNS que se deben utilizar"
       },
       "dns-search": {
         "label": "Dominios de búsqueda DNS",
         "placeholder": "Prefijos de búsqueda DNS"
       },
       "keep-alive": {
-        "label": "Intervalo de Keep Alive",
-        "placeholder": "Keepalive Persistente (0 = por defecto)"
+        "label": "Intervalo de mantenimiento vivo",
+        "placeholder": "Keepalive persistente (0 = predeterminado)"
       },
       "mtu": {
         "label": "MTU",
-        "placeholder": "La MTU del cliente (0 = mantener por defecto)"
+        "placeholder": "La MTU del cliente (0 = mantener predeterminado)"
       },
       "pre-up": {
-        "label": "Pre-Up",
+        "label": "Pre-arriba",
         "placeholder": "Uno o varios comandos bash separados por ;"
       },
       "post-up": {
-        "label": "Post-Up",
+        "label": "Post-up",
         "placeholder": "Uno o varios comandos bash separados por ;"
       },
       "pre-down": {
-        "label": "Pre-Down",
+        "label": "Pre-abajo",
         "placeholder": "Uno o varios comandos bash separados por ;"
       },
       "post-down": {
-        "label": "Post-Down",
+        "label": "Post-abajo",
         "placeholder": "Uno o varios comandos bash separados por ;"
       },
       "disabled": {
-        "label": "Peer Deshabilitado"
+        "label": "Par deshabilitado"
       },
       "ignore-global": {
-        "label": "Ignorar configuración global"
+        "label": "Ignorar la configuración global"
       },
       "expires-at": {
-        "label": "Fecha de expiración"
+        "label": "Fecha de caducidad"
       },
-      "confirm-delete": "Seguro que desea eliminar el par '{id}'?"
+      "confirm-delete": "¿Está seguro de que desea eliminar el par '{id}'?"
     },
     "peer-multi-create": {
-      "headline-peer": "Crear múltiples peers",
-      "headline-endpoint": "Crear múltiples endpoints",
+      "headline-peer": "Crear múltiples pares",
+      "headline-endpoint": "Crear múltiples puntos finales",
       "identifiers": {
-        "label": "Identificadores de Usuario",
-        "placeholder": "Identificadores de Usuario",
-        "description": "Un identificador de usuario (el nombre de usuario) para el cual debe crearse un peer."
+        "label": "Identificadores de usuario",
+        "placeholder": "Identificadores de usuario",
+        "description": "Un identificador de usuario (el nombre de usuario) para el cual se debe crear un igual."
       },
       "prefix": {
-        "headline-peer": "Peer:",
-        "headline-endpoint": "Endpoint:",
-        "label": "Prefijo del nombre del peer a mostrar",
-        "placeholder": "Prefijo",
-        "description": "Un prefijo que se agregará al nombre visible de los peers."
+        "headline-peer": "Par:",
+        "headline-endpoint": "Punto final:",
+        "label": "Prefijo de nombre para mostrar",
+        "placeholder": "el prefijo",
+        "description": "Un prefijo que se agrega al nombre para mostrar de los pares."
       }
     }
+  },
+  "errors": {
+    "perm_denied_title": "Privilegios insuficientes",
+    "perm_denied": "Operación no permitida. "
   }
 }

@@ -1,20 +1,183 @@
-// disable external web fonts
+// AWG Portal v2.0.0 — Design System
+// Dark theme, OKLCH-inspired palette, custom easings, reduced-motion aware
+
+// Disable external web fonts
 $web-font-path: false;
 
-@import "bootswatch/dist/lux/variables";
-@import "bootstrap/scss/bootstrap";
-@import "bootswatch/dist/lux/bootswatch";
+// =========================================================================
+//  COLOR PALETTE (OKLCH-derived, dark-first)
+// =========================================================================
+$ink:            #0a0b0e;
+$surface-0:      #16171c;
+$surface-1:      #1c1e25;
+$surface-2:      #23252e;
+$surface-3:      #2b2e39;
+$border:         #353a47;
+$border-hover:   #454b5a;
+$text-primary:   #e8eaed;
+$text-secondary: #9aa0ad;
+$text-muted:     #5f6573;
+$accent:         #4fc3f7;
+$accent-hover:   #81d4fa;
+$accent-ink:     #0a0b0e;
+$success:        #66bb6a;
+$warning:        #ffa726;
+$danger:         #ef5350;
+$purple:         #ce93d8;
 
-// fix strange border width bug in bootswatch 5.3
+// =========================================================================
+//  CSS CUSTOM PROPERTIES
+// =========================================================================
 :root {
-    --bs-border-width: 1px;
+  --ink: #{$ink};
+  --surface-0: #{$surface-0};
+  --surface-1: #{$surface-1};
+  --surface-2: #{$surface-2};
+  --surface-3: #{$surface-3};
+  --border: #{$border};
+  --border-hover: #{$border-hover};
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --text-muted: #{$text-muted};
+  --accent: #{$accent};
+  --accent-hover: #{$accent-hover};
+  --accent-ink: #{$accent-ink};
+  --accent-subtle: rgba(79, 195, 247, 0.12);
+  --accent-glow: rgba(79, 195, 247, 0.25);
+  --success: #{$success};
+  --success-subtle: rgba(102, 187, 106, 0.12);
+  --warning: #{$warning};
+  --warning-subtle: rgba(255, 167, 38, 0.12);
+  --danger: #{$danger};
+  --danger-subtle: rgba(239, 83, 80, 0.12);
+  --purple: #{$purple};
+  --purple-subtle: rgba(206, 147, 216, 0.12);
+
+  // Type
+  --font-sans: 'Nunito Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --body-size: 0.9375rem;
+  --body-line: 1.6;
+
+  // Spacing
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem;
+  --space-12: 3rem; --space-16: 4rem;
+
+  // Radius
+  --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px;
+
+  // Shadows
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 20px var(--accent-glow);
+
+  // z-index
+  --z-sticky: 100; --z-overlay: 200; --z-modal: 300; --z-toast: 400; --z-tooltip: 500;
+
+  // Easings (Emil Kowalski style)
+  --ease-out-ui: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-ui: cubic-bezier(0.77, 0, 0.175, 1);
+
+  // Sidebar widths
+  --sidebar-collapsed: 64px;
+  --sidebar-full: 240px;
+  --topbar-height: 64px;
+
+  // Override bootstrap
+  --bs-body-bg: var(--surface-0);
+  --bs-body-color: var(--text-primary);
+  --bs-border-color: var(--border);
+  --bs-secondary-color: var(--text-secondary);
+  --bs-tertiary-color: var(--text-muted);
+  --bs-primary: var(--accent);
+  --bs-primary-rgb: 79, 195, 247;
 }
 
-// for future use, once bootswatch supports @use
-/*
-@use "bootswatch/dist/lux/_variables.scss" as lux-vars with (
-  $web-font-path: false
-);
-@use "bootstrap/scss/bootstrap" as bs;
-@use "bootswatch/dist/lux/_bootswatch.scss" as lux-theme;
-*/
+// Reduced motion: mandatory
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+// =========================================================================
+//  BOOTSTRAP OVERRIDES
+// =========================================================================
+$primary: $accent;
+$secondary: $text-secondary;
+$success: $success;
+$info: $accent;
+$warning: $warning;
+$danger: $danger;
+$body-bg: $surface-0;
+$body-color: $text-primary;
+$body-secondary-color: $text-secondary;
+$body-tertiary-color: $text-muted;
+$border-color: $border;
+$link-color: $accent;
+$link-hover-color: $accent-hover;
+
+$font-family-sans-serif: var(--font-sans);
+$font-family-monospace: var(--font-mono);
+$font-size-base: 0.9375rem;
+
+$border-radius: 0.5rem;
+$border-radius-sm: 0.375rem;
+$border-radius-lg: 0.75rem;
+$border-radius-xl: 1rem;
+
+// Card
+$card-bg: var(--surface-1);
+$card-border-color: var(--border);
+$card-cap-bg: transparent;
+$card-cap-padding-y: 1rem;
+$card-cap-padding-x: 1.5rem;
+
+// Table
+$table-bg: transparent;
+$table-color: var(--text-primary);
+$table-border-color: var(--border);
+$table-striped-bg: var(--surface-2);
+$table-hover-bg: var(--surface-2);
+$table-th-font-weight: 600;
+
+// Form
+$input-bg: var(--surface-2);
+$input-color: var(--text-primary);
+$input-border-color: var(--border);
+$input-focus-bg: var(--surface-2);
+$input-focus-border-color: var(--accent);
+$input-focus-color: var(--text-primary);
+$input-placeholder-color: var(--text-muted);
+$form-select-bg: var(--surface-2);
+$form-select-color: var(--text-primary);
+$form-select-border-color: var(--border);
+
+// Dropdown
+$dropdown-bg: var(--surface-1);
+$dropdown-color: var(--text-primary);
+$dropdown-border-color: var(--border);
+$dropdown-link-color: var(--text-primary);
+$dropdown-link-hover-bg: var(--surface-2);
+$dropdown-link-hover-color: var(--text-primary);
+$dropdown-link-active-bg: var(--accent-subtle);
+$dropdown-link-active-color: var(--accent);
+
+// Modal
+$modal-content-bg: var(--surface-1);
+$modal-content-border-color: var(--border);
+$modal-content-color: var(--text-primary);
+$modal-header-border-color: var(--border);
+$modal-footer-border-color: var(--border);
+$modal-backdrop-bg: #000;
+$modal-backdrop-opacity: 0.6;
+
+// Btn
+$btn-focus-width: 0;
+$btn-focus-box-shadow: 0 0 0 3px var(--accent-subtle);
+
+@import "bootstrap/scss/bootstrap";

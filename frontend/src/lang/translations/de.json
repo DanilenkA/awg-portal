@@ -1,14 +1,14 @@
 {
   "languages": {
-    "de": "Deutsch"
+    "en": "Englisch"
   },
   "general": {
     "pagination": {
-      "size": "Anzahl an Elementen",
+      "size": "Anzahl der Elemente",
       "all": "Alle (langsam)"
     },
     "search": {
-      "placeholder": "Suche...",
+      "placeholder": "Suchen...",
       "button": "Suchen"
     },
     "select-all": "Alle auswählen",
@@ -17,10 +17,15 @@
     "cancel": "Abbrechen",
     "close": "Schließen",
     "save": "Speichern",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "selected": "ausgewählt",
+    "disabled": "Deaktiviert"
   },
   "login": {
-    "headline": "Bitte melden Sie sich an",
+    "headline": "Bitte anmelden",
     "username": {
       "label": "Benutzername",
       "placeholder": "Bitte geben Sie Ihren Benutzernamen ein"
@@ -30,55 +35,64 @@
       "placeholder": "Bitte geben Sie Ihr Passwort ein"
     },
     "button": "Anmelden",
-    "button-webauthn": "Passkey verwenden"
+    "button-webauthn": "Passkey verwenden",
+    "invalid_credentials": "Ungültige E-Mail oder Passwort"
   },
   "menu": {
-    "home": "Home",
+    "home": "Startseite",
     "interfaces": "Schnittstellen",
     "users": "Benutzer",
-    "lang": "Sprache ändern",
+    "lang": "Sprache",
     "profile": "Mein Profil",
     "settings": "Einstellungen",
-    "audit": "Event Protokoll",
+    "audit": "Prüfprotokoll",
     "login": "Anmelden",
     "logout": "Abmelden",
     "keygen": "Schlüsselgenerator",
-    "calculator": "IP-Rechner"
+    "calculator": "IP-Rechner",
+    "nav_main": "Hauptmenü",
+    "nav_account": "Konto",
+    "nav_system": "System",
+    "search_placeholder": "Suchen...",
+    "theme": "Design"
   },
   "home": {
-    "headline": "WireGuard® VPN Portal",
-    "info-headline": "Mehr Informationen",
-    "abstract": "WireGuard® ist ein extrem einfaches, aber dennoch schnelles und modernes VPN, das modernste Kryptographie nutzt. Es zielt darauf ab, schneller, einfacher, schlanker und nützlicher als IPsec zu sein, während es die massiven Kopfschmerzen vermeidet. Es soll wesentlich leistungsfähiger sein als OpenVPN.",
+    "headline": "Dashboard",
+    "info-headline": "Schnellaktionen",
+    "abstract": "WireGuard-Portal mit nativer AmneziaWG-Unterstützung — DPI-Verschleierung, Schnittstellen- und Peer-Verwaltung über die Weboberfläche.",
+    "dashboard": {
+      "alerts_subtitle": "Läuft bald ab"
+    },
     "installation": {
-      "box-header": "WireGuard Installation",
-      "headline": "Installation",
-      "content": "Die Installationsanweisungen für die Client-Software finden Sie auf der offiziellen WireGuard-Website.",
-      "button": "Anleitung öffnen"
+      "box-header": "AWG-PORTAL installieren",
+      "headline": "GitHub-Version",
+      "content": "Laden Sie das neueste Release-Bündel von GitHub herunter. Enthält statische Binärdatei, Installationsskript und amneziawg-go.",
+      "button": "Versionen öffnen"
     },
     "about-wg": {
-      "box-header": "Über WireGuard",
-      "headline": "Über",
-      "content": "WireGuard® ist ein extrem einfaches, aber schnelles und modernes VPN, das modernste Kryptographie verwendet.",
-      "button": "Details"
+      "box-header": "Client-Installation",
+      "headline": "WireGuard / AmneziaWG",
+      "content": "Installieren Sie den offiziellen WireGuard-Client oder AmneziaWG-Client auf Ihren Geräten, um eine Verbindung zum Portal herzustellen.",
+      "button": "WireGuard-Installation"
     },
     "about-portal": {
-      "box-header": "Über WireGuard Portal",
-      "headline": "WireGuard Portal",
-      "content": "WireGuard Portal ist ein einfaches, webbasiertes Konfigurationsportal für WireGuard.",
-      "button": "Details"
+      "box-header": "Dokumentation",
+      "headline": "Quellcode & Dokus",
+      "content": "Fork von h44z/wg-portal mit AmneziaWG-Integration. Quellcode, Issues und Dokumentation auf GitHub.",
+      "button": "GitHub-Repository"
     },
     "profiles": {
-      "headline": "VPN Profile",
-      "abstract": "Über Ihr Benutzerprofil können Sie auf Ihre persönlichen VPN-Konfigurationen zugreifen und diese herunterladen.",
-      "content": "Um alle Ihre konfigurierten Profile zu finden, klicken Sie auf die Schaltfläche unten.",
+      "headline": "VPN-Profile",
+      "abstract": "Sie können über Ihr Benutzerprofil auf Ihre persönlichen VPN-Konfigurationen zugreifen und diese herunterladen.",
+      "content": "Klicken Sie auf die Schaltfläche unten, um alle Ihre konfigurierten Profile zu finden.",
       "button": "Mein Profil öffnen"
     },
     "admin": {
-      "headline": "Verwaltungsbereich",
-      "abstract": "Im Administrationsbereich können Sie VPN-Zugänge und die Serverschnittstelle sowie die Benutzer, die sich am VPN-Portal anmelden dürfen, verwalten.",
+      "headline": "Administrationsbereich",
+      "abstract": "Im Administrationsbereich können Sie WireGuard-Peers, die Serverschnittstelle sowie Benutzer verwalten, die sich am WireGuard-Portal anmelden dürfen.",
       "content": "",
-      "button-admin": "Schnittstellenverwaltung",
-      "button-user": "Benutzerverwaltung"
+      "button-admin": "Serververwaltung öffnen",
+      "button-user": "Benutzerverwaltung öffnen"
     }
   },
   "interfaces": {
@@ -92,12 +106,12 @@
     },
     "no-peer": {
       "headline": "Keine Peers verfügbar",
-      "abstract": "Derzeit sind keine Peers für die ausgewählte WireGuard-Schnittstelle verfügbar."
+      "abstract": "Derzeit sind für die ausgewählte WireGuard-Schnittstelle keine Peers verfügbar."
     },
     "table-heading": {
       "name": "Name",
       "user": "Benutzer",
-      "ip": "IP's",
+      "ip": "IPs",
       "endpoint": "Endpunkt",
       "status": "Status"
     },
@@ -105,24 +119,25 @@
       "headline": "Schnittstellenstatus für",
       "backend": "Backend",
       "unknown-backend": "Unbekannt",
-      "wrong-backend": "Ungültiges Backend, das lokale WireGuard Backend wird stattdessen verwendet!",
+      "wrong-backend": "Ungültiges Backend, verwende stattdessen lokales WireGuard-Backend!",
       "key": "Öffentlicher Schlüssel",
       "endpoint": "Öffentlicher Endpunkt",
-      "port": "Port",
-      "peers": "Aktive Peers",
-      "total-peers": "Gesamtanzahl Peers",
-      "endpoints": "Aktive Endpunkte",
-      "total-endpoints": "Gesamtanzahl Endpunkte",
+      "port": "Lauschport",
+      "peers": "Aktivierte Peers",
+      "total-peers": "Peers gesamt",
+      "endpoints": "Aktivierte Endpunkte",
+      "total-endpoints": "Endpunkte gesamt",
       "ip": "IP-Adresse",
-      "default-allowed-ip": "Standard Erlaubte-IPs",
+      "default-allowed-ip": "Standard-erlaubte IPs",
       "dns": "DNS-Server",
       "mtu": "MTU",
-      "default-keep-alive": "Standard Keepalive-Intervall",
-      "default-dns": "Standard DNS-Server",
+      "default-keep-alive": "Standard-Keepalive-Intervall",
+      "default-dns": "Standard-DNS-Server",
       "button-show-config": "Konfiguration anzeigen",
       "button-download-config": "Konfiguration herunterladen",
       "button-store-config": "Konfiguration für wg-quick speichern",
-      "button-edit": "Schnittstelle bearbeiten"
+      "button-edit": "Schnittstelle bearbeiten",
+      "protocol": "Protokoll"
     },
     "button-add-interface": "Schnittstelle hinzufügen",
     "button-add-peer": "Peer hinzufügen",
@@ -132,8 +147,8 @@
     "button-bulk-delete": "Ausgewählte Peers löschen",
     "button-bulk-enable": "Ausgewählte Peers aktivieren",
     "button-bulk-disable": "Ausgewählte Peers deaktivieren",
-    "confirm-bulk-delete": "Sind Sie sicher, dass Sie {count} Peers löschen möchten?",
-    "confirm-bulk-disable": "Sind Sie sicher, dass Sie {count} Peers deaktivieren möchten?",
+    "confirm-bulk-delete": "Möchten Sie wirklich {count} Peers löschen?",
+    "confirm-bulk-disable": "Möchten Sie wirklich {count} Peers deaktivieren?",
     "peer-disabled": "Peer ist deaktiviert, Grund:",
     "peer-expiring": "Peer läuft ab am",
     "peer-connected": "Verbunden",
@@ -163,25 +178,25 @@
     "button-bulk-disable": "Ausgewählte Benutzer deaktivieren",
     "button-bulk-lock": "Ausgewählte Benutzer sperren",
     "button-bulk-unlock": "Ausgewählte Benutzer entsperren",
-    "confirm-bulk-delete": "Sind Sie sicher, dass Sie {count} Benutzer löschen möchten?",
-    "confirm-bulk-disable": "Sind Sie sicher, dass Sie {count} Benutzer deaktivieren möchten?",
-    "confirm-bulk-lock": "Sind Sie sicher, dass Sie {count} Benutzer sperren möchten?",
+    "confirm-bulk-delete": "Möchten Sie wirklich {count} Benutzer löschen?",
+    "confirm-bulk-disable": "Möchten Sie wirklich {count} Benutzer deaktivieren?",
+    "confirm-bulk-lock": "Möchten Sie wirklich {count} Benutzer sperren?",
     "user-disabled": "Benutzer ist deaktiviert, Grund:",
     "user-locked": "Konto ist gesperrt, Grund:",
     "admin": "Benutzer hat Administratorrechte",
     "no-admin": "Benutzer hat keine Administratorrechte"
   },
   "profile": {
-    "headline": "Meine VPN-Konfigurationen",
+    "headline": "Meine VPN-Peers",
     "table-heading": {
       "name": "Name",
-      "ip": "IP's",
+      "ip": "IPs",
       "stats": "Status",
-      "interface": "Server-Schnittstelle"
+      "interface": "Serverschnittstelle"
     },
     "no-peer": {
       "headline": "Keine Peers verfügbar",
-      "abstract": "Derzeit sind keine Peers mit Ihrem Benutzerprofil verknüpft."
+      "abstract": "Derzeit sind Ihrem Benutzerprofil keine Peers zugeordnet."
     },
     "peer-connected": "Verbunden",
     "button-add-peer": "Peer hinzufügen",
@@ -190,28 +205,28 @@
   },
   "settings": {
     "headline": "Einstellungen",
-    "abstract": "Hier finden Sie persönliche Einstellungen für WireGuard Portal.",
+    "abstract": "Hier können Sie Ihre persönlichen Einstellungen ändern.",
     "api": {
-      "headline": "API Einstellungen",
-      "abstract": "Hier können Sie die  RESTful API verwalten.",
-      "active-description": "Die API ist derzeit für Ihr Benutzerkonto aktiv. Alle API-Anfragen werden mit Basic Auth authentifiziert. Verwenden Sie zur Authentifizierung die folgenden Anmeldeinformationen.",
-      "inactive-description": "Die API ist derzeit inaktiv. Klicken Sie auf die Schaltfläche unten, um sie zu aktivieren.",
-      "user-label": "API Benutzername:",
-      "user-placeholder": "API Benutzer",
-      "token-label": "API Passwort:",
-      "token-placeholder": "API Token",
-      "token-created-label": "API-Zugriff gewährt seit: ",
-      "button-disable-title": "Deaktivieren Sie die API. Dadurch wird der aktuelle Token ungültig.",
+      "headline": "API-Einstellungen",
+      "abstract": "Hier können Sie die RESTful-API-Einstellungen konfigurieren.",
+      "active-description": "Die API ist aktuell für Ihr Benutzerkonto aktiv. Alle API-Anfragen werden mit Basic Auth authentifiziert. Verwenden Sie die folgenden Anmeldeinformationen.",
+      "inactive-description": "Die API ist aktuell inaktiv. Drücken Sie die Schaltfläche unten, um sie zu aktivieren.",
+      "user-label": "API-Benutzername:",
+      "user-placeholder": "Der API-Benutzer",
+      "token-label": "API-Passwort:",
+      "token-placeholder": "Der API-Token",
+      "token-created-label": "API-Zugriff gewährt am: ",
+      "button-disable-title": "API deaktivieren, dies macht den aktuellen Token ungültig.",
       "button-disable-text": "API deaktivieren",
-      "button-enable-title": "Aktivieren Sie die API, dadurch wird ein neuer Token generiert.",
+      "button-enable-title": "API aktivieren, dies generiert einen neuen Token.",
       "button-enable-text": "API aktivieren",
-      "api-link": "API Dokumentation"
+      "api-link": "API-Dokumentation"
     },
     "webauthn": {
       "headline": "Passkey-Einstellungen",
-      "abstract": "Passkeys sind eine moderne Möglichkeit, Benutzer ohne Passwort zu authentifizieren. Sie werden sicher in Ihrem Browser gespeichert und können verwendet werden, um sich im WireGuard-Portal anzumelden.",
-      "active-description": "Mindestens ein Passkey ist derzeit für Ihr Benutzerkonto aktiv.",
-      "inactive-description": "Für Ihr Benutzerkonto sind derzeit keine Passkeys registriert. Drücken Sie die Schaltfläche unten, um einen neuen Passkey zu registrieren.",
+      "abstract": "Passkeys sind eine moderne Methode zur Benutzerauthentifizierung ohne Passwörter. Sie werden sicher in Ihrem Browser gespeichert und können für die Anmeldung am WireGuard-Portal verwendet werden.",
+      "active-description": "Mindestens ein Passkey ist aktuell für Ihr Benutzerkonto aktiv.",
+      "inactive-description": "Derzeit sind keine Passkeys für Ihr Benutzerkonto registriert. Klicken Sie auf die Schaltfläche unten, um einen neuen Passkey zu registrieren.",
       "table": {
         "name": "Name",
         "created": "Erstellt",
@@ -220,7 +235,7 @@
       "credentials-list": "Derzeit registrierte Passkeys",
       "modal-delete": {
         "headline": "Passkey löschen",
-        "abstract": "Sind Sie sicher, dass Sie diesen Passkey löschen möchten? Sie können sich anschließend nicht mehr mit diesem Passkey anmelden.",
+        "abstract": "Möchten Sie diesen Passkey wirklich löschen? Sie können sich mit diesem Passkey nicht mehr anmelden.",
         "created": "Erstellt:",
         "button-delete": "Löschen",
         "button-cancel": "Abbrechen"
@@ -228,16 +243,16 @@
       "button-rename-title": "Umbenennen",
       "button-rename-text": "Passkey umbenennen.",
       "button-save-title": "Speichern",
-      "button-save-text": "Neuen Namen des Passkeys speichern.",
+      "button-save-text": "Den neuen Namen des Passkeys speichern.",
       "button-cancel-title": "Abbrechen",
-      "button-cancel-text": "Umbenennung des Passkeys abbrechen.",
+      "button-cancel-text": "Die Umbenennung des Passkeys abbrechen.",
       "button-delete-title": "Löschen",
-      "button-delete-text": "Passkey löschen. Sie können sich anschließend nicht mehr mit diesem Passkey anmelden.",
+      "button-delete-text": "Passkey löschen. Sie können sich mit diesem Passkey nicht mehr anmelden.",
       "button-register-title": "Passkey registrieren",
-      "button-register-text": "Einen neuen Passkey registrieren, um Ihr Konto zu sichern."
+      "button-register-text": "Registrieren Sie einen neuen Passkey, um Ihr Konto zu sichern."
     },
     "password": {
-      "headline": "Passwort-Einstellungen",
+      "headline": "Passworteinstellungen",
       "abstract": "Hier können Sie Ihr Passwort ändern.",
       "current-label": "Aktuelles Passwort",
       "new-label": "Neues Passwort",
@@ -248,11 +263,11 @@
     }
   },
   "audit": {
-    "headline": "Eventprotokoll",
-    "abstract": "Hier finden Sie das Eventprotokoll aller im WireGuard-Portal vorgenommenen Aktionen.",
+    "headline": "Prüfprotokoll",
+    "abstract": "Hier finden Sie das Prüfprotokoll aller Aktionen, die im WireGuard-Portal durchgeführt wurden.",
     "no-entries": {
       "headline": "Keine Protokolleinträge verfügbar",
-      "abstract": "Derzeit sind keine Eventprotokolle aufgezeichnet."
+      "abstract": "Derzeit sind keine Prüfprotokolle aufgezeichnet."
     },
     "entries-headline": "Protokolleinträge",
     "table-heading": {
@@ -265,11 +280,11 @@
     }
   },
   "keygen": {
-    "headline": "WireGuard Key Generator",
-    "abstract": "Hier können Sie WireGuard Schlüsselpaare generieren. Die Schlüssel werden lokal auf Ihrem Computer generiert und niemals an den Server gesendet.",
+    "headline": "WireGuard-Schlüsselgenerator",
+    "abstract": "Generieren Sie neue WireGuard-Schlüssel. Die Schlüssel werden in Ihrem lokalen Browser erstellt und niemals an den Server gesendet.",
     "headline-keypair": "Neues Schlüsselpaar",
-    "headline-preshared-key": "Neuer Pre-Shared Key",
-    "button-generate": "Erzeugen",
+    "headline-preshared-key": "Neuer vorher geteilter Schlüssel",
+    "button-generate": "Generieren",
     "private-key": {
       "label": "Privater Schlüssel",
       "placeholder": "Der private Schlüssel"
@@ -279,13 +294,13 @@
       "placeholder": "Der öffentliche Schlüssel"
     },
     "preshared-key": {
-      "label": "Pre-Shared Key",
-      "placeholder": "Der geteilte Schlüssel"
+      "label": "Vorher geteilter Schlüssel",
+      "placeholder": "Der vorher geteilte Schlüssel"
     }
   },
   "calculator": {
-    "headline": "WireGuard IP-Rechner",
-    "abstract": "Erzeuge erlaubte IPs für WireGuard. Die IP-Subnetze werden lokal in Ihrem Browser generiert und niemals an den Server gesendet.",
+    "headline": "WireGuard-IP-Rechner",
+    "abstract": "Generieren Sie WireGuard-erlaubte IPs. Die IP-Subnetze werden in Ihrem lokalen Browser erstellt und niemals an den Server gesendet.",
     "headline-allowed-ip": "Neue erlaubte IPs",
     "button-exclude-private": "Private IP-Bereiche ausschließen",
     "allowed-ip": {
@@ -306,7 +321,7 @@
   "modals": {
     "user-view": {
       "headline": "Benutzerkonto:",
-      "tab-user": "Informationen",
+      "tab-user": "Information",
       "tab-peers": "Peers",
       "headline-info": "Benutzerinformationen:",
       "headline-notes": "Notizen:",
@@ -321,8 +336,8 @@
       "no-peers": "Benutzer hat keine zugeordneten Peers.",
       "peers": {
         "name": "Name",
-        "interface": "Schnittstelle",
-        "ip": "IP's"
+        "interface": "Interface",
+        "ip": "IPs"
       }
     },
     "user-edit": {
@@ -342,9 +357,9 @@
       },
       "password": {
         "label": "Passwort",
-        "placeholder": "Ein super geheimes Passwort",
-        "description": "Lassen Sie dieses Feld leer, um das aktuelle Passwort beizubehalten.",
-        "too-weak": "Das Passwort entspricht nicht den Sicherheitsanforderungen."
+        "placeholder": "Ein supergeheimes Passwort",
+        "description": "Lassen Sie dieses Feld leer, um das aktuelle Passwort zu behalten.",
+        "too-weak": "Das Passwort ist zu schwach. Bitte verwenden Sie ein stärkeres Passwort."
       },
       "email": {
         "label": "E-Mail",
@@ -371,19 +386,19 @@
         "placeholder": ""
       },
       "disabled": {
-        "label": "Deaktiviert (keine WireGuard-Verbindung und kein Login möglich)"
+        "label": "Deaktiviert (keine WireGuard-Verbindung und keine Anmeldung möglich)"
       },
       "locked": {
-        "label": "Gesperrt (kein Login möglich, WireGuard-Verbindungen funktionieren weiterhin)"
+        "label": "Gesperrt (keine Anmeldung möglich, WireGuard-Verbindungen funktionieren weiterhin)"
       },
       "admin": {
-        "label": "Ist Administrator"
+        "label": "Ist Admin"
       },
       "persist-local-changes": {
-        "label": "Lokale Änderungen speichern"
+        "label": "Lokale Änderungen beibehalten"
       },
-      "sync-warning": "Um diesen synchronisierten Benutzer zu bearbeiten, aktivieren Sie die lokale Änderungsspeicherung. Andernfalls werden Ihre Änderungen bei der nächsten Synchronisierung überschrieben.",
-      "confirm-delete": "Benutzer '{id}' wirklich löschen?"
+      "sync-warning": "Um diesen synchronisierten Benutzer zu ändern, aktivieren Sie die Persistenz lokaler Änderungen. Andernfalls werden Ihre Änderungen bei der nächsten Synchronisation überschrieben.",
+      "confirm-delete": "Möchten Sie den Benutzer '{id}' wirklich löschen?"
     },
     "interface-view": {
       "headline": "Konfiguration für Schnittstelle:"
@@ -391,11 +406,11 @@
     "interface-edit": {
       "headline-edit": "Schnittstelle bearbeiten:",
       "headline-new": "Neue Schnittstelle",
-      "tab-interface": "Schnittstelle",
-      "tab-peerdef": "Peer-Standardeinstellungen",
+      "tab-interface": "Interface",
+      "tab-peerdef": "Peer-Standardwerte",
       "header-general": "Allgemein",
       "header-network": "Netzwerk",
-      "header-crypto": "Kryptografie",
+      "header-crypto": "Kryptographie",
       "header-hooks": "Schnittstellen-Hooks",
       "header-peer-hooks": "Hooks",
       "header-state": "Status",
@@ -410,9 +425,9 @@
         "any": "Unbekannter Modus"
       },
       "backend": {
-        "label": "Schnittstellenbackend",
-        "invalid-label": "Ursprüngliches Backend ist ungültig, das lokale WireGuard Backend wird stattdessen verwendet!",
-        "local": "Lokales WireGuard Backend"
+        "label": "Schnittstellen-Backend",
+        "invalid-label": "Ursprüngliches Backend nicht mehr verfügbar, verwende stattdessen lokales WireGuard-Backend!",
+        "local": "Lokales WireGuard-Backend"
       },
       "display-name": {
         "label": "Anzeigename",
@@ -431,8 +446,8 @@
         "placeholder": "IP-Adressen (CIDR-Format)"
       },
       "listen-port": {
-        "label": "Port",
-        "placeholder": "Der Port der WireGuard Schnittstelle"
+        "label": "Lauschport",
+        "placeholder": "Der Lauschport"
       },
       "dns": {
         "label": "DNS-Server",
@@ -448,12 +463,12 @@
       },
       "firewall-mark": {
         "label": "Firewall-Markierung",
-        "placeholder": "Firewall-Markierung, die auf ausgehenden Datenverkehr angewendet wird. (0 = automatisch)"
+        "placeholder": "Firewall-Markierung, die auf ausgehenden Verkehr angewendet wird. (0 = automatisch)"
       },
       "routing-table": {
         "label": "Routing-Tabelle",
         "placeholder": "Die Routing-Tabellen-ID",
-        "description": "Spezialfälle: off = Routen nicht verwalten, 0 = automatisch"
+        "description": "Sonderfälle: off = Routen nicht verwalten, 0 = automatisch"
       },
       "pre-up": {
         "label": "Pre-Up",
@@ -475,16 +490,16 @@
         "label": "Schnittstelle deaktiviert"
       },
       "create-default-peer": {
-        "label": "Peer für neue Benutzer automatisch erstellen"
+        "label": "Standard-Peer für neue Benutzer erstellen"
       },
       "save-config": {
-        "label": "wg-quick Konfiguration automatisch speichern"
+        "label": "wg-quick-Konfiguration automatisch speichern"
       },
       "defaults": {
         "endpoint": {
           "label": "Endpunktadresse",
           "placeholder": "Endpunktadresse",
-          "description": "Die Endpunktadresse, mit der sich Peers verbinden. (z.B. wg.example.com oder wg.example.com:51820)"
+          "description": "Die Endpunktadresse, mit der Peers verbinden. (z.B. wg.example.com oder wg.example.com:51820)"
         },
         "networks": {
           "label": "IP-Netzwerke",
@@ -493,7 +508,7 @@
         },
         "allowed-ip": {
           "label": "Erlaubte IP-Adressen",
-          "placeholder": "Erlaubte IP-Adressen für Peers"
+          "placeholder": "Standard-erlaubte IP-Adressen"
         },
         "mtu": {
           "label": "MTU",
@@ -504,9 +519,13 @@
           "placeholder": "Persistentes Keepalive (0 = Standard)"
         }
       },
-      "button-apply-defaults": "Peer-Standardeinstellungen anwenden",
+      "button-apply-defaults": "Peer-Standardwerte anwenden",
       "button-create-default-peers": "Standard-Peers erstellen",
-      "confirm-delete": "Interface '{id}' wirklich löschen?"
+      "confirm-delete": "Möchten Sie die Schnittstelle '{id}' wirklich löschen?",
+      "awg": {
+        "binary-missing": "amneziawg-go nicht gefunden. Installieren Sie es, um die Verschleierung zu aktivieren.",
+        "binary-missing-title": "amneziawg-go nicht verfügbar"
+      }
     },
     "peer-view": {
       "headline-peer": "Peer:",
@@ -522,19 +541,19 @@
       "notes": "Notizen",
       "expiry-status": "Läuft ab am",
       "disabled-status": "Deaktiviert am",
-      "traffic": "Datenverkehr",
+      "traffic": "Verkehr",
       "connection-status": "Verbindungsstatistiken",
       "upload": "Hochgeladene Bytes (vom Server zum Peer)",
       "download": "Heruntergeladene Bytes (vom Peer zum Server)",
-      "pingable": "Pingbar",
+      "pingable": "Ist pingbar",
       "handshake": "Letzter Handshake",
       "connected-since": "Verbunden seit",
       "endpoint": "Endpunkt",
-      "endpoint-key": "Öffentlicher Endpunkt-Schlüssel",
-      "keepalive": "Persistentes Keepalive",
+      "endpoint-key": "Öffentlicher Endpunktschlüssel",
+      "keepalive": "Persistent Keepalive",
       "button-download": "Konfiguration herunterladen",
       "button-email": "Konfiguration per E-Mail senden",
-      "style-label": "Konfigurationsformat"
+      "style-label": "Konfigurationsstil"
     },
     "peer-edit": {
       "headline-edit-peer": "Peer bearbeiten:",
@@ -543,8 +562,8 @@
       "headline-new-endpoint": "Endpunkt erstellen",
       "header-general": "Allgemein",
       "header-network": "Netzwerk",
-      "header-crypto": "Kryptografie",
-      "header-hooks": "Hooks (beim Peer ausgeführt)",
+      "header-crypto": "Kryptographie",
+      "header-hooks": "Hooks (auf Peer ausgeführt)",
       "header-state": "Status",
       "display-name": {
         "label": "Anzeigename",
@@ -557,15 +576,15 @@
       "private-key": {
         "label": "Privater Schlüssel",
         "placeholder": "Der private Schlüssel",
-        "help": "Der private Schlüssel wird sicher auf dem Server gespeichert. Wenn der Benutzer bereits eine Kopie besitzt, kann dieses Feld entfallen. Der Server funktioniert auch ausschließlich mit dem öffentlichen Schlüssel des Peers."
+        "help": "Der private Schlüssel wird sicher auf dem Server gespeichert. Wenn der Benutzer bereits eine Kopie besitzt, kann dieses Feld leer gelassen werden. Der Server funktioniert ausschließlich mit dem öffentlichen Schlüssel des Peers."
       },
       "public-key": {
         "label": "Öffentlicher Schlüssel",
         "placeholder": "Der öffentliche Schlüssel"
       },
       "preshared-key": {
-        "label": "Pre-Shared Key",
-        "placeholder": "Optionaler geteilter Schlüssel"
+        "label": "Vorher geteilter Schlüssel",
+        "placeholder": "Optionaler vorher geteilter Schlüssel"
       },
       "endpoint-public-key": {
         "label": "Öffentlicher Endpunktschlüssel",
@@ -585,8 +604,8 @@
       },
       "extra-allowed-ip": {
         "label": "Zusätzliche erlaubte IP-Adressen",
-        "placeholder": "Zusätzliche erlaubte IP's (Server-seitig)",
-        "description": "Diese IPs werden an der entfernten WireGuard-Schnittstelle als erlaubte IPs hinzugefügt."
+        "placeholder": "Zusätzliche erlaubte IPs (serverseitig)",
+        "description": "Diese IPs werden auf der entfernten WireGuard-Schnittstelle als erlaubte IPs hinzugefügt."
       },
       "dns": {
         "label": "DNS-Server",
@@ -629,7 +648,7 @@
       "expires-at": {
         "label": "Ablaufdatum"
       },
-      "confirm-delete": "Peer '{id}' wirklich löschen?"
+      "confirm-delete": "Möchten Sie den Peer '{id}' wirklich löschen?"
     },
     "peer-multi-create": {
       "headline-peer": "Mehrere Peers erstellen",
@@ -642,10 +661,14 @@
       "prefix": {
         "headline-peer": "Peer:",
         "headline-endpoint": "Endpunkt:",
-        "label": "Anzeigename-Präfix",
+        "label": "Anzeigenamen-Präfix",
         "placeholder": "Das Präfix",
         "description": "Ein Präfix, das dem Anzeigenamen des Peers hinzugefügt wird."
       }
     }
+  },
+  "errors": {
+    "perm_denied_title": "Unzureichende Berechtigungen",
+    "perm_denied": "Vorgang nicht erlaubt. Der awg-portal-Prozess benötigt CAP_NET_ADMIN zur Verwaltung von WireGuard-Schnittstellen. Gewähren Sie es mit: sudo setcap cap_net_admin+ep $(which awg-portal) — oder führen Sie awg-portal als root aus."
   }
 }

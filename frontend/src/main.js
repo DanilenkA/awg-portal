@@ -11,10 +11,10 @@ import Notifications from '@kyvg/vue3-notification'
 // Bootstrap (and theme)
 import "@/assets/custom.scss";
 import "bootstrap";
-import "./assets/base.css";
+import "./assets/v2.css";
 
 // Fonts
-import "@fortawesome/fontawesome-free/js/all.js"
+import "@fortawesome/fontawesome-free/css/all.css"
 import "@fontsource/nunito-sans/400.css";
 import "@fontsource/nunito-sans/600.css";
 

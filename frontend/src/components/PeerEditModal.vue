@@ -315,167 +315,199 @@ async function del() {
 <template>
   <Modal :title="title" :visible="visible" @close="close">
     <template #default>
-      <fieldset>
-        <legend class="mt-4">{{ $t('modals.peer-edit.header-general') }}</legend>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.display-name.label') }}</label>
-          <input type="text" class="form-control" :placeholder="$t('modals.peer-edit.display-name.placeholder')"
-            v-model="formData.DisplayName">
-        </div>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.linked-user.label') }}</label>
-          <input type="text" class="form-control" :placeholder="$t('modals.peer-edit.linked-user.placeholder')"
-            v-model="formData.UserIdentifier">
-        </div>
-      </fieldset>
-      <fieldset>
-        <legend class="mt-4">{{ $t('modals.peer-edit.header-crypto') }}</legend>
-        <div class="form-group" v-if="selectedInterface.Mode === 'server'">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.private-key.label') }}</label>
-          <input type="text" class="form-control" :placeholder="$t('modals.peer-edit.private-key.placeholder')" required
-            v-model="formData.PrivateKey">
-          <small id="privateKeyHelp" class="form-text text-muted">{{ $t('modals.peer-edit.private-key.help') }}</small>
-        </div>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.public-key.label') }}</label>
-          <input type="text" class="form-control" :placeholder="$t('modals.peer-edit.public-key.placeholder')" required
-            v-model="formData.PublicKey">
-        </div>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.preshared-key.label') }}</label>
-          <input type="text" class="form-control" :placeholder="$t('modals.peer-edit.preshared-key.placeholder')"
-            v-model="formData.PresharedKey">
-        </div>
-        <div class="form-group" v-if="formData.Mode === 'client'">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.endpoint-public-key.label') }}</label>
-          <input type="text" class="form-control" :placeholder="$t('modals.peer-edit.endpoint-public-key.placeholder')"
-            v-model="formData.EndpointPublicKey.Value">
-        </div>
-      </fieldset>
-      <fieldset>
-        <legend class="mt-4">{{ $t('modals.peer-edit.header-network') }}</legend>
-        <div class="form-group" v-if="selectedInterface.Mode === 'client'">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.endpoint.label') }}</label>
-          <input type="text" class="form-control" :placeholder="$t('modals.peer-edit.endpoint.placeholder')"
-            v-model="formData.Endpoint.Value">
-        </div>
-        <div class="form-group" v-if="selectedInterface.Mode !== 'client'">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.ip.label') }}</label>
-          <vue-tags-input class="form-control" v-model="currentTags.Addresses"
-                           :tags="formData.Addresses.map(str => ({ text: str }))"
-                           :placeholder="$t('modals.peer-edit.ip.placeholder')"
-                           :validation="validateCIDR()"
-                           :add-on-key="[13, 188, 32, 9]"
-                           :save-on-key="[13, 188, 32, 9]"
-                           :allow-edit-tags="true"
-                           :separators="[',', ';', ' ']"
-                           @tags-changed="handleChangeAddresses" />
-        </div>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.allowed-ip.label') }}</label>
-          <vue-tags-input class="form-control" v-model="currentTags.AllowedIPs"
-                           :tags="formData.AllowedIPs.Value.map(str => ({ text: str }))"
-                           :placeholder="$t('modals.peer-edit.allowed-ip.placeholder')"
-                           :validation="validateCIDR()"
-                           :add-on-key="[13, 188, 32, 9]"
-                           :save-on-key="[13, 188, 32, 9]"
-                           :allow-edit-tags="true"
-                           :separators="[',', ';', ' ']"
-                           @tags-changed="handleChangeAllowedIPs" />
-        </div>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.extra-allowed-ip.label') }}</label>
-          <vue-tags-input class="form-control" v-model="currentTags.ExtraAllowedIPs"
-                          :tags="formData.ExtraAllowedIPs.map(str => ({ text: str }))"
-                          :placeholder="$t('modals.peer-edit.extra-allowed-ip.placeholder')"
-                          :validation="validateCIDR()"
-                          :add-on-key="[13, 188, 32, 9]"
-                          :save-on-key="[13, 188, 32, 9]"
-                          :allow-edit-tags="true"
-                          :separators="[',', ';', ' ']"
-                          @tags-changed="handleChangeExtraAllowedIPs" />
-          <small class="form-text text-muted">{{ $t('modals.peer-edit.extra-allowed-ip.description') }}</small>
-        </div>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.dns.label') }}</label>
-          <vue-tags-input class="form-control" v-model="currentTags.Dns"
-                          :tags="formData.Dns.Value.map(str => ({ text: str }))"
-                          :placeholder="$t('modals.peer-edit.dns.placeholder')"
-                          :validation="validateIP()"
-                          :add-on-key="[13, 188, 32, 9]"
-                          :save-on-key="[13, 188, 32, 9]"
-                          :allow-edit-tags="true"
-                          :separators="[',', ';', ' ']"
-                          @tags-changed="handleChangeDns" />
-        </div>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.dns-search.label') }}</label>
-          <vue-tags-input class="form-control" v-model="currentTags.DnsSearch"
-                          :tags="formData.DnsSearch.Value.map(str => ({ text: str }))"
-                          :placeholder="$t('modals.peer-edit.dns-search.label')"
-                          :validation="validateDomain()"
-                          :add-on-key="[13, 188, 32, 9]"
-                          :save-on-key="[13, 188, 32, 9]"
-                          :allow-edit-tags="true"
-                          :separators="[',', ';', ' ']"
-                          @tags-changed="handleChangeDnsSearch" />
-        </div>
-        <div class="row">
-          <div class="form-group col-md-6">
-            <label class="form-label mt-4">{{ $t('modals.peer-edit.keep-alive.label') }}</label>
-            <input type="number" class="form-control" :placeholder="$t('modals.peer-edit.keep-alive.label')"
-              v-model="formData.PersistentKeepalive.Value">
+      <form id="peer-edit-form" class="peer-edit-form" @submit.prevent="save">
+        <fieldset class="form-section peer-edit-section">
+          <legend class="form-section-title">{{ $t('modals.peer-edit.header-general') }}</legend>
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.display-name.label') }}</label>
+              <input type="text" class="form-input" :placeholder="$t('modals.peer-edit.display-name.placeholder')"
+                v-model="formData.DisplayName">
+            </div>
           </div>
-          <div class="form-group col-md-6">
-            <label class="form-label mt-4">{{ $t('modals.peer-edit.mtu.label') }}</label>
-            <input type="number" class="form-control" :placeholder="$t('modals.peer-edit.mtu.label')"
-              v-model="formData.Mtu.Value">
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.linked-user.label') }}</label>
+              <input type="text" class="form-input" :placeholder="$t('modals.peer-edit.linked-user.placeholder')"
+                v-model="formData.UserIdentifier">
+            </div>
           </div>
-        </div>
-      </fieldset>
-      <fieldset>
-        <legend class="mt-4">{{ $t('modals.peer-edit.header-hooks') }}</legend>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.pre-up.label') }}</label>
-          <textarea v-model="formData.PreUp.Value" class="form-control" rows="2"
-            :placeholder="$t('modals.peer-edit.pre-up.placeholder')"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.post-up.label') }}</label>
-          <textarea v-model="formData.PostUp.Value" class="form-control" rows="2"
-            :placeholder="$t('modals.peer-edit.post-up.placeholder')"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.pre-down.label') }}</label>
-          <textarea v-model="formData.PreDown.Value" class="form-control" rows="2"
-            :placeholder="$t('modals.peer-edit.pre-down.placeholder')"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label mt-4">{{ $t('modals.peer-edit.post-down.label') }}</label>
-          <textarea v-model="formData.PostDown.Value" class="form-control" rows="2"
-            :placeholder="$t('modals.peer-edit.post-down.placeholder')"></textarea>
-        </div>
-      </fieldset>
-      <fieldset>
-        <legend class="mt-4">{{ $t('modals.peer-edit.header-state') }}</legend>
-        <div class="row">
-          <div class="form-group col-md-6">
-            <div class="form-check form-switch">
+        </fieldset>
+        <fieldset class="form-section peer-edit-section">
+          <legend class="form-section-title">{{ $t('modals.peer-edit.header-crypto') }}</legend>
+          <div class="form-row form-row--single" v-if="selectedInterface.Mode === 'server'">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.private-key.label') }}</label>
+              <input type="text" class="form-input code" :placeholder="$t('modals.peer-edit.private-key.placeholder')" required
+                v-model="formData.PrivateKey">
+              <small class="form-hint">{{ $t('modals.peer-edit.private-key.help') }}</small>
+            </div>
+          </div>
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.public-key.label') }}</label>
+              <input type="text" class="form-input code" :placeholder="$t('modals.peer-edit.public-key.placeholder')" required
+                v-model="formData.PublicKey">
+            </div>
+          </div>
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.preshared-key.label') }}</label>
+              <input type="text" class="form-input code" :placeholder="$t('modals.peer-edit.preshared-key.placeholder')"
+                v-model="formData.PresharedKey">
+            </div>
+          </div>
+          <div class="form-row form-row--single" v-if="formData.Mode === 'client'">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.endpoint-public-key.label') }}</label>
+              <input type="text" class="form-input code" :placeholder="$t('modals.peer-edit.endpoint-public-key.placeholder')"
+                v-model="formData.EndpointPublicKey.Value">
+            </div>
+          </div>
+        </fieldset>
+        <fieldset class="form-section peer-edit-section">
+          <legend class="form-section-title">{{ $t('modals.peer-edit.header-network') }}</legend>
+          <div class="form-row form-row--single" v-if="selectedInterface.Mode === 'client'">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.endpoint.label') }}</label>
+              <input type="text" class="form-input" :placeholder="$t('modals.peer-edit.endpoint.placeholder')"
+                v-model="formData.Endpoint.Value">
+            </div>
+          </div>
+          <div class="form-row form-row--single" v-if="selectedInterface.Mode !== 'client'">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.ip.label') }}</label>
+              <vue-tags-input class="tags-input" v-model="currentTags.Addresses"
+                               :tags="formData.Addresses.map(str => ({ text: str }))"
+                               :placeholder="$t('modals.peer-edit.ip.placeholder')"
+                               :validation="validateCIDR()"
+                               :add-on-key="[13, 188, 32, 9]"
+                               :save-on-key="[13, 188, 32, 9]"
+                               :allow-edit-tags="true"
+                               :separators="[',', ';', ' ']"
+                               @tags-changed="handleChangeAddresses" />
+            </div>
+          </div>
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.allowed-ip.label') }}</label>
+              <vue-tags-input class="tags-input" v-model="currentTags.AllowedIPs"
+                               :tags="formData.AllowedIPs.Value.map(str => ({ text: str }))"
+                               :placeholder="$t('modals.peer-edit.allowed-ip.placeholder')"
+                               :validation="validateCIDR()"
+                               :add-on-key="[13, 188, 32, 9]"
+                               :save-on-key="[13, 188, 32, 9]"
+                               :allow-edit-tags="true"
+                               :separators="[',', ';', ' ']"
+                               @tags-changed="handleChangeAllowedIPs" />
+            </div>
+          </div>
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.extra-allowed-ip.label') }}</label>
+              <vue-tags-input class="tags-input" v-model="currentTags.ExtraAllowedIPs"
+                              :tags="formData.ExtraAllowedIPs.map(str => ({ text: str }))"
+                              :placeholder="$t('modals.peer-edit.extra-allowed-ip.placeholder')"
+                              :validation="validateCIDR()"
+                              :add-on-key="[13, 188, 32, 9]"
+                              :save-on-key="[13, 188, 32, 9]"
+                              :allow-edit-tags="true"
+                              :separators="[',', ';', ' ']"
+                              @tags-changed="handleChangeExtraAllowedIPs" />
+              <small class="form-hint">{{ $t('modals.peer-edit.extra-allowed-ip.description') }}</small>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.dns.label') }}</label>
+              <vue-tags-input class="tags-input" v-model="currentTags.Dns"
+                              :tags="formData.Dns.Value.map(str => ({ text: str }))"
+                              :placeholder="$t('modals.peer-edit.dns.placeholder')"
+                              :validation="validateIP()"
+                              :add-on-key="[13, 188, 32, 9]"
+                              :save-on-key="[13, 188, 32, 9]"
+                              :allow-edit-tags="true"
+                              :separators="[',', ';', ' ']"
+                              @tags-changed="handleChangeDns" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.dns-search.label') }}</label>
+              <vue-tags-input class="tags-input" v-model="currentTags.DnsSearch"
+                              :tags="formData.DnsSearch.Value.map(str => ({ text: str }))"
+                              :placeholder="$t('modals.peer-edit.dns-search.label')"
+                              :validation="validateDomain()"
+                              :add-on-key="[13, 188, 32, 9]"
+                              :save-on-key="[13, 188, 32, 9]"
+                              :allow-edit-tags="true"
+                              :separators="[',', ';', ' ']"
+                              @tags-changed="handleChangeDnsSearch" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.keep-alive.label') }}</label>
+              <input type="number" class="form-input" :placeholder="$t('modals.peer-edit.keep-alive.label')"
+                v-model="formData.PersistentKeepalive.Value">
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.mtu.label') }}</label>
+              <input type="number" class="form-input" :placeholder="$t('modals.peer-edit.mtu.label')"
+                v-model="formData.Mtu.Value">
+            </div>
+          </div>
+        </fieldset>
+        <fieldset class="form-section peer-edit-section">
+          <legend class="form-section-title">{{ $t('modals.peer-edit.header-hooks') }}</legend>
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.pre-up.label') }}</label>
+              <textarea v-model="formData.PreUp.Value" class="form-input form-textarea" rows="2"
+                :placeholder="$t('modals.peer-edit.pre-up.placeholder')"></textarea>
+            </div>
+          </div>
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.post-up.label') }}</label>
+              <textarea v-model="formData.PostUp.Value" class="form-input form-textarea" rows="2"
+                :placeholder="$t('modals.peer-edit.post-up.placeholder')"></textarea>
+            </div>
+          </div>
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.pre-down.label') }}</label>
+              <textarea v-model="formData.PreDown.Value" class="form-input form-textarea" rows="2"
+                :placeholder="$t('modals.peer-edit.pre-down.placeholder')"></textarea>
+            </div>
+          </div>
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.post-down.label') }}</label>
+              <textarea v-model="formData.PostDown.Value" class="form-input form-textarea" rows="2"
+                :placeholder="$t('modals.peer-edit.post-down.placeholder')"></textarea>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset class="form-section peer-edit-section">
+          <legend class="form-section-title">{{ $t('modals.peer-edit.header-state') }}</legend>
+          <div class="form-row form-row--double">
+            <div class="form-group form-check form-switch">
               <input class="form-check-input" type="checkbox" v-model="formData.Disabled">
               <label class="form-check-label">{{ $t('modals.peer-edit.disabled.label') }}</label>
             </div>
-            <div class="form-check form-switch">
+            <div class="form-group form-check form-switch">
               <input class="form-check-input" type="checkbox" v-model="formData.IgnoreGlobalSettings">
               <label class="form-check-label">{{ $t('modals.peer-edit.ignore-global.label') }}</label>
             </div>
           </div>
-          <div class="form-group col-md-6">
-            <label class="form-label">{{ $t('modals.peer-edit.expires-at.label') }}</label>
-            <input type="date" pattern="\d{4}-\d{2}-\d{2}" class="form-control" min="2023-01-01"
-              v-model="formData.ExpiresAt">
+          <div class="form-row form-row--single">
+            <div class="form-group">
+              <label class="form-label">{{ $t('modals.peer-edit.expires-at.label') }}</label>
+              <input type="date" pattern="\d{4}-\d{2}-\d{2}" class="form-input" min="2023-01-01"
+                v-model="formData.ExpiresAt">
+            </div>
           </div>
-        </div>
-      </fieldset>
+        </fieldset>
+      </form>
     </template>
     <template #footer>
       <div class="flex-fill text-start">
@@ -493,4 +525,26 @@ async function del() {
   </Modal>
 </template>
 
-<style></style>
+<style>
+.peer-edit-form {
+  color: var(--text-primary);
+}
+.peer-edit-form fieldset {
+  min-width: 0;
+}
+.peer-edit-section {
+  margin-bottom: var(--space-6);
+}
+.peer-edit-section:last-child {
+  margin-bottom: 0;
+}
+.peer-edit-form .form-section-title {
+  margin: 0 0 var(--space-4);
+}
+.peer-edit-form .form-group.form-check {
+  margin-bottom: 0;
+}
+.peer-edit-form .form-group.form-check + .form-group.form-check {
+  margin-top: var(--space-2);
+}
+</style>

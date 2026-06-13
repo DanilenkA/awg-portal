@@ -16,6 +16,7 @@ import (
 	"github.com/DanilenkA/awg-portal/internal/app/api/v0/model"
 	"github.com/DanilenkA/awg-portal/internal/config"
 	"github.com/DanilenkA/awg-portal/internal/domain"
+	"github.com/DanilenkA/awg-portal/internal/lowlevel"
 )
 
 //go:embed frontend_config.js.gotpl
@@ -128,12 +129,17 @@ func (e ConfigEndpoint) handleSettingsGet() http.HandlerFunc {
 
 		hasSocialLogin := len(e.cfg.Auth.OAuth) > 0 || len(e.cfg.Auth.OpenIDConnect) > 0 || e.cfg.Auth.WebAuthn.Enabled
 
-		// For anonymous users, we return the settings object with minimal information
+		// For anonymous users, return a settings object with minimal
+		// information. We still publish AWGAvailable here because the
+		// anonymous path is not where the AWG toggle lives (it lives in
+		// the admin interface editor) and the value is harmless to
+		// publish.
 		if sessionUser.Id == domain.CtxUnknownUserId || sessionUser.Id == "" {
 			respond.JSON(w, http.StatusOK, model.Settings{
 				WebAuthnEnabled:   e.cfg.Auth.WebAuthn.Enabled,
 				AvailableBackends: []model.SettingsBackendNames{}, // return an empty list instead of null
 				LoginFormVisible:  !e.cfg.Auth.HideLoginForm || !hasSocialLogin,
+				AWGAvailable:      lowlevel.IsAWGAvailable(),
 			})
 		} else {
 			respond.JSON(w, http.StatusOK, model.Settings{
@@ -146,6 +152,7 @@ func (e ConfigEndpoint) handleSettingsGet() http.HandlerFunc {
 				AvailableBackends:         controllerFn(),
 				LoginFormVisible:          !e.cfg.Auth.HideLoginForm || !hasSocialLogin,
 				CreateDefaultPeer:         e.cfg.DefaultPeerCreationEnabled(),
+				AWGAvailable:              lowlevel.IsAWGAvailable(),
 			})
 		}
 	}

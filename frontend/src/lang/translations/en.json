@@ -17,7 +17,12 @@
     "cancel": "Cancel",
     "close": "Close",
     "save": "Save",
-    "delete": "Delete"
+    "delete": "Delete",
+    "edit": "Edit",
+    "copy": "Copy",
+    "copied": "Copied",
+    "selected": "selected",
+    "disabled": "Disabled"
   },
   "login": {
     "headline": "Please sign in",
@@ -30,25 +35,34 @@
       "placeholder": "Please enter your password"
     },
     "button": "Sign in",
-    "button-webauthn": "Use Passkey"
+    "button-webauthn": "Use Passkey",
+    "invalid_credentials": "Invalid email or password"
   },
   "menu": {
     "home": "Home",
     "interfaces": "Interfaces",
     "users": "Users",
-    "lang": "Toggle Language",
+    "lang": "Language",
     "profile": "My Profile",
     "settings": "Settings",
     "audit": "Audit Log",
     "login": "Login",
     "logout": "Logout",
     "keygen": "Key Generator",
-    "calculator": "IP Calculator"
+    "calculator": "IP Calculator",
+    "nav_main": "Main",
+    "nav_account": "Account",
+    "nav_system": "System",
+    "search_placeholder": "Search...",
+    "theme": "Theme"
   },
   "home": {
-    "headline": "AWG-PORTAL",
-    "info-headline": "Quick Links",
+    "headline": "Dashboard",
+    "info-headline": "Quick actions",
     "abstract": "WireGuard Portal with native AmneziaWG support — DPI obfuscation, interface and peer management via web UI.",
+    "dashboard": {
+      "alerts_subtitle": "Expiring soon"
+    },
     "installation": {
       "box-header": "Install AWG-PORTAL",
       "headline": "GitHub Release",
@@ -507,7 +521,11 @@
       },
       "button-apply-defaults": "Apply Peer Defaults",
       "button-create-default-peers": "Create Default Peers",
-      "confirm-delete": "Are you sure you want to delete interface '{id}'?"
+      "confirm-delete": "Are you sure you want to delete interface '{id}'?",
+      "awg": {
+        "binary-missing": "amneziawg-go not found. Install it to enable obfuscation.",
+        "binary-missing-title": "amneziawg-go unavailable"
+      }
     },
     "peer-view": {
       "headline-peer": "Peer:",
@@ -648,5 +666,9 @@
         "description": "A prefix that is added to the peers display name."
       }
     }
+  },
+  "errors": {
+    "perm_denied_title": "Insufficient privileges",
+    "perm_denied": "Operation not permitted. The awg-portal process requires CAP_NET_ADMIN to manage WireGuard interfaces. Grant it with: sudo setcap cap_net_admin+ep $(which awg-portal) — or run awg-portal as root."
   }
 }

@@ -11,12 +11,14 @@ import {isIP} from 'is-ip';
 import { freshInterface } from '@/helpers/models';
 import {peerStore} from "@/stores/peers";
 import {settingsStore} from "@/stores/settings";
+import {securityStore} from "@/stores/security";
 
 const { t } = useI18n()
 
 const interfaces = interfaceStore()
 const peers = peerStore()
 const settings = settingsStore()
+const sec = securityStore()
 
 const props = defineProps({
   interfaceId: String,
@@ -105,6 +107,17 @@ function toggleAWG() {
     formData.value.AWGH3 = 0; formData.value.AWGH4 = 0
   }
 }
+
+// Bug 2 fix: surface a soft warning when amneziawg-go is not present on
+// the host PATH. We rely on the AWGAvailable flag published by
+// /config/settings (computed once on settings load) so the modal does
+// not need a fresh backend round-trip every time it opens. The flag is
+// undefined for older backends → we treat that as "available" to keep
+// backward compatibility.
+const awgAvailable = computed(() => {
+  const v = settings.Setting('AWGAvailable')
+  return v === undefined || v === null ? true : !!v
+})
 const formData = ref(freshInterface())
 const isSaving = ref(false)
 const isDeleting = ref(false)
@@ -132,6 +145,12 @@ const isBackendValid = computed(() => {
 
 watch(() => props.visible, async (newValue, oldValue) => {
       if (oldValue === false && newValue === true) { // if modal is shown
+        // Bug 3: refresh the CSRF token before any mutating call. The
+        // server-side CSRF rotates on session changes, and a stale token
+        // produces a 403 that the fetch-wrapper treats as an auth failure
+        // and auto-logs-out the user. Loading it here (next to the modal
+        // open) means the token is fresh for the upcoming save.
+        await sec.LoadSecurityProperties()
         console.log(selectedInterface.value)
         if (!selectedInterface.value) {
           await interfaces.PrepareInterface()
@@ -346,21 +365,69 @@ function handleChangePeerDefDnsSearch(tags) {
   formData.value.PeerDefDnsSearch = tags.map(tag => tag.text)
 }
 
-async function save() {
+async function saveInterface() {
   if (isSaving.value) return
+  // Bug 2 fix: short-circuit the create/update path when the user has
+  // enabled AmneziaWG obfuscation but the backend reports the binary
+  // is missing. We still let the request go through if AWGAvailable is
+  // undefined (older backend) — better to surface a backend error than
+  // to silently drop the user's intent.
+  if (formData.value.AWGEnabled && !awgAvailable.value) {
+    notify({
+      title: t('modals.interface-edit.awg.binary-missing-title'),
+      text: t('modals.interface-edit.awg.binary-missing'),
+      type: 'error',
+    })
+    return
+  }
+  const savedId = formData.value.Identifier
   isSaving.value = true
   try {
+    // Bug 3: visibility for the save path
+    console.log("[InterfaceEditModal] saveInterface called", {
+      isNew: props.interfaceId === '#NEW#',
+      identifier: savedId,
+      mode: formData.value.Mode,
+      backend: formData.value.Backend,
+      addresses: formData.value.Addresses,
+      listenPort: formData.value.ListenPort,
+      awgEnabled: formData.value.AWGEnabled,
+    })
     if (props.interfaceId!=='#NEW#') {
       await interfaces.UpdateInterface(selectedInterface.value.Identifier, formData.value)
     } else {
       await interfaces.CreateInterface(formData.value)
     }
+    await interfaces.LoadInterfaces()
+    if (savedId && interfaces.Find(savedId)) {
+      interfaces.selected = savedId
+    }
+    notify({
+      title: "Interface saved",
+      text: "The interface has been saved successfully.",
+      type: 'success',
+    })
     close()
   } catch (e) {
-    console.log(e)
+    console.log("[InterfaceEditModal] saveInterface failed", e)
+    const raw = (e && e.message) ? e.message : (e && e.toString) ? e.toString() : String(e)
+    const isPerm = /operation not permitted|EPERM|CAP_NET_ADMIN/i.test(raw)
+    // Bug 2 fix: also translate the amneziawg-go missing error in case
+    // the backend ever returns it (the backend writeCreateError now
+    // maps this to 400 with a friendly message, so a 4xx here
+    // typically means the operator ran past the warning).
+    const isAWGMissing = /amneziawg-go not found|executable file not found/i.test(raw)
     notify({
-      title: "Failed to save interface!",
-      text: e.toString(),
+      title: isPerm
+        ? t('errors.perm_denied_title')
+        : isAWGMissing
+          ? t('modals.interface-edit.awg.binary-missing-title')
+          : "Failed to save interface!",
+      text: isPerm
+        ? t('errors.perm_denied')
+        : isAWGMissing
+          ? t('modals.interface-edit.awg.binary-missing')
+          : raw,
       type: 'error',
     })
   } finally {
@@ -464,122 +531,140 @@ async function del() {
 <template>
   <Modal :title="title" :visible="visible" @close="close">
     <template #default>
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a class="nav-link active" data-bs-toggle="tab" href="#interface">{{ $t('modals.interface-edit.tab-interface') }}</a>
-        </li>
-        <li v-if="formData.Mode==='server'" class="nav-item">
-          <a class="nav-link" data-bs-toggle="tab" href="#peerdefaults">{{ $t('modals.interface-edit.tab-peerdef') }}</a>
-        </li>
-      </ul>
-      <div id="interfaceTabs" class="tab-content">
+      <form id="interface-edit-form" class="interface-edit-form" @submit.prevent="saveInterface">
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#interface">{{ $t('modals.interface-edit.tab-interface') }}</a>
+          </li>
+          <li v-if="formData.Mode==='server'" class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#peerdefaults">{{ $t('modals.interface-edit.tab-peerdef') }}</a>
+          </li>
+        </ul>
+        <div id="interfaceTabs" class="tab-content">
         <div id="interface" class="tab-pane fade active show">
-          <fieldset>
-            <legend class="mt-4">{{ $t('modals.interface-edit.header-general') }}</legend>
-            <div v-if="props.interfaceId==='#NEW#'" class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.identifier.label') }}</label>
-              <input v-model="formData.Identifier" class="form-control" :placeholder="$t('modals.interface-edit.identifier.placeholder')" type="text">
+          <fieldset class="form-section interface-edit-section">
+            <legend class="form-section-title">{{ $t('modals.interface-edit.header-general') }}</legend>
+            <div v-if="props.interfaceId==='#NEW#'" class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.identifier.label') }}</label>
+                <input v-model="formData.Identifier" class="form-input" :placeholder="$t('modals.interface-edit.identifier.placeholder')" type="text">
+              </div>
             </div>
-            <div class="row">
-              <div class="form-group col-md-6">
-                <label class="form-label mt-4">{{ $t('modals.interface-edit.mode.label') }}</label>
-                <select v-model="formData.Mode" class="form-select">
+            <div class="form-row form-row--double">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.mode.label') }}</label>
+                <select v-model="formData.Mode" class="form-input">
                   <option value="server">{{ $t('modals.interface-edit.mode.server') }}</option>
                   <option value="client">{{ $t('modals.interface-edit.mode.client') }}</option>
                   <option value="any">{{ $t('modals.interface-edit.mode.any') }}</option>
                 </select>
               </div>
-              <div class="form-group col-md-6">
-                <label class="form-label mt-4" for="ifaceBackendSelector">{{ $t('modals.interface-edit.backend.label') }}</label>
-                <select id="ifaceBackendSelector" v-model="formData.Backend" class="form-select" aria-describedby="backendHelp">
+              <div class="form-group">
+                <label class="form-label" for="ifaceBackendSelector">{{ $t('modals.interface-edit.backend.label') }}</label>
+                <select id="ifaceBackendSelector" v-model="formData.Backend" class="form-input" aria-describedby="backendHelp">
                   <option v-for="backend in settings.Setting('AvailableBackends')" :value="backend.Id">{{ backend.Id === 'local' ? $t(backend.Name) : backend.Name }}</option>
                 </select>
-                <small v-if="!isBackendValid" id="backendHelp" class="form-text text-warning">{{ $t('modals.interface-edit.backend.invalid-label') }}</small>
+                <small v-if="!isBackendValid" id="backendHelp" class="form-hint form-hint--warning">{{ $t('modals.interface-edit.backend.invalid-label') }}</small>
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.display-name.label') }}</label>
-              <input v-model="formData.DisplayName" class="form-control" :placeholder="$t('modals.interface-edit.display-name.placeholder')" type="text">
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.display-name.label') }}</label>
+                <input v-model="formData.DisplayName" class="form-input" :placeholder="$t('modals.interface-edit.display-name.placeholder')" type="text">
+              </div>
             </div>
           </fieldset>
-          <fieldset>
-            <legend class="mt-4">{{ $t('modals.interface-edit.header-crypto') }}</legend>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.private-key.label') }}</label>
-              <input v-model="formData.PrivateKey" class="form-control" :placeholder="$t('modals.interface-edit.private-key.placeholder')" required type="text">
+          <fieldset class="form-section interface-edit-section">
+            <legend class="form-section-title">{{ $t('modals.interface-edit.header-crypto') }}</legend>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.private-key.label') }}</label>
+                <input v-model="formData.PrivateKey" class="form-input code" :placeholder="$t('modals.interface-edit.private-key.placeholder')" required type="text">
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.public-key.label') }}</label>
-              <input v-model="formData.PublicKey" class="form-control" :placeholder="$t('modals.interface-edit.public-key.placeholder')" required type="text">
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.public-key.label') }}</label>
+                <input v-model="formData.PublicKey" class="form-input code" :placeholder="$t('modals.interface-edit.public-key.placeholder')" required type="text">
+              </div>
             </div>
           </fieldset>
-          <fieldset>
-            <legend class="mt-4">Protocol</legend>
-            <div class="form-check form-switch">
-              <input :checked="formData.AWGEnabled" class="form-check-input" type="checkbox" id="awgToggle" @change="toggleAWG">
+          <fieldset class="form-section interface-edit-section">
+            <legend class="form-section-title">Protocol</legend>
+            <div v-if="!awgAvailable" class="form-hint form-hint--warning awg-binary-warning" role="alert">
+              <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+              {{ t('modals.interface-edit.awg.binary-missing') }}
+            </div>
+            <div class="form-check form-switch awg-toggle">
+              <input :checked="formData.AWGEnabled" :disabled="!awgAvailable" class="form-check-input" type="checkbox" id="awgToggle" @change="toggleAWG">
               <label class="form-check-label" for="awgToggle">
                 AmneziaWG (обфускация DPI)
               </label>
             </div>
-            <div v-if="formData.AWGEnabled" class="mt-3 p-3 border rounded bg-light">
-              <small class="text-muted d-block mb-2">Параметры обфускации сгенерированы автоматически.</small>
-              <div class="row">
-                <div class="col-md-4 mb-2">
-                  <label class="form-label small">Jc (Junk count)</label>
-                  <input v-model="formData.AWGJc" class="form-control form-control-sm" type="number" min="0" max="10">
+            <div v-if="formData.AWGEnabled" class="awg-params">
+              <p class="form-hint awg-params__hint">Параметры обфускации сгенерированы автоматически.</p>
+              <div class="form-row form-row--triple">
+                <div class="form-group">
+                  <label class="form-label" for="awgJc">Jc (Junk count)</label>
+                  <input id="awgJc" v-model="formData.AWGJc" class="form-input" type="number" min="0" max="128">
                 </div>
-                <div class="col-md-4 mb-2">
-                  <label class="form-label small">Jmin</label>
-                  <input v-model="formData.AWGJmin" class="form-control form-control-sm" type="number">
+                <div class="form-group">
+                  <label class="form-label" for="awgJmin">Jmin</label>
+                  <input id="awgJmin" v-model="formData.AWGJmin" class="form-input" type="number" min="0" max="1280">
                 </div>
-                <div class="col-md-4 mb-2">
-                  <label class="form-label small">Jmax</label>
-                  <input v-model="formData.AWGJmax" class="form-control form-control-sm" type="number">
-                </div>
-              </div>
-              <div class="row">
-                <div class="col-md-3 mb-2">
-                  <label class="form-label small">S1</label>
-                  <input v-model="formData.AWGS1" class="form-control form-control-sm" type="number">
-                </div>
-                <div class="col-md-3 mb-2">
-                  <label class="form-label small">S2</label>
-                  <input v-model="formData.AWGS2" class="form-control form-control-sm" type="number">
-                </div>
-                <div class="col-md-3 mb-2">
-                  <label class="form-label small">S3</label>
-                  <input v-model="formData.AWGS3" class="form-control form-control-sm" type="number">
-                </div>
-                <div class="col-md-3 mb-2">
-                  <label class="form-label small">S4</label>
-                  <input v-model="formData.AWGS4" class="form-control form-control-sm" type="number">
+                <div class="form-group">
+                  <label class="form-label" for="awgJmax">Jmax</label>
+                  <input id="awgJmax" v-model="formData.AWGJmax" class="form-input" type="number" min="0" max="1280">
                 </div>
               </div>
-              <div class="row">
-                <div class="col-md-3 mb-2">
-                  <label class="form-label small">H1</label>
-                  <input v-model="formData.AWGH1" class="form-control form-control-sm" type="number">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="awgS1">S1</label>
+                  <input id="awgS1" v-model="formData.AWGS1" class="form-input" type="number" min="0" max="1280">
                 </div>
-                <div class="col-md-3 mb-2">
-                  <label class="form-label small">H2</label>
-                  <input v-model="formData.AWGH2" class="form-control form-control-sm" type="number">
+                <div class="form-group">
+                  <label class="form-label" for="awgS2">S2</label>
+                  <input id="awgS2" v-model="formData.AWGS2" class="form-input" type="number" min="0" max="1280">
                 </div>
-                <div class="col-md-3 mb-2">
-                  <label class="form-label small">H3</label>
-                  <input v-model="formData.AWGH3" class="form-control form-control-sm" type="number">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="awgS3">S3</label>
+                  <input id="awgS3" v-model="formData.AWGS3" class="form-input" type="number" min="0" max="1280">
                 </div>
-                <div class="col-md-3 mb-2">
-                  <label class="form-label small">H4</label>
-                  <input v-model="formData.AWGH4" class="form-control form-control-sm" type="number">
+                <div class="form-group">
+                  <label class="form-label" for="awgS4">S4</label>
+                  <input id="awgS4" v-model="formData.AWGS4" class="form-input" type="number" min="0" max="1280">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="awgH1">H1</label>
+                  <input id="awgH1" v-model="formData.AWGH1" class="form-input" type="number" min="5">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="awgH2">H2</label>
+                  <input id="awgH2" v-model="formData.AWGH2" class="form-input" type="number" min="5">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="awgH3">H3</label>
+                  <input id="awgH3" v-model="formData.AWGH3" class="form-input" type="number" min="5">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="awgH4">H4</label>
+                  <input id="awgH4" v-model="formData.AWGH4" class="form-input" type="number" min="5">
                 </div>
               </div>
             </div>
           </fieldset>
-          <fieldset>
-            <legend class="mt-4">{{ $t('modals.interface-edit.header-network') }}</legend>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.ip.label') }}</label>
-              <vue-tags-input class="form-control" v-model="currentTags.Addresses"
+          <fieldset class="form-section interface-edit-section">
+            <legend class="form-section-title">{{ $t('modals.interface-edit.header-network') }}</legend>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.ip.label') }}</label>
+                <vue-tags-input class="tags-input" v-model="currentTags.Addresses"
                               :tags="formData.Addresses.map(str => ({ text: str }))"
                               :placeholder="$t('modals.interface-edit.ip.placeholder')"
                               :validation="validateCIDR()"
@@ -588,14 +673,12 @@ async function del() {
                               :allow-edit-tags="true"
                               :separators="[',', ';', ' ']"
                               @tags-changed="handleChangeAddresses"/>
+              </div>
             </div>
-            <div v-if="formData.Mode==='server'" class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.listen-port.label') }}</label>
-              <input v-model="formData.ListenPort" class="form-control" :placeholder="$t('modals.interface-edit.listen-port.placeholder')" type="number">
-            </div>
-            <div v-if="formData.Mode!=='server'" class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.dns.label') }}</label>
-              <vue-tags-input class="form-control" v-model="currentTags.Dns"
+            <div v-if="formData.Mode!=='server'" class="form-row">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.dns.label') }}</label>
+                <vue-tags-input class="tags-input" v-model="currentTags.Dns"
                               :tags="formData.Dns.map(str => ({ text: str }))"
                               :placeholder="$t('modals.interface-edit.dns.placeholder')"
                               :validation="validateIP()"
@@ -604,10 +687,10 @@ async function del() {
                               :allow-edit-tags="true"
                               :separators="[',', ';', ' ']"
                               @tags-changed="handleChangeDns"/>
-            </div>
-            <div v-if="formData.Mode!=='server'" class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.dns-search.label') }}</label>
-              <vue-tags-input class="form-control" v-model="currentTags.DnsSearch"
+              </div>
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.dns-search.label') }}</label>
+                <vue-tags-input class="tags-input" v-model="currentTags.DnsSearch"
                               :tags="formData.DnsSearch.map(str => ({ text: str }))"
                               :placeholder="$t('modals.interface-edit.dns-search.placeholder')"
                               :validation="validateDomain()"
@@ -616,86 +699,106 @@ async function del() {
                               :allow-edit-tags="true"
                               :separators="[',', ';', ' ']"
                               @tags-changed="handleChangeDnsSearch"/>
-            </div>
-            <div class="row">
-              <div class="form-group col-md-6">
-                <label class="form-label mt-4">{{ $t('modals.interface-edit.mtu.label') }}</label>
-                <input v-model="formData.Mtu" class="form-control" :placeholder="$t('modals.interface-edit.mtu.placeholder')" type="number">
-              </div>
-              <div class="form-group col-md-6" v-if="formData.Backend==='local'">
-                <label class="form-label mt-4">{{ $t('modals.interface-edit.firewall-mark.label') }}</label>
-                <input v-model="formData.FirewallMark" class="form-control" :placeholder="$t('modals.interface-edit.firewall-mark.placeholder')" type="number">
-              </div>
-              <div class="form-group col-md-6" v-if="formData.Backend!=='local'">
-                <label class="form-label mt-4">{{ $t('modals.interface-edit.routing-table.label') }}</label>
-                <input v-model="formData.RoutingTable" aria-describedby="routingTableHelp" class="form-control" :placeholder="$t('modals.interface-edit.routing-table.placeholder')" type="text">
-                <small id="routingTableHelp" class="form-text text-muted">{{ $t('modals.interface-edit.routing-table.description') }}</small>
-              </div>
-              <div class="form-group col-md-6" v-else>
               </div>
             </div>
-            <div class="row" v-if="formData.Backend==='local'">
-              <div class="form-group col-md-6">
-                <label class="form-label mt-4">{{ $t('modals.interface-edit.routing-table.label') }}</label>
-                <input v-model="formData.RoutingTable" aria-describedby="routingTableHelp" class="form-control" :placeholder="$t('modals.interface-edit.routing-table.placeholder')" type="text">
-                <small id="routingTableHelp" class="form-text text-muted">{{ $t('modals.interface-edit.routing-table.description') }}</small>
+            <div class="form-row">
+              <div v-if="formData.Mode==='server'" class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.listen-port.label') }}</label>
+                <input v-model="formData.ListenPort" class="form-input" :placeholder="$t('modals.interface-edit.listen-port.placeholder')" type="number">
               </div>
-              <div class="form-group col-md-6">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.mtu.label') }}</label>
+                <input v-model="formData.Mtu" class="form-input" :placeholder="$t('modals.interface-edit.mtu.placeholder')" type="number">
+              </div>
+            </div>
+            <div class="form-row" v-if="formData.Backend==='local'">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.firewall-mark.label') }}</label>
+                <input v-model="formData.FirewallMark" class="form-input" :placeholder="$t('modals.interface-edit.firewall-mark.placeholder')" type="number">
+              </div>
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.routing-table.label') }}</label>
+                <input v-model="formData.RoutingTable" aria-describedby="routingTableHelp" class="form-input" :placeholder="$t('modals.interface-edit.routing-table.placeholder')" type="text">
+                <small id="routingTableHelp" class="form-hint">{{ $t('modals.interface-edit.routing-table.description') }}</small>
+              </div>
+            </div>
+            <div class="form-row form-row--single" v-else>
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.routing-table.label') }}</label>
+                <input v-model="formData.RoutingTable" aria-describedby="routingTableHelp" class="form-input" :placeholder="$t('modals.interface-edit.routing-table.placeholder')" type="text">
+                <small id="routingTableHelp" class="form-hint">{{ $t('modals.interface-edit.routing-table.description') }}</small>
               </div>
             </div>
           </fieldset>
-          <fieldset v-if="formData.Backend==='local'">
-            <legend class="mt-4">{{ $t('modals.interface-edit.header-hooks') }}</legend>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.pre-up.label') }}</label>
-              <textarea v-model="formData.PreUp" class="form-control" rows="2" :placeholder="$t('modals.interface-edit.pre-up.placeholder')"></textarea>
+          <fieldset v-if="formData.Backend==='local'" class="form-section interface-edit-section">
+            <legend class="form-section-title">{{ $t('modals.interface-edit.header-hooks') }}</legend>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.pre-up.label') }}</label>
+                <textarea v-model="formData.PreUp" class="form-input form-textarea" rows="2" :placeholder="$t('modals.interface-edit.pre-up.placeholder')"></textarea>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.post-up.label') }}</label>
-              <textarea v-model="formData.PostUp" class="form-control" rows="2" :placeholder="$t('modals.interface-edit.post-up.placeholder')"></textarea>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.post-up.label') }}</label>
+                <textarea v-model="formData.PostUp" class="form-input form-textarea" rows="2" :placeholder="$t('modals.interface-edit.post-up.placeholder')"></textarea>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.pre-down.label') }}</label>
-              <textarea v-model="formData.PreDown" class="form-control" rows="2" :placeholder="$t('modals.interface-edit.pre-down.placeholder')"></textarea>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.pre-down.label') }}</label>
+                <textarea v-model="formData.PreDown" class="form-input form-textarea" rows="2" :placeholder="$t('modals.interface-edit.pre-down.placeholder')"></textarea>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.post-down.label') }}</label>
-              <textarea v-model="formData.PostDown" class="form-control" rows="2" :placeholder="$t('modals.interface-edit.post-down.placeholder')"></textarea>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.post-down.label') }}</label>
+                <textarea v-model="formData.PostDown" class="form-input form-textarea" rows="2" :placeholder="$t('modals.interface-edit.post-down.placeholder')"></textarea>
+              </div>
             </div>
           </fieldset>
-          <fieldset>
-            <legend class="mt-4">{{ $t('modals.interface-edit.header-state') }}</legend>
-            <div class="form-check form-switch">
-              <input v-model="formData.Disabled" class="form-check-input" type="checkbox">
-              <label class="form-check-label">{{ $t('modals.interface-edit.disabled.label') }}</label>
-            </div>
-            <div class="d-flex align-items-center justify-content-between" v-if="formData.Mode==='server' && settings.Setting('CreateDefaultPeer')">
-              <div class="form-check form-switch mb-0">
-                <input v-model="formData.CreateDefaultPeer" class="form-check-input" type="checkbox">
-                <label class="form-check-label">{{ $t('modals.interface-edit.create-default-peer.label') }}</label>
+          <fieldset class="form-section interface-edit-section">
+            <legend class="form-section-title">{{ $t('modals.interface-edit.header-state') }}</legend>
+            <div class="form-row form-row--single">
+              <div class="form-group form-check form-switch">
+                <input v-model="formData.Disabled" class="form-check-input" type="checkbox">
+                <label class="form-check-label">{{ $t('modals.interface-edit.disabled.label') }}</label>
               </div>
-              <button v-if="props.interfaceId!=='#NEW#'" class="btn btn-primary btn-sm" type="button" @click.prevent="createDefaultPeers" :disabled="!formData.CreateDefaultPeer || isCreatingDefaultPeers">
-                <span v-if="isCreatingDefaultPeers" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                {{ $t('modals.interface-edit.button-create-default-peers') }}
-              </button>
             </div>
-            <div class="form-check form-switch" v-if="formData.Backend==='local'">
-              <input v-model="formData.SaveConfig" checked="" class="form-check-input" type="checkbox">
-              <label class="form-check-label">{{ $t('modals.interface-edit.save-config.label') }}</label>
+            <div class="form-row form-row--single" v-if="formData.Mode==='server' && settings.Setting('CreateDefaultPeer')">
+              <div class="form-group d-flex align-items-center justify-content-between" style="gap:var(--space-3);">
+                <div class="form-check form-switch" style="margin:0;">
+                  <input v-model="formData.CreateDefaultPeer" class="form-check-input" type="checkbox">
+                  <label class="form-check-label">{{ $t('modals.interface-edit.create-default-peer.label') }}</label>
+                </div>
+                <button v-if="props.interfaceId!=='#NEW#'" class="btn btn-primary btn-sm" type="button" @click.prevent="createDefaultPeers" :disabled="!formData.CreateDefaultPeer || isCreatingDefaultPeers">
+                  <span v-if="isCreatingDefaultPeers" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                  {{ $t('modals.interface-edit.button-create-default-peers') }}
+                </button>
+              </div>
+            </div>
+            <div class="form-row form-row--single" v-if="formData.Backend==='local'">
+              <div class="form-group form-check form-switch">
+                <input v-model="formData.SaveConfig" checked="" class="form-check-input" type="checkbox">
+                <label class="form-check-label">{{ $t('modals.interface-edit.save-config.label') }}</label>
+              </div>
             </div>
           </fieldset>
         </div>
         <div id="peerdefaults" class="tab-pane fade">
-          <fieldset>
-            <legend class="mt-4">{{ $t('modals.interface-edit.header-network') }}</legend>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.defaults.endpoint.label') }}</label>
-              <input v-model="formData.PeerDefEndpoint" class="form-control" :placeholder="$t('modals.interface-edit.defaults.endpoint.placeholder')" type="text">
-              <small class="form-text text-muted">{{ $t('modals.interface-edit.defaults.endpoint.description') }}</small>
+          <fieldset class="form-section interface-edit-section">
+            <legend class="form-section-title">{{ $t('modals.interface-edit.header-network') }}</legend>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.defaults.endpoint.label') }}</label>
+                <input v-model="formData.PeerDefEndpoint" class="form-input" :placeholder="$t('modals.interface-edit.defaults.endpoint.placeholder')" type="text">
+                <small class="form-hint">{{ $t('modals.interface-edit.defaults.endpoint.description') }}</small>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.defaults.networks.label') }}</label>
-              <vue-tags-input class="form-control" v-model="currentTags.PeerDefNetwork"
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.defaults.networks.label') }}</label>
+                <vue-tags-input class="tags-input" v-model="currentTags.PeerDefNetwork"
                               :tags="formData.PeerDefNetwork.map(str => ({ text: str }))"
                               :placeholder="$t('modals.interface-edit.defaults.networks.placeholder')"
                               :validation="validateCIDR()"
@@ -704,11 +807,13 @@ async function del() {
                               :allow-edit-tags="true"
                               :separators="[',', ';', ' ']"
                               @tags-changed="handleChangePeerDefNetwork"/>
-              <small class="form-text text-muted">{{ $t('modals.interface-edit.defaults.networks.description') }}</small>
+                <small class="form-hint">{{ $t('modals.interface-edit.defaults.networks.description') }}</small>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.defaults.allowed-ip.label') }}</label>
-              <vue-tags-input class="form-control" v-model="currentTags.PeerDefAllowedIPs"
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.defaults.allowed-ip.label') }}</label>
+                <vue-tags-input class="tags-input" v-model="currentTags.PeerDefAllowedIPs"
                               :tags="formData.PeerDefAllowedIPs.map(str => ({ text: str }))"
                               :placeholder="$t('modals.interface-edit.defaults.allowed-ip.placeholder')"
                               :validation="validateCIDR()"
@@ -717,10 +822,12 @@ async function del() {
                               :allow-edit-tags="true"
                               :separators="[',', ';', ' ']"
                               @tags-changed="handleChangePeerDefAllowedIPs"/>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.dns.label') }}</label>
-              <vue-tags-input class="form-control" v-model="currentTags.PeerDefDns"
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.dns.label') }}</label>
+                <vue-tags-input class="tags-input" v-model="currentTags.PeerDefDns"
                               :tags="formData.PeerDefDns.map(str => ({ text: str }))"
                               :placeholder="$t('modals.interface-edit.dns.placeholder')"
                               :validation="validateIP()"
@@ -729,10 +836,10 @@ async function del() {
                               :allow-edit-tags="true"
                               :separators="[',', ';', ' ']"
                               @tags-changed="handleChangePeerDefDns"/>
-            </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.dns-search.label') }}</label>
-              <vue-tags-input class="form-control" v-model="currentTags.PeerDefDnsSearch"
+              </div>
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.dns-search.label') }}</label>
+                <vue-tags-input class="tags-input" v-model="currentTags.PeerDefDnsSearch"
                               :tags="formData.PeerDefDnsSearch.map(str => ({ text: str }))"
                               :placeholder="$t('modals.interface-edit.dns-search.placeholder')"
                               :validation="validateDomain()"
@@ -741,56 +848,66 @@ async function del() {
                               :allow-edit-tags="true"
                               :separators="[',', ';', ' ']"
                               @tags-changed="handleChangePeerDefDnsSearch"/>
-            </div>
-            <div class="row">
-              <div class="form-group col-md-6">
-                <label class="form-label mt-4">{{ $t('modals.interface-edit.defaults.mtu.label') }}</label>
-                <input v-model="formData.PeerDefMtu" class="form-control" :placeholder="$t('modals.interface-edit.defaults.mtu.placeholder')" type="number">
-              </div>
-              <div class="form-group col-md-6">
-                <label class="form-label mt-4">{{ $t('modals.interface-edit.firewall-mark.label') }}</label>
-                <input v-model="formData.PeerDefFirewallMark" class="form-control" :placeholder="$t('modals.interface-edit.firewall-mark.placeholder')" type="number">
               </div>
             </div>
-            <div class="row">
-              <div class="form-group col-md-6">
-                <label class="form-label mt-4">{{ $t('modals.interface-edit.routing-table.label') }}</label>
-                <input v-model="formData.PeerDefRoutingTable" class="form-control" :placeholder="$t('modals.interface-edit.routing-table.placeholder')" type="number">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.defaults.mtu.label') }}</label>
+                <input v-model="formData.PeerDefMtu" class="form-input" :placeholder="$t('modals.interface-edit.defaults.mtu.placeholder')" type="number">
               </div>
-              <div class="form-group col-md-6">
-                <label class="form-label mt-4">{{ $t('modals.interface-edit.defaults.keep-alive.label') }}</label>
-                <input v-model="formData.PeerDefPersistentKeepalive" class="form-control" :placeholder="$t('modals.interface-edit.defaults.keep-alive.placeholder')" type="number">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.firewall-mark.label') }}</label>
+                <input v-model="formData.PeerDefFirewallMark" class="form-input" :placeholder="$t('modals.interface-edit.firewall-mark.placeholder')" type="number">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.routing-table.label') }}</label>
+                <input v-model="formData.PeerDefRoutingTable" class="form-input" :placeholder="$t('modals.interface-edit.routing-table.placeholder')" type="number">
+              </div>
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.defaults.keep-alive.label') }}</label>
+                <input v-model="formData.PeerDefPersistentKeepalive" class="form-input" :placeholder="$t('modals.interface-edit.defaults.keep-alive.placeholder')" type="number">
               </div>
             </div>
           </fieldset>
-          <fieldset>
-            <legend class="mt-4">{{ $t('modals.interface-edit.header-peer-hooks') }}</legend>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.pre-up.label') }}</label>
-              <textarea v-model="formData.PeerDefPreUp" class="form-control" rows="2" :placeholder="$t('modals.interface-edit.pre-up.placeholder')"></textarea>
+          <fieldset class="form-section interface-edit-section">
+            <legend class="form-section-title">{{ $t('modals.interface-edit.header-peer-hooks') }}</legend>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.pre-up.label') }}</label>
+                <textarea v-model="formData.PeerDefPreUp" class="form-input form-textarea" rows="2" :placeholder="$t('modals.interface-edit.pre-up.placeholder')"></textarea>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.post-up.label') }}</label>
-              <textarea v-model="formData.PeerDefPostUp" class="form-control" rows="2" :placeholder="$t('modals.interface-edit.post-up.placeholder')"></textarea>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.post-up.label') }}</label>
+                <textarea v-model="formData.PeerDefPostUp" class="form-input form-textarea" rows="2" :placeholder="$t('modals.interface-edit.post-up.placeholder')"></textarea>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.pre-down.label') }}</label>
-              <textarea v-model="formData.PeerDefPreDown" class="form-control" rows="2" :placeholder="$t('modals.interface-edit.pre-down.placeholder')"></textarea>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.pre-down.label') }}</label>
+                <textarea v-model="formData.PeerDefPreDown" class="form-input form-textarea" rows="2" :placeholder="$t('modals.interface-edit.pre-down.placeholder')"></textarea>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label mt-4">{{ $t('modals.interface-edit.post-down.label') }}</label>
-              <textarea v-model="formData.PeerDefPostDown" class="form-control" rows="2" :placeholder="$t('modals.interface-edit.post-down.placeholder')"></textarea>
+            <div class="form-row form-row--single">
+              <div class="form-group">
+                <label class="form-label">{{ $t('modals.interface-edit.post-down.label') }}</label>
+                <textarea v-model="formData.PeerDefPostDown" class="form-input form-textarea" rows="2" :placeholder="$t('modals.interface-edit.post-down.placeholder')"></textarea>
+              </div>
             </div>
           </fieldset>
           <fieldset v-if="props.interfaceId!=='#NEW#'" class="text-end">
-            <hr class="mt-4">
+            <hr>
             <button class="btn btn-primary me-1" type="button" @click.prevent="applyPeerDefaults" :disabled="isApplyingDefaults">
               <span v-if="isApplyingDefaults" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
               {{ $t('modals.interface-edit.button-apply-defaults') }}
             </button>
           </fieldset>
         </div>
-      </div>
+        </div>
+      </form>
     </template>
     <template #footer>
       <div class="flex-fill text-start">
@@ -799,7 +916,7 @@ async function del() {
           {{ $t('general.delete') }}
         </button>
       </div>
-      <button class="btn btn-primary me-1" type="button" @click.prevent="save" :disabled="isSaving">
+      <button class="btn btn-primary me-1" type="button" @click.prevent="saveInterface" :disabled="isSaving">
         <span v-if="isSaving" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
         {{ $t('general.save') }}
       </button>

@@ -137,6 +137,17 @@ func SocketPath(ifaceName string) string {
 	return filepath.Join(sockDir, ifaceName+".sock")
 }
 
+// IsAWGAvailable reports whether the "amneziawg-go" binary is reachable
+// through the current PATH. We use exec.LookPath so the result is
+// authoritative even if the binary lives outside well-known locations
+// (e.g. /usr/local/bin on a custom build). Callers should treat the
+// false return as "AWG obfuscation cannot be enabled on this host" and
+// surface a human-readable error to the operator.
+func IsAWGAvailable() bool {
+	_, err := exec.LookPath("amneziawg-go")
+	return err == nil
+}
+
 // StartAWGProcess starts "amneziawg-go --foreground <ifaceName>" and
 // waits for the UAPI socket to become live (timeout configurable via
 // awgProcessStartTimeout). If a stale socket exists (file present but no

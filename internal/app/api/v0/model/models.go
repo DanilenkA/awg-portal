@@ -15,6 +15,11 @@ type Settings struct {
 	AvailableBackends         []SettingsBackendNames `json:"AvailableBackends"`
 	LoginFormVisible          bool                   `json:"LoginFormVisible"`
 	CreateDefaultPeer         bool                   `json:"CreateDefaultPeer"`
+	// AWGAvailable is true when the "amneziawg-go" binary is reachable via
+	// the current PATH. The frontend uses it to surface a soft warning when
+	// the operator tries to enable AmneziaWG obfuscation on a host that
+	// does not have the binary installed — saving a 500 error round-trip.
+	AWGAvailable              bool                   `json:"AWGAvailable"`
 }
 
 type SettingsBackendNames struct {
