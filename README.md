@@ -8,12 +8,16 @@
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/login.png" width="45%" alt="Login Page" />
-  <img src="screenshots/dashboard.png" width="45%" alt="Dashboard" />
+  <img src="screenshots/login.png" width="80%" alt="Login Page" />
 </p>
 <p align="center">
-  <img src="screenshots/interface-amnezia.png" width="45%" alt="AmneziaWG Interface" />
-  <img src="screenshots/interface-wireguard.png" width="45%" alt="WireGuard Interface" />
+  <img src="screenshots/dashboard.png" width="80%" alt="Dashboard" />
+</p>
+<p align="center">
+  <img src="screenshots/interface-amnezia.png" width="80%" alt="AmneziaWG Interface" />
+</p>
+<p align="center">
+  <img src="screenshots/interface-wireguard.png" width="80%" alt="WireGuard Interface" />
 </p>
 
 ## Introduction
@@ -68,29 +72,35 @@
 
 ## Быстрый старт
 
-### Docker (рекомендовано)
+### Бинарный релиз (рекомендовано)
+
+Установка через `install.sh` — скрипт сам определяет архитектуру хоста
+(amd64/arm64/arm) и создаёт systemd-сервис.
 
 ```bash
-# 1. Скачать docker-compose.yml
-curl -LO https://raw.githubusercontent.com/DanilenkA/awg-portal/main/docker-compose.yml
+# 1. Скачать последний бандл
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.0-bundle.tar.gz
 
-# 2. Отредактировать docker-compose.yml - поменять:
-#    - WG_PORTAL_CORE_ADMIN_USER
-#    - WG_PORTAL_CORE_ADMIN_PASSWORD
-#    - WG_PORTAL_WEB_EXTERNAL_URL
+# 2. Распаковать
+mkdir awg-portal && cd awg-portal
+tar xzf ../awg-portal-v2.0.0-bundle.tar.gz --strip-components=1
 
-# 3. Создать директории для данных
-mkdir -p data config
+# 3. Запустить установку
+sudo bash install.sh
 
-# 4. Запустить
-docker compose up -d
+# 4. Настроить конфиг и запустить
+sudo nano /opt/awg-portal/config.yml
+sudo systemctl enable --now awg-portal
 
 # 5. Открыть браузер: http://<сервер>:8888
 ```
 
-Контейнер использует `network_mode: host` — портал управляет сетевыми интерфейсами непосредственно на хосте. Все порты (8888, 8787, 51820+) открываются на хосте.
+Скрипт устанавливает всё необходимое:
+- `/usr/local/bin/awg-portal` + `amneziawg-go`
+- `/opt/awg-portal/config.yml` + данные
+- `/etc/systemd/system/awg-portal.service` с `RuntimeDirectory=amneziawg`
 
-### Бинарный релиз (рекомендовано)
+### Docker
 
 ```bash
 # 1. Скачать бандл (последняя версия)
