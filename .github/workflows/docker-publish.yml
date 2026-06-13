@@ -103,6 +103,15 @@ jobs:
           build-args: |
             BUILD_VERSION=${{ env.BUILD_VERSION }}
 
+      - name: Normalize binary paths
+        run: |
+          # buildx v7 puts files under binaries/ without platform subdir
+          # older buildx uses binaries/linux/amd64/
+          mkdir -p binaries/linux/amd64
+          if [ -f binaries/wg-portal ] && [ ! -f binaries/linux/amd64/wg-portal ]; then
+            mv binaries/wg-portal binaries/linux/amd64/wg-portal
+          fi
+
       - name: Compute build tag
         if: startsWith(github.ref, 'refs/tags/v')
         run: echo "BUILD_TAG=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
@@ -110,6 +119,7 @@ jobs:
       - name: Export amneziawg-go binary
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
+          mkdir -p binaries/linux/amd64
           docker create --name awg-extract ghcr.io/danilenka/awg-portal:${{ github.ref_name }}
           docker cp awg-extract:/usr/local/bin/amneziawg-go ./binaries/linux/amd64/amneziawg-go
           docker rm awg-extract
