@@ -45,6 +45,7 @@ CLAUDE.md
 AGENT.md
 AGENTS.md
 .claude/
+.codex/
 
 # ignore local frontend dist directory
 internal/app/api/core/frontend-dist
