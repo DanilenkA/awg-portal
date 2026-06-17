@@ -68,7 +68,7 @@ onMounted(async () => {
   loading.value = true
   try {
     await Promise.all([
-      interfaces.LoadInterfaces(),
+      auth.IsAdmin ? interfaces.LoadInterfaces() : Promise.resolve(),
       peers.LoadPeers(undefined),
       peers.LoadStats(undefined),
     ])
