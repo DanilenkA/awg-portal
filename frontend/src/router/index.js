@@ -141,6 +141,12 @@ router.beforeEach(async (to) => {
     auth.SetReturnUrl(to.fullPath) // store the original destination before starting the auth process
     return '/login'
   }
+
+  // redirect non-admin users away from admin-only pages
+  const adminPages = ['/interfaces', '/users', '/audit']
+  if (adminPages.includes(to.path) && !auth.IsAdmin) {
+    return '/'
+  }
 })
 
 router.afterEach(async (to, from) => {
