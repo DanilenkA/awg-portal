@@ -83,7 +83,33 @@ const selectedInterface = computed(() => interfaces.GetSelected || {})
 const isAwg = computed(() => !!selectedInterface.value.AWGEnabled)
 const isDisabled = computed(() => !!selectedInterface.value.Disabled)
 
+// traffic display mode: 'cumulative' (default, totals since UAPI start) or 'rate' (live bytes/sec)
+// 'cumulative' matches amnezia-wg-easy UX and avoids the confusing 0 B/s display when a peer
+// has accumulated traffic but is idle right now.
+const trafficDisplayMode = ref('cumulative')
+
 const trafficStats = computed(() => interfaces.TrafficStats || { Received: 0, Transmitted: 0 })
+
+// Interface-level totals (cumulative) come from peers.Statistics via the /stats endpoint.
+// We aggregate across all peers of the currently selected interface.
+const interfaceTotalsRx = computed(() => {
+  if (!peers.hasStatistics) return 0
+  let sum = 0
+  for (const peer of peers.All) {
+    const s = peers.Statistics(peer.Identifier)
+    if (s && typeof s.BytesReceived === 'number') sum += s.BytesReceived
+  }
+  return sum
+})
+const interfaceTotalsTx = computed(() => {
+  if (!peers.hasStatistics) return 0
+  let sum = 0
+  for (const peer of peers.All) {
+    const s = peers.Statistics(peer.Identifier)
+    if (s && typeof s.BytesTransmitted === 'number') sum += s.BytesTransmitted
+  }
+  return sum
+})
 
 async function download() {
   await interfaces.LoadInterfaceConfig(interfaces.GetSelected.Identifier)
@@ -283,10 +309,21 @@ function friendlyLastHandshake(ts) {
               <i class="fa-solid fa-circle-xmark"></i> {{ $t('general.disabled') || 'Disabled' }}
             </span>
           </h3>
-          <div class="text-muted text-muted-sm mt-2" v-if="trafficStats.Received > 0 || trafficStats.Transmitted > 0">
+          <div class="text-muted text-muted-sm mt-2" v-if="trafficDisplayMode === 'cumulative' ? (interfaceTotalsRx > 0 || interfaceTotalsTx > 0) : (trafficStats.Received > 0 || trafficStats.Transmitted > 0)">
             {{ $t('modals.peer-view.traffic') }}:
-            <i class="fa-solid fa-arrow-down me-1"></i>{{ humanFileSize(trafficStats.Received) }}/s
-            <i class="fa-solid fa-arrow-up ms-2 me-1"></i>{{ humanFileSize(trafficStats.Transmitted) }}/s
+            <span v-if="trafficDisplayMode === 'cumulative'">
+              <i class="fa-solid fa-arrow-down me-1"></i>{{ humanFileSize(interfaceTotalsRx) }}
+              <i class="fa-solid fa-arrow-up ms-2 me-1"></i>{{ humanFileSize(interfaceTotalsTx) }}
+            </span>
+            <span v-else>
+              <i class="fa-solid fa-arrow-down me-1"></i>{{ humanFileSize(trafficStats.Received) }}/s
+              <i class="fa-solid fa-arrow-up ms-2 me-1"></i>{{ humanFileSize(trafficStats.Transmitted) }}/s
+            </span>
+            <button class="btn btn-link btn-sm p-0 ms-2 align-baseline" type="button"
+                    :title="trafficDisplayMode === 'cumulative' ? 'Show live rate' : 'Show cumulative totals'"
+                    @click="trafficDisplayMode = (trafficDisplayMode === 'cumulative' ? 'rate' : 'cumulative')">
+              <i :class="trafficDisplayMode === 'cumulative' ? 'fa-solid fa-gauge-high' : 'fa-solid fa-database'"></i>
+            </button>
           </div>
         </div>
         <div class="d-flex gap-2">
@@ -426,6 +463,16 @@ function friendlyLastHandshake(ts) {
         </h2>
       </div>
       <div class="page-header__actions">
+        <div class="btn-group btn-group-sm" role="group" v-if="peers.hasStatistics" :title="trafficDisplayMode === 'cumulative' ? 'Showing cumulative totals' : 'Showing live bytes/sec'">
+          <button type="button" class="btn" :class="trafficDisplayMode === 'cumulative' ? 'btn-primary' : 'btn-outline-secondary'"
+                  @click="trafficDisplayMode = 'cumulative'">
+            <i class="fa-solid fa-database me-1"></i>{{ $t('interfaces.traffic.cumulative') || 'Totals' }}
+          </button>
+          <button type="button" class="btn" :class="trafficDisplayMode === 'rate' ? 'btn-primary' : 'btn-outline-secondary'"
+                  @click="trafficDisplayMode = 'rate'">
+            <i class="fa-solid fa-gauge-high me-1"></i>{{ $t('interfaces.traffic.rate') || 'Rate' }}
+          </button>
+        </div>
         <div class="input-group" style="max-width: 280px;">
           <input v-model="peers.filter" class="form-control" :placeholder="$t('general.search.placeholder')" type="text" @keyup="peers.afterPageSizeChange">
         </div>
@@ -521,7 +568,11 @@ function friendlyLastHandshake(ts) {
               </span>
             </td>
             <td v-if="peers.hasStatistics" class="text-mono-sm">
-              <span :title="humanFileSize(peers.Statistics(peer.Identifier).BytesReceived) + ' / ' + humanFileSize(peers.Statistics(peer.Identifier).BytesTransmitted)">
+              <span v-if="trafficDisplayMode === 'cumulative'" :title="humanFileSize(peers.Statistics(peer.Identifier).BytesReceived) + ' / ' + humanFileSize(peers.Statistics(peer.Identifier).BytesTransmitted)">
+                <i class="fa-solid fa-arrow-down text-muted me-1"></i>{{ humanFileSize(peers.Statistics(peer.Identifier).BytesReceived) }}
+                <i class="fa-solid fa-arrow-up text-muted ms-2 me-1"></i>{{ humanFileSize(peers.Statistics(peer.Identifier).BytesTransmitted) }}
+              </span>
+              <span v-else :title="humanFileSize(peers.Statistics(peer.Identifier).BytesReceived) + ' / ' + humanFileSize(peers.Statistics(peer.Identifier).BytesTransmitted)">
                 <i class="fa-solid fa-arrow-down text-muted me-1"></i>{{ humanFileSize(peers.TrafficStats(peer.Identifier).Received) }}/s
                 <i class="fa-solid fa-arrow-up text-muted ms-2 me-1"></i>{{ humanFileSize(peers.TrafficStats(peer.Identifier).Transmitted) }}/s
               </span>

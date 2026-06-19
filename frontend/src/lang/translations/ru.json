@@ -164,7 +164,11 @@
     "peer-expiring": "Пир истекает в",
     "peer-connected": "Подключено",
     "peer-not-connected": "Не подключено",
-    "peer-handshake": "Последнее рукопожатие:"
+    "peer-handshake": "Последнее рукопожатие:",
+    "traffic": {
+      "cumulative": "Всего",
+      "rate": "Скорость"
+    }
   },
   "users": {
     "headline": "Администрирование пользователей",
