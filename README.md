@@ -5,6 +5,20 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/DanilenkA/awg-portal)](https://goreportcard.com/report/github.com/DanilenkA/awg-portal)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/DanilenkA/awg-portal)
 
+## Что нового в v2.0.2
+
+- **Счётчики трафика: cumulative вместо rate** — накопленные RX/TX показываются
+  по умолчанию, переключатель Totals/Rate в action-bar (`InterfaceView.vue`)
+- **Идемпотентный install.sh + uninstall.sh** — единый установщик для Linux
+  (amd64/arm64/armv7/riscv64), флаги `--auto-install-deps`, `--no-install-deps`,
+  `--dry-run`, `--keep-data`; deploy/install.sh → симлинк на корневой install.sh
+- **Фикс shared mutable state в AWG-UAPI** — `hsSec`/`hsNano` больше не
+  протекают между peer'ами при парсинге
+- **Фикс JS-бандла** — устранён рассинхрон между HTML и embedded статикой
+- **Фикс admin route guard** — не-админы больше не получают auto-logout (#55)
+
+**Полный список изменений:** [v2.0.0...v2.0.2](https://github.com/DanilenkA/awg-portal/compare/v2.0.0...v2.0.2)
+
 ## Screenshots
 
 <p align="center">
@@ -74,19 +88,22 @@
 
 ### Бинарный релиз (рекомендовано)
 
-Установка через `install.sh` — скрипт сам определяет архитектуру хоста
-(amd64/arm64/arm) и создаёт systemd-сервис.
+Установка через `install.sh` — единый идемпотентный скрипт, который сам
+определяет дистрибутив (Debian/Ubuntu/Fedora/RHEL/Arch/Alpine) и архитектуру
+хоста (amd64/arm64/armv7/riscv64), ставит системные зависимости
+(`wireguard-tools`, `iptables`, `openresolv`) и разворачивает systemd-сервис.
 
 ```bash
 # 1. Скачать последний бандл
-curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.0-bundle.tar.gz
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.2-bundle.tar.gz
 
 # 2. Распаковать
 mkdir awg-portal && cd awg-portal
-tar xzf ../awg-portal-v2.0.0-bundle.tar.gz --strip-components=1
+tar xzf ../awg-portal-v2.0.2-bundle.tar.gz --strip-components=1
 
 # 3. Запустить установку
-sudo bash install.sh
+sudo bash install.sh                # интерактивно спросит про apt-get/dnf
+sudo bash install.sh --auto-install-deps   # без вопросов (headless/CI)
 
 # 4. Настроить конфиг и запустить
 sudo nano /opt/awg-portal/config.yml
@@ -97,18 +114,23 @@ sudo systemctl enable --now awg-portal
 
 Скрипт устанавливает всё необходимое:
 - `/usr/local/bin/awg-portal` + `amneziawg-go`
-- `/opt/awg-portal/config.yml` + данные
+- `/opt/awg-portal/{data,config}/` + `/opt/awg-portal/config.yml`
 - `/etc/systemd/system/awg-portal.service` с `RuntimeDirectory=amneziawg`
+- Системные пакеты: `wireguard-tools`, `iptables`, `openresolv`, `kmod`,
+  заголовки ядра (на Debian/Ubuntu) — после интерактивного подтверждения.
+
+Повторный запуск безопасен: уже установленные бинарники и пакеты не
+переустанавливаются, существующий `config.yml` не затирается.
 
 ### Docker
 
 ```bash
 # 1. Скачать бандл (последняя версия)
-curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.0-bundle.tar.gz
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.2-bundle.tar.gz
 
 # 2. Распаковать
 mkdir awg-portal && cd awg-portal
-tar xzf ../awg-portal-v2.0.0-bundle.tar.gz --strip-components=1
+tar xzf ../awg-portal-v2.0.2-bundle.tar.gz --strip-components=1
 
 # 3. Запустить установку (автовыбор архитектуры)
 sudo bash install.sh
@@ -118,11 +140,13 @@ sudo nano /opt/awg-portal/config.yml
 sudo systemctl enable --now awg-portal
 ```
 
-В бандле (`awg-portal-v2.0.0/`):
-- `bin/wg-portal-amd64` — основной бинарник (есть также `wg-portal-arm64` и `wg-portal-arm`)
+В бандле (`awg-portal-v2.0.2/`):
+- `install.sh` — единый идемпотентный инсталлятор (см. выше)
+- `uninstall.sh` — идемпотентный деинсталлятор (полный purge по умолчанию)
+- `bin/wg-portal-amd64` — основной бинарник (есть также `wg-portal-arm64`,
+  `wg-portal-arm`, `wg-portal-riscv64`)
 - `bin/amneziawg-go` — userspace AmneziaWG (для обфускации)
 - `config.yml.sample` — образец конфига
-- `install.sh` — скрипт установки systemd-юнита (с поддержкой всех вариантов бандла)
 
 Скрипт устанавливает основной бинарник в `/usr/local/bin/awg-portal`,
 создаёт `/opt/awg-portal/data` и `/opt/awg-portal/config`, а systemd-юнит
@@ -130,11 +154,10 @@ sudo systemctl enable --now awg-portal
 `amneziawg-go` устанавливается в `/usr/local/bin/amneziawg-go`.
 Юнит также задаёт `RuntimeDirectory=amneziawg`: systemd создаёт
 `/run/amneziawg` для UAPI-сокетов AWG при старте сервиса.
-> **Примечание:** В бандлах до v1.4.0 включительно install.sh мог лежать
-> в `deploy/install.sh` рядом с бинарниками в корне архива. Скрипт
-> `install.sh` умеет находить бинарники во всех вариантах раскладки
-> (`bin/`, `dist/`, плоский корень), поэтому работает одинаково независимо
-> от того, в `deploy/` он или в корне бандла.
+
+> **Примечание:** В бандлах до v1.4.0 включительно `install.sh` лежал
+> в `deploy/install.sh`. С v2.0.0 это симлинк на корневой `install.sh` —
+> поведение и команды не изменились.
 
 ### Ручной запуск (без установки)
 
@@ -148,6 +171,45 @@ sudo ./awg-portal
 
 Конфиг ищется по пути из переменной `WG_PORTAL_CONFIG`. Если не задана —
 `config/config.yml` относительно рабочей директории.
+
+### Деинсталляция
+
+В бандл входит идемпотентный деинсталлятор `uninstall.sh`. По умолчанию —
+полный purge:
+
+- останавливает и отключает systemd-сервис;
+- снимает все WireGuard/AmneziaWG интерфейсы через `ip link delete`
+  (и `wg-quick down` там, где есть конфиг в `/etc/wireguard/`);
+- удаляет `/usr/local/bin/awg-portal` и `/usr/local/bin/amneziawg-go`;
+- удаляет `/opt/awg-portal/` (данные и конфиги) и `/run/amneziawg`;
+- удаляет пользователя `awg-portal` и unit `awg-portal.service`;
+- удаляет `/etc/modprobe.d/blacklist-amneziawg.conf`, если создавался.
+
+Системные пакеты (`wireguard-tools`, `iptables`, `openresolv`) **не
+трогает** по умолчанию — для этого нужен явный флаг `--purge-system-deps`.
+
+```bash
+# Только посмотреть, что будет удалено (ничего не делает):
+sudo bash uninstall.sh --dry-run
+
+# Подтверждать каждый шаг вручную (по умолчанию):
+sudo bash uninstall.sh
+
+# Без подтверждений (пакеты НЕ трогает):
+sudo bash uninstall.sh --yes
+
+# Полный purge вместе с системными пакетами:
+sudo bash uninstall.sh --yes --purge-system-deps
+
+# Сохранить данные и пользователя (только снести бинарники и unit):
+sudo bash uninstall.sh --keep-data --keep-user
+```
+
+> **Внимание:** `wg-quick down`/`ip link delete` затрагивает все
+> `wg*`/`awg*` интерфейсы в системе. Если на хосте есть WG-интерфейсы,
+> не относящиеся к порталу, снимите их заранее или отредактируйте список
+> вручную. Конфиги в `/etc/wireguard/` скрипт не удаляет — уберите их
+> сами, если они больше не нужны.
 
 ### Конфигурация
 
@@ -419,13 +481,13 @@ CGO_ENABLED=0 go build -ldflags "-X github.com/DanilenkA/awg-portal/internal.Ver
 ### Бинарный бандл (без Docker)
 
 ```bash
-# Все бинарники кладутся в dist/
-make build-amd64          # → dist/wg-portal-amd64
+# Все бинарники кладутся в dist/, install.sh копируется туда же
+make build-amd64          # → dist/{wg-portal-amd64,install.sh}
 # или
-make build                # → dist/wg-portal
+make build                # → dist/{wg-portal,install.sh}
 
-# Установить на сервер из dist/
-sudo bash dist/install.sh
+# Установить на сервер из dist/ (или из корня репо):
+sudo bash install.sh
 ```
 
 > Прямая сборка через `go build` без Makefile не рекомендуется — Makefile

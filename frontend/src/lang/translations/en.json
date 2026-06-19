@@ -168,7 +168,11 @@
     "peer-expiring": "Peer is expiring at",
     "peer-connected": "Connected",
     "peer-not-connected": "Not Connected",
-    "peer-handshake": "Last handshake:"
+    "peer-handshake": "Last handshake:",
+    "traffic": {
+      "cumulative": "Totals",
+      "rate": "Rate"
+    }
   },
   "users": {
     "headline": "User Administration",

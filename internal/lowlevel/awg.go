@@ -672,10 +672,14 @@ func parseAWGUAPIDevice(r io.Reader) (*wgtypes.Device, error) {
 			}
 		case "public_key":
 			// New peer entry. Public_key on the device dump line signals
-			// the start of a peer block.
+			// the start of a peer block. Reset the handshake accumulators
+			// so a handshake time observed on the PREVIOUS peer cannot
+			// leak into this peer's LastHandshakeTime.
 			dev.Peers = append(dev.Peers, wgtypes.Peer{})
 			cur = &dev.Peers[len(dev.Peers)-1]
 			cur.PublicKey = parseUAPIHexKey(val)
+			hsSec = 0
+			hsNano = 0
 		default:
 			if cur != nil {
 				parseAWGUAPIPeerField(cur, &hsSec, &hsNano, key, val)
@@ -734,7 +738,11 @@ func parseAWGUIDeviceField(dev *wgtypes.Device, key, val string) {
 
 // parseAWGUAPIPeerField populates a peer field from a UAPI key/value
 // pair. The hsSec/hsNano accumulators carry the split-handshake
-// timestamp until both halves are seen.
+// timestamp until both halves are seen. Each peer block MUST pass its
+// own fresh accumulators (see parseAWGUAPIDevice — it zeroes them at
+// every new "public_key" line) — sharing them across peers would leak
+// the previous peer's handshake time into the next peer when the new
+// peer has no handshake recorded.
 func parseAWGUAPIPeerField(p *wgtypes.Peer, hsSec, hsNano *int64, key, val string) {
 	switch key {
 	case "preshared_key":

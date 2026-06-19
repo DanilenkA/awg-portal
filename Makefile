@@ -116,6 +116,8 @@ build-dependencies:
 	@$(GOCMD) mod download -x
 	@mkdir -p $(BUILDDIR)
 	cp scripts/wg-portal.service $(BUILDDIR)
+	cp install.sh $(BUILDDIR)
+	cp uninstall.sh $(BUILDDIR)
 
 #< frontend: Build Vue.js frontend
 frontend: frontend-dependencies
