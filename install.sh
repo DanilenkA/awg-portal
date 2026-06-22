@@ -154,10 +154,14 @@ fi
 pkg_list() {
   case "$DISTRO_FAMILY" in
     debian)
-      # resolvconf на современных Ubuntu уже не нужен (systemd-resolved),
-      # но пакет `openresolv` остаётся актуальным для wg-quick.
-      # `iptables` — зависимость nftables; на Debian 12 он присутствует в образе.
-      echo "wireguard-tools iptables openresolv kmod linux-headers-$(uname -r)"
+      local pkgs="wireguard-tools iptables kmod"
+      # openresolv: на Ubuntu 22+ не нужен (systemd-resolved), и пакет
+      # отсутствует в репозитории Ubuntu 24.04. На более старых Ubuntu и
+      # на Debian он всё ещё актуален для wg-quick.
+      if [ "$DISTRO" != "ubuntu" ] || [ -z "${VERSION_ID:-}" ] || [ "${VERSION_ID%%.*}" -lt 22 ] 2>/dev/null; then
+        pkgs="$pkgs openresolv"
+      fi
+      echo "$pkgs linux-headers-$(uname -r)"
       ;;
     rpm)
       echo "wireguard-tools iptables openresolv kmod"
