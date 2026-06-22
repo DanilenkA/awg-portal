@@ -115,7 +115,7 @@ ARCH=""
 case "$(uname -m)" in
   x86_64|amd64)        ARCH="amd64"  ;;
   aarch64|arm64)       ARCH="arm64"  ;;
-  armv7l|armv7|armv8l) ARCH="armv7" ;;
+  armv7l|armv7|armv8l) ARCH="arm" ;;
   riscv64)             ARCH="riscv64" ;;
   *)
     err "Неизвестная архитектура: $(uname -m)"

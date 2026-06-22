@@ -13,6 +13,10 @@ permissions:
   contents: read
   packages: write
 
+# ─── Архитектуры ──────────────────────────────────────────────────────────────
+env:
+  PLATFORMS: linux/amd64,linux/arm64,linux/arm/v7
+
 jobs:
   test:
     name: Go Tests
@@ -51,6 +55,11 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3.6.0
+        with:
+          platforms: arm64,arm
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
@@ -81,7 +90,8 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Docker image
+      # ─── Шаг 1: Multi-arch Docker образ ──────────────────────────────────
+      - name: Build and push multi-arch Docker image
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
@@ -89,72 +99,189 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
-          platforms: linux/amd64
+          platforms: ${{ env.PLATFORMS }}
           build-args: |
             BUILD_VERSION=${{ env.BUILD_VERSION }}
 
-      - name: Export binary from image
+      # ─── Шаг 2: Экспорт wg-portal для всех архитектур ───────────────────
+      - name: Export wg-portal binaries (multi-arch)
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
-          platforms: linux/amd64
+          platforms: ${{ env.PLATFORMS }}
           target: binaries
-          outputs: type=local,dest=./binaries
+          outputs: type=local,dest=./binaries/wg-portal
           build-args: |
             BUILD_VERSION=${{ env.BUILD_VERSION }}
 
+      # ─── Шаг 3: Экспорт amneziawg-go для всех архитектур ─────────────────
+      - name: Export amneziawg-go binaries (multi-arch)
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          platforms: ${{ env.PLATFORMS }}
+          target: amneziawg
+          outputs: type=local,dest=./binaries/amneziawg-go
+
+      # ─── Шаг 4: Нормализация путей ──────────────────────────────────────
       - name: Normalize binary paths
         run: |
-          # buildx v7 puts files under binaries/ without platform subdir
-          # older buildx uses binaries/linux/amd64/
-          mkdir -p binaries/linux/amd64
-          if [ -f binaries/wg-portal ] && [ ! -f binaries/linux/amd64/wg-portal ]; then
-            mv binaries/wg-portal binaries/linux/amd64/wg-portal
+          # buildx v7 кладёт файлы в platform-underscored поддиректории
+          # для multi-arch: linux_amd64/, linux_arm64/, linux_arm_v7/
+          #
+          # Приводим к единой структуре:
+          #   binaries/
+          #     amd64/wg-portal
+          #     amd64/amneziawg-go
+          #     arm64/wg-portal
+          #     arm64/amneziawg-go
+          #     arm/wg-portal
+          #     arm/amneziawg-go
+          
+          BINROOT="./binaries"
+          mkdir -p "${BINROOT}/final"
+          
+          # Маппинг: buildx subdir → arch name в бандле
+          for src_dir in linux_amd64 linux_arm64 linux_arm_v7; do
+            case "$src_dir" in
+              linux_amd64)   arch="amd64" ;;
+              linux_arm64)   arch="arm64" ;;
+              linux_arm_v7)  arch="arm" ;;
+              *)             arch="$src_dir" ;;
+            esac
+            
+            mkdir -p "${BINROOT}/final/${arch}"
+            
+            # wg-portal
+            if [ -f "${BINROOT}/wg-portal/${src_dir}/wg-portal" ]; then
+              cp "${BINROOT}/wg-portal/${src_dir}/wg-portal" "${BINROOT}/final/${arch}/wg-portal"
+            elif [ -f "${BINROOT}/wg-portal/wg-portal" ]; then
+              # fallback: flat structure (buildx v7 single arch)
+              cp "${BINROOT}/wg-portal/wg-portal" "${BINROOT}/final/${arch}/wg-portal"
+            fi
+            
+            # amneziawg-go
+            if [ -f "${BINROOT}/amneziawg-go/${src_dir}/amneziawg-go" ]; then
+              cp "${BINROOT}/amneziawg-go/${src_dir}/amneziawg-go" "${BINROOT}/final/${arch}/amneziawg-go"
+            fi
+          done
+          
+          # fallback: если buildx положил файлы без поддиректорий (single-arch)
+          if [ -f "${BINROOT}/wg-portal/wg-portal" ] && [ ! -f "${BINROOT}/final/amd64/wg-portal" ]; then
+            mkdir -p "${BINROOT}/final/amd64"
+            cp "${BINROOT}/wg-portal/wg-portal" "${BINROOT}/final/amd64/wg-portal"
           fi
+          
+          echo "=== Normalized binaries ==="
+          find "${BINROOT}/final" -type f -ls
 
       - name: Compute build tag
         if: startsWith(github.ref, 'refs/tags/v')
         run: echo "BUILD_TAG=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
 
-      - name: Export amneziawg-go binary
+      # ─── Шаг 5: Генерация русских release notes ──────────────────────────
+      - name: Generate Russian release notes
         if: startsWith(github.ref, 'refs/tags/v')
+        id: release_notes
+        shell: bash
         run: |
-          mkdir -p binaries/linux/amd64
-          docker create --name awg-extract ghcr.io/danilenka/awg-portal:${{ github.ref_name }}
-          docker cp awg-extract:/usr/local/bin/amneziawg-go ./binaries/linux/amd64/amneziawg-go
-          docker rm awg-extract
+          VERSION="${{ github.ref_name }}"
+          # Собираем коммиты с предыдущего тега
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --oneline --no-merges)
+          else
+            CHANGELOG=$(git log --oneline --no-merges "${PREV_TAG}..HEAD")
+          fi
+          
+          # Формируем описание релиза на русском
+          NOTES_FILE="/tmp/release-notes-${VERSION}.md"
+          {
+            echo "# awg-portal ${VERSION}"
+            echo ""
+            # Если есть файл RELEASE_NOTES.md — используем его
+            if [ -f RELEASE_NOTES.md ]; then
+              cat RELEASE_NOTES.md
+            else
+              echo "## Что нового"
+              echo ""
+              # Группируем коммиты по типам
+              echo "$CHANGELOG" | grep -i "feat\|add\|new\|feature" | sed 's/^/- /' || echo "- (нет)"
+              echo ""
+              echo "## Исправлено"
+              echo ""
+              echo "$CHANGELOG" | grep -i "fix\|bug\|correct\|repair\|resolve" | sed 's/^/- /' || echo "- (нет)"
+              echo ""
+              echo "## Прочее"
+              echo ""
+              echo "$CHANGELOG" | grep -v -i "feat\|add\|new\|feature\|fix\|bug\|correct\|repair\|resolve\|deps" | sed 's/^/- /' || echo "- (нет)"
+            fi
+            echo ""
+            echo "## Установка"
+            echo ""
+            echo 'curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/'"awg-portal-${VERSION}-bundle.tar.gz"
+            echo 'mkdir awg-portal && cd awg-portal'
+            echo 'tar xzf ../'"awg-portal-${VERSION}-bundle.tar.gz"' --strip-components=1'
+            echo 'sudo bash install.sh --auto-install-deps'
+            echo 'sudo nano /opt/awg-portal/config.yml'
+            echo 'sudo systemctl enable --now awg-portal'
+            echo ""
+            echo "SHA256: \`$(sha256sum awg-portal-*-bundle.tar.gz | cut -d' ' -f1)\`"
+          } > "$NOTES_FILE"
+          
+          echo "notes_file=${NOTES_FILE}" >> $GITHUB_OUTPUT
+          echo "=== Release notes ==="
+          cat "$NOTES_FILE"
 
+      # ─── Шаг 6: Пакет бандла ─────────────────────────────────────────────
       - name: Package bundle
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           VERSION="${{ github.ref_name }}"
-          # Структура бандла v1.4.0:
-          #   awg-portal-<VERSION>/
-          #     install.sh              <- скрипт установки в корне бандла
-          #     config.yml.sample
-          #     bin/
-          #       wg-portal-amd64       <- основной бинарник
-          #       amneziawg-go
           BUNDLE_ROOT="artifacts/awg-portal-${VERSION}"
           mkdir -p "${BUNDLE_ROOT}/bin"
+          
+          # install.sh
           cp deploy/install.sh "${BUNDLE_ROOT}/install.sh"
-          # Подставляем версию в install.sh
           sed -i "s/VERSION=.*/VERSION=\"$VERSION\"/" "${BUNDLE_ROOT}/install.sh"
+          
+          # config.yml.sample
           cp config.yml.sample "${BUNDLE_ROOT}/"
-          cp binaries/linux/amd64/wg-portal "${BUNDLE_ROOT}/bin/wg-portal-amd64"
-          cp binaries/linux/amd64/amneziawg-go "${BUNDLE_ROOT}/bin/amneziawg-go"
-          cd artifacts
-          tar czf "../awg-portal-${VERSION}-bundle.tar.gz" "awg-portal-${VERSION}"
+          
+          # Бинарники для всех архитектур
+          for arch_dir in amd64 arm64 arm; do
+            src="${BINROOT}/final/${arch_dir}"
+            if [ -f "${src}/wg-portal" ]; then
+              cp "${src}/wg-portal" "${BUNDLE_ROOT}/bin/wg-portal-${arch_dir}"
+              echo "Added: wg-portal-${arch_dir}"
+            fi
+            if [ -f "${src}/amneziawg-go" ]; then
+              cp "${src}/amneziawg-go" "${BUNDLE_ROOT}/bin/amneziawg-go-${arch_dir}"
+              echo "Added: amneziawg-go-${arch_dir}"
+            fi
+          done
+          
+          # SHA256SUMS для бандла
+          cd "${BUNDLE_ROOT}"
+          find . -type f | sort | xargs sha256sum > ../SHA256SUMS
           cd ..
-          echo "Bundle: awg-portal-${VERSION}-bundle.tar.gz"
+          
+          # Архив
+          tar czf "awg-portal-${VERSION}-bundle.tar.gz" "awg-portal-${VERSION}"
+          
+          echo "=== Bundle contents ==="
           tar tzf "awg-portal-${VERSION}-bundle.tar.gz"
+          echo "=== SHA256SUMS ==="
+          cat SHA256SUMS
 
-      - name: Upload artifact
+      - name: Upload artifacts
         if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: bundles
-          path: awg-portal-*-bundle.tar.gz
+          name: release-assets
+          path: |
+            awg-portal-*-bundle.tar.gz
+            SHA256SUMS
           retention-days: 10
 
   release:
@@ -166,13 +293,56 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - name: Download artifact
+      - name: Download artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: bundles
+          name: release-assets
+
+      - name: Generate Russian release notes
+        id: rn
+        shell: bash
+        run: |
+          VERSION="${{ github.ref_name }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            LOG=$(git log --oneline --no-merges)
+          else
+            LOG=$(git log --oneline --no-merges "${PREV_TAG}..HEAD")
+          fi
+          
+          NOTES_FILE="/tmp/rn-${VERSION}.md"
+          {
+            echo "# awg-portal ${VERSION}"
+            echo ""
+            echo "## 🚀 Новое"
+            echo "$LOG" | grep -iE "feat|add|new|feature" | sed 's/^/- /' || echo "- (нет)"
+            echo ""
+            echo "## 🐛 Исправлено"
+            echo "$LOG" | grep -iE "fix|bug|correct|repair|resolve" | sed 's/^/- /' || echo "- (нет)"
+            echo ""
+            echo "## 🔧 Прочее"
+            echo "$LOG" | grep -viE "feat|add|new|feature|fix|bug|correct|repair|resolve" | grep -v "^$" | sed 's/^/- /' || echo "- (нет)"
+            echo ""
+            echo "## 📦 Установка"
+            echo ""
+            echo '```bash'
+            echo "curl -LO https://github.com/${{ github.repository }}/releases/latest/download/awg-portal-${VERSION}-bundle.tar.gz"
+            echo "mkdir awg-portal && cd awg-portal"
+            echo "tar xzf ../awg-portal-${VERSION}-bundle.tar.gz --strip-components=1"
+            echo "sudo bash install.sh --auto-install-deps"
+            echo "sudo nano /opt/awg-portal/config.yml"
+            echo "sudo systemctl enable --now awg-portal"
+            echo '```'
+          } > "$NOTES_FILE"
+          
+          echo "path=${NOTES_FILE}" >> $GITHUB_OUTPUT
+          cat "$NOTES_FILE"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
-          files: 'awg-portal-*-bundle.tar.gz'
-          generate_release_notes: true
+          files: |
+            awg-portal-*-bundle.tar.gz
+            SHA256SUMS
+          body_path: ${{ steps.rn.outputs.path }}
+          fail_on_unmatched_globs: true
