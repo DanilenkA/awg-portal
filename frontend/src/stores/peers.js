@@ -13,6 +13,14 @@ export const peerStore = defineStore('peers', {
     peers: [],
     stats: {},
     statsEnabled: false,
+    // statsLoaded is true once the first /stats response has been received
+    // successfully. The UI uses it to tell "peer offline" (statsLoaded && !IsConnected)
+    // apart from "stats not available yet" (loading state).
+    statsLoaded: false,
+    // Last error message from a failed /stats fetch — surfaced to the UI so
+    // we can show why the status column is empty (404, network down, server
+    // error, etc.) instead of pretending peers are simply "offline".
+    statsError: null,
     peer: freshPeer(),
     prepared: freshPeer(),
     configuration: "",
@@ -120,9 +128,17 @@ export const peerStore = defineStore('peers', {
         this.stats = {}
         this.statsEnabled = false
         this.trafficStats = {}
+        this.statsLoaded = false
+        this.statsError = null
+        this.statsErrorNotified = false
       } else {
           this.stats = statsResponse.Stats
           this.statsEnabled = statsResponse.Enabled
+          this.statsLoaded = true
+          this.statsError = null
+          // Clear the "already notified" flag so a future failure will
+          // surface to the user exactly once.
+          this.statsErrorNotified = false
       }
     },
     updatePeerTrafficStats(peerStats) {
@@ -135,6 +151,8 @@ export const peerStore = defineStore('peers', {
     async Reset() {
       this.setPeers([])
       this.setStats(undefined)
+      this.statsError = null
+      this.statsErrorNotified = false
     },
     async PreparePeer(interfaceId) {
       return apiWrapper.get(`${baseUrl}/iface/${base64_url_encode(interfaceId)}/prepare`)
@@ -202,12 +220,47 @@ export const peerStore = defineStore('peers', {
       return apiWrapper.get(`${baseUrl}/iface/${base64_url_encode(interfaceId)}/stats`)
         .then(this.setStats)
         .catch(error => {
-          this.setStats(undefined)
+          // Differentiate between "stats not available" (404 / disabled on
+          // the server) and a transient network/server failure. The
+          // periodic refresh loop calls this every 30s, so we suppress the
+          // user-visible toast for background refreshes — the previous
+          // behavior of "Failed to load peer stats!" on every tick was
+          // extremely noisy.
+          //
+          // fetch-wrapper rejects with a plain string (the server's Message
+          // field, or the status text), so we cannot pull `error.status` —
+          // detect "not enabled" by matching the message text instead.
+          //
+          // Important: keep statsEnabled as-is if it was previously true.
+          // A transient network blip shouldn't make the status column
+          // vanish — instead, set statsError and let the UI surface the
+          // failure as a banner so the user knows the column may be stale.
+          const messageText = typeof error === 'string'
+            ? error
+            : (error && (error.message || error.Message)) || 'Unknown error'
+          const looksDisabled = /not (enabled|supported|available)|disabled/i.test(messageText)
+          const friendly = looksDisabled
+            ? 'Statistics are not enabled on the server.'
+            : messageText
+          this.statsError = friendly
+          // If stats were never enabled, drop the cached snapshot so we
+          // don't render misleading zeros. If they WERE enabled, leave the
+          // last-known state visible until we recover.
+          if (!this.statsEnabled) {
+            this.stats = {}
+            this.trafficStats = {}
+            this.statsLoaded = false
+          }
           console.log("Failed to load peer stats: ", error)
-          notify({
-            title: "Backend Connection Failure",
-            text: "Failed to load peer stats!",
-          })
+          // Only show the toast for the very first attempt — silent
+          // thereafter until the user reloads or the endpoint recovers.
+          if (!this.statsErrorNotified) {
+            this.statsErrorNotified = true
+            notify({
+              title: "Backend Connection Failure",
+              text: friendly,
+            })
+          }
         })
     },
     async DeletePeer(id) {
