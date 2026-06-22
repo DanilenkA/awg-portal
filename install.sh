@@ -80,6 +80,10 @@ else
   BUNDLE_DIR="${SCRIPT_DIR}"
 fi
 
+# ─── ANSI-коды (определяем заранее — используются ниже в логе) ─────────────
+WARN=$'\033[1;33m'
+RESET=$'\033[0m'
+
 # ─── Утилиты логирования ──────────────────────────────────────────────────────
 log()  { printf '%b\n' "$*"; }
 info() { log "  $*"; }
@@ -547,7 +551,3 @@ log "  • Требуется /dev/net/tun (уже проверено)."
 log "  • awg_mode: auto в config.yml выберет AWG только для интерфейсов с обфускацией."
 log "  • Если в ядре есть модуль amneziawg и он конфликтует — занесите в blacklist:"
 log "         echo 'blacklist amneziawg' | sudo tee /etc/modprobe.d/blacklist-amneziawg.conf"
-
-# ANSI-коды оставляем как переменные на случай подстановки выше.
-WARN=$'\033[1;33m'
-RESET=$'\033[0m'

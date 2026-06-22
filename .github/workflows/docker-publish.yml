@@ -120,7 +120,7 @@ jobs:
         with:
           context: .
           platforms: ${{ env.PLATFORMS }}
-          target: amneziawg
+          target: amneziawg-bin
           outputs: type=local,dest=./binaries/amneziawg-go
 
       # ─── Шаг 4: Нормализация путей ──────────────────────────────────────
@@ -137,10 +137,10 @@ jobs:
           #     arm64/amneziawg-go
           #     arm/wg-portal
           #     arm/amneziawg-go
-          
+
           BINROOT="./binaries"
           mkdir -p "${BINROOT}/final"
-          
+
           # Маппинг: buildx subdir → arch name в бандле
           for src_dir in linux_amd64 linux_arm64 linux_arm_v7; do
             case "$src_dir" in
@@ -149,41 +149,42 @@ jobs:
               linux_arm_v7)  arch="arm" ;;
               *)             arch="$src_dir" ;;
             esac
-            
+
             mkdir -p "${BINROOT}/final/${arch}"
-            
+
             # wg-portal
             if [ -f "${BINROOT}/wg-portal/${src_dir}/wg-portal" ]; then
               cp "${BINROOT}/wg-portal/${src_dir}/wg-portal" "${BINROOT}/final/${arch}/wg-portal"
             fi
-            
+
             # amneziawg-go
             if [ -f "${BINROOT}/amneziawg-go/${src_dir}/amneziawg-go" ]; then
               cp "${BINROOT}/amneziawg-go/${src_dir}/amneziawg-go" "${BINROOT}/final/${arch}/amneziawg-go"
             fi
           done
-          
-          # fallback: если buildx положил файлы без поддиректорий (single-arch)
+
+          # fallback: если buildx положил файлы без поддиректорий (single-arch,
+          # например когда шаги 2/3 отработали для одного таргета)
           if [ -f "${BINROOT}/wg-portal/wg-portal" ] && [ ! -f "${BINROOT}/final/amd64/wg-portal" ]; then
             mkdir -p "${BINROOT}/final/amd64"
             cp "${BINROOT}/wg-portal/wg-portal" "${BINROOT}/final/amd64/wg-portal"
           fi
-          
+          if [ -f "${BINROOT}/amneziawg-go/amneziawg-go" ] && [ ! -f "${BINROOT}/final/amd64/amneziawg-go" ]; then
+            mkdir -p "${BINROOT}/final/amd64"
+            cp "${BINROOT}/amneziawg-go/amneziawg-go" "${BINROOT}/final/amd64/amneziawg-go"
+          fi
+
           echo "=== Normalized binaries ==="
           find "${BINROOT}/final" -type f -ls
+
+          # BINROOT нужен в шаге "Package bundle" ниже — экспортируем в env.
+          echo "BINROOT=${BINROOT}" >> "$GITHUB_ENV"
 
       - name: Compute build tag
         if: startsWith(github.ref, 'refs/tags/v')
         run: echo "BUILD_TAG=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
 
-      # ─── Шаг 5: SHA256SUMS (release notes генерируются в release job) ──
-      - name: Generate SHA256SUMS
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: bash
-        run: |
-          echo "Release notes генерируются в release job"
-
-      # ─── Шаг 6: Пакет бандла ─────────────────────────────────────────────
+      # ─── Шаг 5: Пакет бандла ─────────────────────────────────────────────
       - name: Package bundle
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
@@ -191,8 +192,9 @@ jobs:
           BUNDLE_ROOT="artifacts/awg-portal-${VERSION}"
           mkdir -p "${BUNDLE_ROOT}/bin"
           
-          # install.sh
-          cp deploy/install.sh "${BUNDLE_ROOT}/install.sh"
+          # install.sh (корневая копия — каноническая, deploy/install.sh
+          # legacy-зеркало для обратной совместимости).
+          cp install.sh "${BUNDLE_ROOT}/install.sh"
           sed -i "s/VERSION=.*/VERSION=\"$VERSION\"/" "${BUNDLE_ROOT}/install.sh"
           
           # config.yml.sample
@@ -211,14 +213,13 @@ jobs:
             fi
           done
           
-          # SHA256SUMS для бандла
-          cd "${BUNDLE_ROOT}"
-          find . -type f | sort | xargs sha256sum > ../SHA256SUMS
-          cd ..
-          
-          # Архив
-          tar czf "awg-portal-${VERSION}-bundle.tar.gz" "awg-portal-${VERSION}"
-          
+          # SHA256SUMS для бандла (один файл на корень artifacts/)
+          ( cd "${BUNDLE_ROOT}" && find . -type f | sort | xargs sha256sum ) > SHA256SUMS
+
+          # Архив (создаётся в корне GITHUB_WORKSPACE, чтобы upload-artifact
+          # подхватил его по glob без правки path)
+          tar czf "awg-portal-${VERSION}-bundle.tar.gz" -C artifacts "awg-portal-${VERSION}"
+
           echo "=== Bundle contents ==="
           tar tzf "awg-portal-${VERSION}-bundle.tar.gz"
           echo "=== SHA256SUMS ==="
