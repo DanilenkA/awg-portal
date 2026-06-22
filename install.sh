@@ -4,7 +4,7 @@
 #
 # Идемпотентный установщик для чистой машины:
 #   - определяет дистрибутив (debian/ubuntu/fedora/arch/alpine/rhel) и
-#     архитектуру (amd64/arm64/armv7/riscv64);
+#     архитектуру (amd64/arm64/arm);
 #   - ставит системные зависимости (wireguard-tools, модуль ядра wireguard,
 #     resolvconf, iptables) — после интерактивного подтверждения или при
 #     наличии флага --auto-install-deps;
@@ -80,6 +80,10 @@ else
   BUNDLE_DIR="${SCRIPT_DIR}"
 fi
 
+# ─── ANSI-коды (определяем заранее — используются ниже в логе) ─────────────
+WARN=$'\033[1;33m'
+RESET=$'\033[0m'
+
 # ─── Утилиты логирования ──────────────────────────────────────────────────────
 log()  { printf '%b\n' "$*"; }
 info() { log "  $*"; }
@@ -115,11 +119,11 @@ ARCH=""
 case "$(uname -m)" in
   x86_64|amd64)        ARCH="amd64"  ;;
   aarch64|arm64)       ARCH="arm64"  ;;
-  armv7l|armv7|armv8l) ARCH="armv7" ;;
-  riscv64)             ARCH="riscv64" ;;
+  armv7l|armv7|armv8l) ARCH="arm" ;;
+  # riscv64)           ARCH="riscv64" ;;   # см. CHECKLIST Бубнилы — не собирается CI
   *)
     err "Неизвестная архитектура: $(uname -m)"
-    err "Поддерживаются: amd64, arm64, armv7, riscv64."
+    err "Поддерживаются: amd64, arm64, arm."
     exit 1
     ;;
 esac
@@ -154,10 +158,14 @@ fi
 pkg_list() {
   case "$DISTRO_FAMILY" in
     debian)
-      # resolvconf на современных Ubuntu уже не нужен (systemd-resolved),
-      # но пакет `openresolv` остаётся актуальным для wg-quick.
-      # `iptables` — зависимость nftables; на Debian 12 он присутствует в образе.
-      echo "wireguard-tools iptables openresolv kmod linux-headers-$(uname -r)"
+      local pkgs="wireguard-tools iptables kmod"
+      # openresolv: на Ubuntu 22+ не нужен (systemd-resolved), и пакет
+      # отсутствует в репозитории Ubuntu 24.04. На более старых Ubuntu и
+      # на Debian он всё ещё актуален для wg-quick.
+      if [ "$DISTRO" != "ubuntu" ] || [ -z "${VERSION_ID:-}" ] || [ "${VERSION_ID%%.*}" -lt 22 ] 2>/dev/null; then
+        pkgs="$pkgs openresolv"
+      fi
+      echo "$pkgs linux-headers-$(uname -r)"
       ;;
     rpm)
       echo "wireguard-tools iptables openresolv kmod"
@@ -344,7 +352,7 @@ install_awg_portal_binary() {
     :
   else
     err "Бинарник awg-portal не найден для ARCH=${ARCH}."
-    err "  Ожидается один из: ${BUNDLE_DIR}/bin/wg-portal-{amd64,arm64,armv7,riscv64}"
+    err "  Ожидается один из: ${BUNDLE_DIR}/bin/wg-portal-{amd64,arm64,arm}"
     err "  или плоский: ${BUNDLE_DIR}/wg-portal"
     err "  Пересоберите бандл: make build-amd64 (или все цели)."
     exit 1
@@ -543,7 +551,3 @@ log "  • Требуется /dev/net/tun (уже проверено)."
 log "  • awg_mode: auto в config.yml выберет AWG только для интерфейсов с обфускацией."
 log "  • Если в ядре есть модуль amneziawg и он конфликтует — занесите в blacklist:"
 log "         echo 'blacklist amneziawg' | sudo tee /etc/modprobe.d/blacklist-amneziawg.conf"
-
-# ANSI-коды оставляем как переменные на случай подстановки выше.
-WARN=$'\033[1;33m'
-RESET=$'\033[0m'

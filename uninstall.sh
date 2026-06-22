@@ -248,7 +248,7 @@ info "Шаг 6/6: Системные пакеты"
 if [ "$PURGE_SYSTEM_DEPS" != "1" ]; then
   info "Пропущено (нужен флаг --purge-system-deps)"
   info "  Если хотите удалить вручную:"
-  info "    apt-get purge --auto-remove wireguard-tools iptables openresolv"
+  info "    apt-get purge --auto-remove wireguard-tools iptables [openresolv - only on old Ubuntu/Debian]"
   info "    dnf remove wireguard-tools iptables openresolv"
   info "    pacman -Rns wireguard-tools iptables openresolv"
   info "    apk del wireguard-tools iptables openresolv"
@@ -273,7 +273,13 @@ else
     warn "Не удалось определить пакетный менеджер — пропускаем"
   else
     case "$FAMILY" in
-      debian) pkgs="wireguard-tools iptables openresolv" ;;
+      debian)
+        if [ "$DISTRO" != "ubuntu" ] || [ -z "${VERSION_ID:-}" ] || [ "${VERSION_ID%%.*}" -lt 22 ] 2>/dev/null; then
+          pkgs="wireguard-tools iptables openresolv"
+        else
+          pkgs="wireguard-tools iptables"
+        fi
+        ;;
       rpm)    pkgs="wireguard-tools iptables openresolv" ;;
       arch)   pkgs="wireguard-tools iptables openresolv" ;;
       alpine) pkgs="wireguard-tools iptables openresolv" ;;

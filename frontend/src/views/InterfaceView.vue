@@ -253,6 +253,28 @@ function friendlyLastHandshake(ts) {
     return ts
   }
 }
+
+// Returns a short, human-readable "5s ago" / "3m ago" / "2h ago" string.
+// Falls back to the locale string for handshakes older than 24h or if the
+// timestamp is missing/invalid.
+function relativeLastHandshake(ts) {
+  if (!ts) return '—'
+  try {
+    const date = new Date(ts)
+    if (isNaN(date.getTime())) return ts
+    const diffMs = Date.now() - date.getTime()
+    if (diffMs < 0) return date.toLocaleString() // clock skew
+    const sec = Math.floor(diffMs / 1000)
+    if (sec < 60) return sec + 's ago'
+    const min = Math.floor(sec / 60)
+    if (min < 60) return min + 'm ago'
+    const hr = Math.floor(min / 60)
+    if (hr < 24) return hr + 'h ago'
+    return date.toLocaleString()
+  } catch {
+    return ts
+  }
+}
 </script>
 
 <template>
@@ -504,7 +526,16 @@ function friendlyLastHandshake(ts) {
       <p>{{ $t('interfaces.no-peer.abstract') }}</p>
     </div>
 
-    <div v-else class="card">
+    <div v-else>
+      <div v-if="peers.statsError" class="alert alert-warning d-flex align-items-center gap-2 mb-3" role="alert">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>{{ peers.statsError }}</span>
+        <button class="btn btn-link btn-sm p-0 ms-auto" type="button" @click.prevent="peers.LoadStats()">
+          <i class="fa-solid fa-rotate-right me-1"></i>{{ $t('general.retry') || 'Retry' }}
+        </button>
+      </div>
+
+      <div class="card">
       <table class="data-table">
         <thead>
           <tr>
@@ -561,10 +592,19 @@ function friendlyLastHandshake(ts) {
               <span v-if="peers.Statistics(peer.Identifier).IsConnected" class="d-inline-flex align-items-center gap-2">
                 <span class="status-dot active"></span>
                 <span class="text-success fw-500">{{ $t('interfaces.peer-connected') }}</span>
+                <span class="text-muted-sm"
+                      :title="$t('interfaces.peer-handshake') + ' ' + friendlyLastHandshake(peers.Statistics(peer.Identifier).LastHandshake)">
+                  <i class="fa-regular fa-clock me-1"></i>{{ relativeLastHandshake(peers.Statistics(peer.Identifier).LastHandshake) }}
+                </span>
               </span>
               <span v-else class="d-inline-flex align-items-center gap-2">
                 <span class="status-dot inactive"></span>
                 <span class="text-muted">{{ $t('interfaces.peer-not-connected') }}</span>
+                <span v-if="peers.Statistics(peer.Identifier).LastHandshake"
+                      class="text-muted-sm"
+                      :title="$t('interfaces.peer-handshake') + ' ' + friendlyLastHandshake(peers.Statistics(peer.Identifier).LastHandshake)">
+                  <i class="fa-regular fa-clock me-1"></i>{{ relativeLastHandshake(peers.Statistics(peer.Identifier).LastHandshake) }}
+                </span>
               </span>
             </td>
             <td v-if="peers.hasStatistics" class="text-mono-sm">
@@ -590,6 +630,7 @@ function friendlyLastHandshake(ts) {
           </tr>
         </tbody>
       </table>
+    </div>
     </div>
 
     <Pagination

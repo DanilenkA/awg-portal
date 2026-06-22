@@ -22,7 +22,8 @@
     "copy": "Copy",
     "copied": "Copied",
     "selected": "selected",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "retry": "Retry"
   },
   "login": {
     "headline": "Please sign in",

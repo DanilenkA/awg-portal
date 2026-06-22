@@ -52,10 +52,23 @@ COPY --from=builder /build/dist/wg-portal /
 ######
 FROM --platform=${BUILDPLATFORM} golang:1.26-alpine AS amneziawg
 ARG TARGETARCH
-RUN apk add --no-cache git
-WORKDIR /build
-RUN git clone --depth 1 https://github.com/amnezia-vpn/amneziawg-go.git . && \
-    CGO_ENABLED=0 GOARCH=${TARGETARCH} go build -ldflags "-w -s" -o /build/amneziawg-go .
+ARG AMNEZIAWG_COMMIT=1cc94272ca8e
+RUN apk add --no-cache git ca-certificates
+WORKDIR /src
+# Shallow clone + checkout of a pinned commit.
+# `git checkout <sha>` after `--depth 1` clone triggers a smart-HTTP fetch
+# of just that commit (no need for `git fetch` of an explicit ref), and
+# keeps the working tree small (~364K of .git).
+RUN git clone --depth 1 https://github.com/amnezia-vpn/amneziawg-go.git amneziawg && \
+    cd amneziawg && \
+    git checkout "${AMNEZIAWG_COMMIT}" && \
+    CGO_ENABLED=0 GOARCH=${TARGETARCH} go build -ldflags "-w -s" -o /out/amneziawg-go .
+
+######
+# Export amneziawg-go binary (isolated from Go module cache / .git)
+######
+FROM scratch AS amneziawg-bin
+COPY --from=amneziawg /out/amneziawg-go /amneziawg-go
 
 ######
 # Final image
@@ -67,7 +80,7 @@ RUN apk add --no-cache bash curl iptables nftables openresolv wireguard-tools tz
 ENV TZ=UTC
 # Copy binaries
 COPY --from=builder /build/dist/wg-portal /app/wg-portal
-COPY --from=amneziawg /build/amneziawg-go /usr/local/bin/amneziawg-go
+COPY --from=amneziawg-bin /amneziawg-go /usr/local/bin/amneziawg-go
 # Set the Current Working Directory inside the container
 WORKDIR /app
 # Expose default ports for metrics, web and wireguard
