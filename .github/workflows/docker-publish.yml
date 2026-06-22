@@ -155,9 +155,6 @@ jobs:
             # wg-portal
             if [ -f "${BINROOT}/wg-portal/${src_dir}/wg-portal" ]; then
               cp "${BINROOT}/wg-portal/${src_dir}/wg-portal" "${BINROOT}/final/${arch}/wg-portal"
-            elif [ -f "${BINROOT}/wg-portal/wg-portal" ]; then
-              # fallback: flat structure (buildx v7 single arch)
-              cp "${BINROOT}/wg-portal/wg-portal" "${BINROOT}/final/${arch}/wg-portal"
             fi
             
             # amneziawg-go
@@ -179,59 +176,12 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: echo "BUILD_TAG=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
 
-      # ─── Шаг 5: Генерация русских release notes ──────────────────────────
-      - name: Generate Russian release notes
+      # ─── Шаг 5: SHA256SUMS (release notes генерируются в release job) ──
+      - name: Generate SHA256SUMS
         if: startsWith(github.ref, 'refs/tags/v')
-        id: release_notes
         shell: bash
         run: |
-          VERSION="${{ github.ref_name }}"
-          # Собираем коммиты с предыдущего тега
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
-          if [ -z "$PREV_TAG" ]; then
-            CHANGELOG=$(git log --oneline --no-merges)
-          else
-            CHANGELOG=$(git log --oneline --no-merges "${PREV_TAG}..HEAD")
-          fi
-          
-          # Формируем описание релиза на русском
-          NOTES_FILE="/tmp/release-notes-${VERSION}.md"
-          {
-            echo "# awg-portal ${VERSION}"
-            echo ""
-            # Если есть файл RELEASE_NOTES.md — используем его
-            if [ -f RELEASE_NOTES.md ]; then
-              cat RELEASE_NOTES.md
-            else
-              echo "## Что нового"
-              echo ""
-              # Группируем коммиты по типам
-              echo "$CHANGELOG" | grep -i "feat\|add\|new\|feature" | sed 's/^/- /' || echo "- (нет)"
-              echo ""
-              echo "## Исправлено"
-              echo ""
-              echo "$CHANGELOG" | grep -i "fix\|bug\|correct\|repair\|resolve" | sed 's/^/- /' || echo "- (нет)"
-              echo ""
-              echo "## Прочее"
-              echo ""
-              echo "$CHANGELOG" | grep -v -i "feat\|add\|new\|feature\|fix\|bug\|correct\|repair\|resolve\|deps" | sed 's/^/- /' || echo "- (нет)"
-            fi
-            echo ""
-            echo "## Установка"
-            echo ""
-            echo 'curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/'"awg-portal-${VERSION}-bundle.tar.gz"
-            echo 'mkdir awg-portal && cd awg-portal'
-            echo 'tar xzf ../'"awg-portal-${VERSION}-bundle.tar.gz"' --strip-components=1'
-            echo 'sudo bash install.sh --auto-install-deps'
-            echo 'sudo nano /opt/awg-portal/config.yml'
-            echo 'sudo systemctl enable --now awg-portal'
-            echo ""
-            echo "SHA256: \`$(sha256sum awg-portal-*-bundle.tar.gz | cut -d' ' -f1)\`"
-          } > "$NOTES_FILE"
-          
-          echo "notes_file=${NOTES_FILE}" >> $GITHUB_OUTPUT
-          echo "=== Release notes ==="
-          cat "$NOTES_FILE"
+          echo "Release notes генерируются в release job"
 
       # ─── Шаг 6: Пакет бандла ─────────────────────────────────────────────
       - name: Package bundle

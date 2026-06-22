@@ -54,7 +54,7 @@ FROM --platform=${BUILDPLATFORM} golang:1.26-alpine AS amneziawg
 ARG TARGETARCH
 RUN apk add --no-cache git
 WORKDIR /build
-RUN git clone https://github.com/amnezia-vpn/amneziawg-go.git /src/amneziawg && cd /src/amneziawg && git checkout 1cc94272ca8e && CGO_ENABLED=0 GOARCH=${TARGETARCH} go build -ldflags "-w -s" -o /build/amneziawg-go . && \
+RUN git clone https://github.com/amnezia-vpn/amneziawg-go.git /src/amneziawg && cd /src/amneziawg && git checkout 1cc94272ca8e && \
     CGO_ENABLED=0 GOARCH=${TARGETARCH} go build -ldflags "-w -s" -o /build/amneziawg-go .
 
 ######

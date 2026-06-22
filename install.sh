@@ -4,7 +4,7 @@
 #
 # Идемпотентный установщик для чистой машины:
 #   - определяет дистрибутив (debian/ubuntu/fedora/arch/alpine/rhel) и
-#     архитектуру (amd64/arm64/armv7/riscv64);
+#     архитектуру (amd64/arm64/arm);
 #   - ставит системные зависимости (wireguard-tools, модуль ядра wireguard,
 #     resolvconf, iptables) — после интерактивного подтверждения или при
 #     наличии флага --auto-install-deps;
@@ -116,10 +116,10 @@ case "$(uname -m)" in
   x86_64|amd64)        ARCH="amd64"  ;;
   aarch64|arm64)       ARCH="arm64"  ;;
   armv7l|armv7|armv8l) ARCH="arm" ;;
-  riscv64)             ARCH="riscv64" ;;
+  # riscv64)           ARCH="riscv64" ;;   # см. CHECKLIST Бубнилы — не собирается CI
   *)
     err "Неизвестная архитектура: $(uname -m)"
-    err "Поддерживаются: amd64, arm64, armv7, riscv64."
+    err "Поддерживаются: amd64, arm64, arm."
     exit 1
     ;;
 esac
@@ -348,7 +348,7 @@ install_awg_portal_binary() {
     :
   else
     err "Бинарник awg-portal не найден для ARCH=${ARCH}."
-    err "  Ожидается один из: ${BUNDLE_DIR}/bin/wg-portal-{amd64,arm64,armv7,riscv64}"
+    err "  Ожидается один из: ${BUNDLE_DIR}/bin/wg-portal-{amd64,arm64,arm}"
     err "  или плоский: ${BUNDLE_DIR}/wg-portal"
     err "  Пересоберите бандл: make build-amd64 (или все цели)."
     exit 1
