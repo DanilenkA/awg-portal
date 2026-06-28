@@ -4,7 +4,7 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/DanilenkA/awg-portal/main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/DanilenkA/awg-portal)](https://goreportcard.com/report/github.com/DanilenkA/awg-portal)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/DanilenkA/awg-portal)
-
+## Что нового в v2.0.3
 ## Что нового в v2.0.2
 
 - **Счётчики трафика: cumulative вместо rate** — накопленные RX/TX показываются
