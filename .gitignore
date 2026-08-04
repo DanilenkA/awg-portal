@@ -60,4 +60,4 @@ HANDOFF.md
 /wg-portal/
 
 # graphify: commit the graph itself, but not the extraction cache (regenerable)
-graphify-out/cache/
+graphify-out/
