@@ -113,6 +113,18 @@ func (s GormEncryptedStringSerializer) Value(
 			return nil, err
 		}
 		return s.prefix + encryptedString, nil
+	case domain.PrivateString:
+		if v == "" {
+			return "", nil // empty string, no need to encrypt
+		}
+		if !s.useEncryption {
+			return string(v), nil // keep the original value
+		}
+		encryptedString, err := EncryptAES256(string(v), s.keyPhrase)
+		if err != nil {
+			return nil, err
+		}
+		return s.prefix + encryptedString, nil
 	default:
 		return nil, fmt.Errorf("encryption only supports string values, got %T", fieldValue)
 	}

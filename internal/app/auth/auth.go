@@ -311,6 +311,13 @@ func (a *Authenticator) IsUserValid(ctx context.Context, id domain.UserIdentifie
 	return true
 }
 
+// GetUser returns a user by its identifier. Used by the API layer to load the
+// full user record (e.g. for the TOTP second factor).
+func (a *Authenticator) GetUser(ctx context.Context, id domain.UserIdentifier) (*domain.User, error) {
+	ctx = domain.SetUserInfo(ctx, domain.SystemAdminContextUserInfo()) // switch to admin user context
+	return a.users.GetUser(ctx, id)
+}
+
 // region password authentication
 
 // PlainLogin performs a password authentication for a user. The username and password are trimmed before usage.

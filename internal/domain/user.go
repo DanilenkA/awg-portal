@@ -71,7 +71,33 @@ type User struct {
 	ApiToken        string `form:"api_token" binding:"omitempty" gorm:"serializer:encstr"`
 	ApiTokenCreated *time.Time
 
+	// TOTP two-factor authentication (second factor on top of any first factor, database-source users only)
+	TotpEnabled       bool          // if true, a TOTP code is required after the first factor (password/passkey)
+	TotpSecret        PrivateString `gorm:"serializer:encstr"` // Base32-encoded TOTP secret, stored encrypted like ApiToken; never log
+	TotpRecoveryCodes PrivateString `gorm:"serializer:encstr"` // JSON array of bcrypt-hashed single-use recovery codes
+	TotpLastUsedStep  int64         // last accepted TOTP time-step, used for replay protection
+
 	LinkedPeerCount int `gorm:"-"`
+}
+
+// HasDatabaseSource reports whether the user authenticates against the local database (and thus may use TOTP 2FA).
+// OAuth/LDAP/OIDC users manage 2FA at their external provider and are excluded.
+func (u *User) HasDatabaseSource() bool {
+	return slices.ContainsFunc(u.Authentications, func(e UserAuthentication) bool {
+		return e.Source == UserSourceDatabase
+	})
+}
+
+// CanUseTotp reports whether TOTP 2FA applies to this user (opt-in and database-source only).
+func (u *User) CanUseTotp() bool {
+	return u.HasDatabaseSource()
+}
+
+// TotpEnrollment carries the data a user needs to set up an authenticator app.
+type TotpEnrollment struct {
+	Secret      string // Base32 secret, also encoded in the URL (show once for manual entry)
+	URL         string // otpauth:// URL, renderable as a QR code
+	QRCodeImage []byte // PNG rendering of the URL
 }
 
 // IsDisabled returns true if the user is disabled. In such a case,

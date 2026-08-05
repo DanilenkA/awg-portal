@@ -36,7 +36,16 @@
     },
     "button": "Đăng nhập",
     "button-webauthn": "Sử dụng Passkey",
-    "invalid_credentials": "Email hoặc mật khẩu không hợp lệ"
+    "invalid_credentials": "Email hoặc mật khẩu không hợp lệ",
+    "totp": {
+      "prompt": "Two-factor authentication is enabled for your account. Enter the 6-digit code from your authenticator app.",
+      "label": "Authentication code",
+      "placeholder": "123456",
+      "button": "Verify",
+      "cancel": "Back",
+      "invalid": "Invalid or expired code",
+      "recovery_hint": "Lost access? You can use one of your recovery codes instead."
+    }
   },
   "menu": {
     "home": "Trang chủ",
@@ -250,6 +259,25 @@
       "button-delete-text": "Xóa passkey. Bạn sẽ không thể đăng nhập bằng passkey này nữa.",
       "button-register-title": "Đăng ký Passkey",
       "button-register-text": "Đăng ký Passkey mới để bảo vệ tài khoản của bạn."
+    },
+    "totp": {
+      "headline": "Two-Factor Authentication (2FA)",
+      "abstract": "Add an extra layer of security. After your password or passkey, you'll also enter a 6-digit code from your authenticator app (Google Authenticator, Authy, etc.).",
+      "active-description": "Two-factor authentication is currently enabled for your account.",
+      "inactive-description": "Two-factor authentication is not enabled. Enable it to require a code from your authenticator app at login.",
+      "button-enable-text": "Enable 2FA",
+      "button-enable-title": "Set up two-factor authentication",
+      "button-disable-text": "Disable 2FA",
+      "button-disable-title": "Turn off two-factor authentication",
+      "scan-hint": "Scan this QR code with your authenticator app, then enter the 6-digit code below.",
+      "manual-entry": "Or enter this secret manually:",
+      "confirm-label": "Authentication code",
+      "confirm-placeholder": "123456",
+      "confirm-button": "Verify & Enable",
+      "cancel-button": "Cancel",
+      "recovery-headline": "Save your recovery codes",
+      "recovery-hint": "Store these codes in a safe place. Each can be used once if you lose access to your authenticator app. They will not be shown again.",
+      "recovery-dismiss": "I've saved my codes"
     },
     "password": {
       "headline": "Cài đặt Mật khẩu",

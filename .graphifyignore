@@ -1,0 +1,11 @@
+# graphify exclusions for awg-portal — keep the graph free of vendored deps.
+# .gitignore already covers dist/ and /wg-portal/ (nested upstream clone);
+# node_modules is NOT in .gitignore, so exclude it here (314 vendor .md files).
+node_modules/
+**/node_modules/
+vendor/
+**/vendor/
+dist/
+build/
+.next/
+coverage/

@@ -34,6 +34,15 @@ type SessionData struct {
 
 	WebAuthnData string
 
+	// Pending 2FA state: set after a successful first factor when TOTP is enabled.
+	// The user is NOT logged in (LoggedIn=false) until the TOTP code is validated.
+	PendingTwoFactor       bool
+	PendingTwoFactorUserId string
+
+	// Pending TOTP enrollment secret, held between enroll/start and enroll/confirm.
+	// Never logged; cleared after confirmation.
+	PendingTotpSecret string
+
 	CsrfToken string
 }
 

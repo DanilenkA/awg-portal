@@ -52,16 +52,18 @@ COPY --from=builder /build/dist/wg-portal /
 ######
 FROM --platform=${BUILDPLATFORM} golang:1.26-alpine AS amneziawg
 ARG TARGETARCH
-ARG AMNEZIAWG_COMMIT=1cc94272ca8e
+ARG AMNEZIAWG_COMMIT=1cc94272ca8e9e223a5fe76382f5880f09d3c12d
 RUN apk add --no-cache git ca-certificates
 WORKDIR /src
-# Shallow clone + checkout of a pinned commit.
-# `git checkout <sha>` after `--depth 1` clone triggers a smart-HTTP fetch
-# of just that commit (no need for `git fetch` of an explicit ref), and
-# keeps the working tree small (~364K of .git).
-RUN git clone --depth 1 https://github.com/amnezia-vpn/amneziawg-go.git amneziawg && \
+# Shallow fetch of a pinned commit. `git clone --depth 1` + `git checkout <sha>`
+# is unreliable: the shallow window tracks upstream HEAD, and an old pinned
+# commit eventually falls outside it (pathspec error). Fetching the commit by
+# SHA directly (smart-HTTP allow-tip/allow-reachable sha1) always resolves.
+RUN git init amneziawg && \
     cd amneziawg && \
-    git checkout "${AMNEZIAWG_COMMIT}" && \
+    git remote add origin https://github.com/amnezia-vpn/amneziawg-go.git && \
+    git fetch --depth 1 origin "${AMNEZIAWG_COMMIT}" && \
+    git checkout FETCH_HEAD && \
     CGO_ENABLED=0 GOARCH=${TARGETARCH} go build -ldflags "-w -s" -o /out/amneziawg-go .
 
 ######

@@ -58,3 +58,7 @@ HANDOFF.md
 # Local sibling checkouts used during development; do not commit them
 /amneziawg-go/
 /wg-portal/
+
+# graphify: ignore all build output (regenerable via graphify extract)
+graphify-out/
+/handoffs/

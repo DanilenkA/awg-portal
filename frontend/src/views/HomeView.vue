@@ -55,6 +55,13 @@ const loggingIn = ref(false)
 const username = ref("")
 const password = ref("")
 
+// TOTP second factor state (shown after a successful first factor when 2FA is enabled)
+const totpCode = ref("")
+const totpRef = ref(null)
+const totpFailed = ref(false)
+// Reactive binding to the pending-2FA flag in the auth store.
+const needsTotp = computed(() => auth.needsTotp)
+
 const usernameInvalid = computed(() => username.value === "")
 const passwordInvalid = computed(() => password.value === "")
 const disableLoginBtn = computed(() => usernameInvalid.value || passwordInvalid.value || loggingIn.value)
@@ -190,7 +197,12 @@ const login = async () => {
   const target = postLoginRoute()
   loggingIn.value = true
   try {
-    await auth.Login(username.value, password.value)
+    const result = await auth.Login(username.value, password.value)
+    // Second factor required? Show the TOTP step; do NOT reload or notify success yet.
+    if (result && result.needTotp === true) {
+      loggingIn.value = false
+      return
+    }
     await settings.LoadSettings()
     notify({
       title: "Logged in",
@@ -213,6 +225,33 @@ const login = async () => {
   }
 
   loggingIn.value = false
+}
+
+// loginTotp submits the TOTP (or recovery) code as the second factor.
+const loginTotp = async () => {
+  if (totpCode.value === "") return
+  const target = postLoginRoute()
+  loggingIn.value = true
+  totpFailed.value = false
+  try {
+    await auth.LoginTotp(totpCode.value)
+    notify({ title: "Logged in", text: "Authentication succeeded!", type: 'success' })
+    await settings.LoadSettings()
+    const targetHash = target.startsWith('/') ? `#${target}` : target
+    window.location.assign(`${window.location.origin}${window.location.pathname}${window.location.search}${targetHash}`)
+  } catch (e) {
+    totpFailed.value = true
+    totpCode.value = ""
+    notify({ title: "Login failed!", text: "Invalid or expired code", type: 'error' })
+    setTimeout(() => loggingIn.value = false, 1000)
+  }
+}
+
+// cancelTotp aborts the second factor and returns to the first-factor form.
+const cancelTotp = () => {
+  auth.CancelTotp()
+  totpCode.value = ""
+  totpFailed.value = false
 }
 </script>
 
@@ -238,7 +277,41 @@ const login = async () => {
           <i class="fa-solid fa-right-to-bracket"></i> {{ $t('menu.login') }}
         </button>
 
-        <form v-else key="form" class="login-form root-auth-form" method="post" @submit.prevent="login">
+        <form v-else key="form" class="login-form root-auth-form" method="post" @submit.prevent="needsTotp ? loginTotp() : login()">
+          <!-- TOTP second factor step -->
+          <template v-if="needsTotp">
+            <div class="form-group">
+              <p class="text-muted mb-3">{{ $t('login.totp.prompt') }}</p>
+              <label class="form-label" for="homeInputTotp">{{ $t('login.totp.label') }}</label>
+              <div class="input-group">
+                <span class="input-group-text"><span class="fas fa-shield-halved p-2"></span></span>
+                <input
+                  id="homeInputTotp"
+                  ref="totpRef"
+                  v-model="totpCode"
+                  :class="{'is-invalid': totpFailed}"
+                  :placeholder="$t('login.totp.placeholder')"
+                  class="form-control"
+                  name="totp"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="one-time-code"
+                  autofocus
+                >
+              </div>
+              <small class="form-text text-muted">{{ $t('login.totp.recovery_hint') }}</small>
+            </div>
+            <button :disabled="totpCode === '' || loggingIn" class="btn btn-primary btn-lg root-auth-action" type="submit">
+              {{ $t('login.totp.button') }}
+              <span v-if="loggingIn" class="d-inline"><i class="ms-2 fa-solid fa-circle-notch fa-spin"></i></span>
+            </button>
+            <button :disabled="loggingIn" class="btn btn-outline-secondary root-auth-action" type="button" @click.prevent="cancelTotp">
+              {{ $t('login.totp.cancel') }}
+            </button>
+          </template>
+
+          <!-- First factor step -->
+          <template v-else>
           <div class="form-group">
             <label class="form-label" for="homeInputUsername">{{ $t('login.username.label') }}</label>
             <div class="input-group">
@@ -276,6 +349,7 @@ const login = async () => {
             {{ $t('login.button') }}
             <span v-if="loggingIn" class="d-inline"><i class="ms-2 fa-solid fa-circle-notch fa-spin"></i></span>
           </button>
+          </template>
         </form>
       </Transition>
 
