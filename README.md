@@ -4,7 +4,28 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/DanilenkA/awg-portal/main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/DanilenkA/awg-portal)](https://goreportcard.com/report/github.com/DanilenkA/awg-portal)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/DanilenkA/awg-portal)
+
+## Что нового в v2.0.6
+
+- **Двухфакторная аутентификация (TOTP 2FA)** — опциональный второй фактор поверх
+  любого первого (пароль **или** Passkey). Включение — в настройках профиля
+  (QR-код для Google Authenticator / Authy). Только для локальных (database)
+  пользователей; OAuth/LDAP/OIDC — 2FA на стороне провайдера.
+  - **Rate limiting** — блокировка после 5 неверных кодов за 15 минут (защита от брутфорса)
+  - **Replay protection** — код нельзя использовать дважды
+  - **Recovery codes** — 8 одноразовых кодов на случай потери доступа к приложению
+- **2FA на обеих формах входа** — и на дашборде (HomeView), и на странице /login
+- **Reproducible build amneziawg-go** — Dockerfile теперь фетчит по точному SHA
+  (гарантированно v0.2.19), сборки воспроизводимы
+- **GPG-подпись релизов в CI** — `SHA256SUMS.sig` подписывается автоматически
+  ключом DanilenkA при публикации релиза
+
+**Полный список изменений:** [v2.0.3...v2.0.6](https://github.com/DanilenkA/awg-portal/compare/v2.0.3...v2.0.6)
+
 ## Что нового в v2.0.3
+
+- **CI:** изоляция сборки amneziawg-go, фикс путей бандла в multi-arch экспорте
+
 ## Что нового в v2.0.2
 
 - **Счётчики трафика: cumulative вместо rate** — накопленные RX/TX показываются
@@ -58,6 +79,7 @@
 * Включение / отключение пиров без прерывания соединений
 * Генерация wg-quick/awg-quick конфигов (`wgX.conf`)
 * Аутентификация (БД, OAuth, LDAP), поддержка Passkey
+* **TOTP 2FA (двухфакторная аутентификация)** — второй фактор поверх пароля/Passkey, recovery codes, rate limiting
 * IPv6 готовность
 * Docker-ready
 * Работа с существующими WireGuard-интерфейсами
@@ -79,6 +101,7 @@
 | Статус AWG-пиров (handshake/traffic) | ❌ | ✅ |
 | UI/UX v2 (адаптивный, тёмная тема) | ❌ | ✅ |
 | Мультиязычность (11 языков) | ❌ | ✅ |
+| **TOTP 2FA (двухфакторная аутентификация)** | ❌ | ✅ |
 | Трафик-мониторинг (/traffic dashboard) | ❌ | ✅ |
 | AWG-бейдж в интерфейсе | ❌ | ✅ |
 | SVG-логотип | ❌ | ✅ |
@@ -95,11 +118,11 @@
 
 ```bash
 # 1. Скачать последний бандл
-curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.2-bundle.tar.gz
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.6-bundle.tar.gz
 
 # 2. Распаковать
 mkdir awg-portal && cd awg-portal
-tar xzf ../awg-portal-v2.0.2-bundle.tar.gz --strip-components=1
+tar xzf ../awg-portal-v2.0.6-bundle.tar.gz --strip-components=1
 
 # 3. Запустить установку
 sudo bash install.sh                # интерактивно спросит про apt-get/dnf
@@ -126,11 +149,11 @@ sudo systemctl enable --now awg-portal
 
 ```bash
 # 1. Скачать бандл (последняя версия)
-curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.2-bundle.tar.gz
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.6-bundle.tar.gz
 
 # 2. Распаковать
 mkdir awg-portal && cd awg-portal
-tar xzf ../awg-portal-v2.0.2-bundle.tar.gz --strip-components=1
+tar xzf ../awg-portal-v2.0.6-bundle.tar.gz --strip-components=1
 
 # 3. Запустить установку (автовыбор архитектуры)
 sudo bash install.sh
@@ -140,7 +163,7 @@ sudo nano /opt/awg-portal/config.yml
 sudo systemctl enable --now awg-portal
 ```
 
-В бандле (`awg-portal-v2.0.2/`):
+В бандле (`awg-portal-v2.0.6/`):
 - `install.sh` — единый идемпотентный инсталлятор (см. выше)
 - `uninstall.sh` — идемпотентный деинсталлятор (полный purge по умолчанию)
 - `bin/wg-portal-amd64` — основной бинарник (есть также `wg-portal-arm64`,
