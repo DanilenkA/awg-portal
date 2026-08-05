@@ -262,6 +262,32 @@ jobs:
         with:
           name: release-assets
 
+      - name: Import GPG signing key
+        shell: bash
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
+          # Ключ gtdog@yandex.ru не запаролен — passphrase не нужен.
+          gpg --list-secret-keys --keyid-format long
+
+      - name: Sign SHA256SUMS
+        id: sign
+        shell: bash
+        env:
+          SIGNING_KEY: 95F966F1D92CB9D113F5E1E5C7EE105BD95C41BD
+        run: |
+          # DanilenkA <gtdog@yandex.ru> — канонический release-ключ (RELEASE.md §3).
+          gpg --batch --yes --pinentry-mode loopback \
+            --default-key "${SIGNING_KEY}" \
+            --detach-sign --armor \
+            --output SHA256SUMS.sig \
+            SHA256SUMS
+          # Самопроверка подписи до публикации.
+          gpg --verify SHA256SUMS.sig SHA256SUMS
+          echo "=== SHA256SUMS.sig ==="
+          cat SHA256SUMS.sig
+
       - name: Generate Russian release notes
         id: rn
         shell: bash
@@ -308,5 +334,6 @@ jobs:
           files: |
             awg-portal-*-bundle.tar.gz
             SHA256SUMS
+            SHA256SUMS.sig
           body_path: ${{ steps.rn.outputs.path }}
           fail_on_unmatched_globs: true
