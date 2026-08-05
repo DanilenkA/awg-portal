@@ -59,6 +59,31 @@ type WebAuthnCredentialResponse struct {
 	CreatedAt string `json:"CreatedAt"`
 }
 
+// LoginResponse is returned after a first-factor login attempt. When NeedTotp is
+// true, the user must complete the TOTP second factor before being logged in.
+type LoginResponse struct {
+	NeedTotp bool `json:"NeedTotp"`
+}
+
+// TotpStatus reports whether TOTP 2FA is available for the user (database source)
+// and whether it is currently enabled.
+type TotpStatus struct {
+	Available bool `json:"Available"`
+	Enabled   bool `json:"Enabled"`
+}
+
+// TotpEnrollment carries the data needed to set up an authenticator app.
+type TotpEnrollment struct {
+	Secret      string `json:"Secret"`
+	URL         string `json:"Url"`
+	QRCodeImage []byte `json:"QRCodeImage"`
+}
+
+// TotpRecoveryCodes returns the single-use recovery codes exactly once (at enrollment).
+type TotpRecoveryCodes struct {
+	Codes []string `json:"Codes"`
+}
+
 func NewWebAuthnCredentialResponse(src domain.UserWebauthnCredential) WebAuthnCredentialResponse {
 	return WebAuthnCredentialResponse{
 		ID:        src.CredentialIdentifier,

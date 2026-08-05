@@ -94,6 +94,8 @@ func main() {
 	webAuthn, err := auth.NewWebAuthnAuthenticator(cfg, eventBus, userManager)
 	internal.AssertNoError(err)
 
+	totpAuth := auth.NewTotpAuthenticator(userManager)
+
 	wireGuardManager, err := wireguard.NewWireGuardManager(cfg, eventBus, wireGuard, database)
 	internal.AssertNoError(err)
 	wireGuardManager.StartBackgroundJobs(ctx)
@@ -131,7 +133,7 @@ func main() {
 	apiV0BackendPeers := backendV0.NewPeerService(cfg, wireGuardManager, cfgFileManager, mailManager)
 
 	apiV0EndpointAuth := handlersV0.NewAuthEndpoint(cfg, apiV0Auth, apiV0Session, validatorManager, authenticator,
-		webAuthn)
+		webAuthn, totpAuth)
 	apiV0EndpointAudit := handlersV0.NewAuditEndpoint(cfg, apiV0Auth, auditManager)
 	apiV0EndpointUsers := handlersV0.NewUserEndpoint(cfg, apiV0Auth, validatorManager, apiV0BackendUsers)
 	apiV0EndpointInterfaces := handlersV0.NewInterfaceEndpoint(cfg, apiV0Auth, validatorManager, apiV0BackendInterfaces)
