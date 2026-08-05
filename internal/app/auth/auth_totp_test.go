@@ -61,6 +61,18 @@ func TestStartEnrollment_GeneratesSecretAndQR(t *testing.T) {
 	require.Equal(t, byte(0x89), enr.QRCodeImage[0])
 }
 
+// Regression: users without an email must still enroll (AccountName falls back to Identifier).
+func TestStartEnrollment_NoEmail_FallsBackToIdentifier(t *testing.T) {
+	m := newFakeTotpUserManager()
+	a := NewTotpAuthenticator(m)
+	user := dbUser("admin2@example.com", "") // empty email
+
+	enr, err := a.StartEnrollment(user)
+	require.NoError(t, err)
+	require.NotEmpty(t, enr.Secret)
+	require.Contains(t, enr.URL, "admin2@example.com", "AccountName should fall back to Identifier")
+}
+
 func TestStartEnrollment_RejectsOauthUser(t *testing.T) {
 	m := newFakeTotpUserManager()
 	a := NewTotpAuthenticator(m)

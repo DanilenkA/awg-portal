@@ -72,9 +72,16 @@ func (a *TotpAuthenticator) StartEnrollment(user *domain.User) (*domain.TotpEnro
 		return nil, errors.New("totp is only available for database users")
 	}
 
+	// AccountName is required by the TOTP key generator; users without an email
+	// fall back to their identifier so enrollment still works for them.
+	accountName := user.Email
+	if accountName == "" {
+		accountName = string(user.Identifier)
+	}
+
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      totpIssuer,
-		AccountName: user.Email,
+		AccountName: accountName,
 		Period:      totpPeriod,
 		SecretSize:  totpSecretSize,
 		Digits:      otp.DigitsSix,
