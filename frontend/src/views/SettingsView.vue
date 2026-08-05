@@ -39,7 +39,80 @@ const availableLanguages = [
 onMounted(async () => {
   await profile.LoadUser()
   await auth.LoadWebAuthnCredentials()
+  await loadTotpStatus()
 })
+
+// -- TOTP 2FA (opt-in, database users only)
+const totpStatus = ref({ Available: false, Enabled: false })
+const totpEnrolling = ref(false)
+const totpEnrollment = ref(null) // { Secret, Url, QRCodeImage (base64) }
+const totpConfirmCode = ref("")
+const totpRecoveryCodes = ref(null)
+const totpBusy = ref(false)
+
+const totpQrDataUrl = computed(() => {
+  if (!totpEnrollment.value || !totpEnrollment.value.QRCodeImage) return ""
+  return `data:image/png;base64,${totpEnrollment.value.QRCodeImage}`
+})
+
+async function loadTotpStatus() {
+  try {
+    totpStatus.value = await auth.LoadTotpStatus()
+  } catch (e) {
+    totpStatus.value = { Available: false, Enabled: false }
+  }
+}
+
+async function startTotpEnrollment() {
+  totpBusy.value = true
+  try {
+    totpEnrollment.value = await auth.TotpEnrollStart()
+    totpEnrolling.value = true
+    totpRecoveryCodes.value = null
+  } catch (e) {
+    notify({ title: "2FA setup failed", text: e.toString(), type: 'error' })
+  } finally {
+    totpBusy.value = false
+  }
+}
+
+async function confirmTotpEnrollment() {
+  if (totpConfirmCode.value === "") return
+  totpBusy.value = true
+  try {
+    const res = await auth.TotpEnrollConfirm(totpConfirmCode.value)
+    totpRecoveryCodes.value = res.Codes || []
+    totpEnrolling.value = false
+    totpEnrollment.value = null
+    totpConfirmCode.value = ""
+    await loadTotpStatus()
+    notify({ title: "2FA enabled", text: "Two-factor authentication is now active.", type: 'success' })
+  } catch (e) {
+    notify({ title: "Invalid code", text: e.toString(), type: 'error' })
+  } finally {
+    totpBusy.value = false
+  }
+}
+
+function cancelTotpEnrollment() {
+  totpEnrolling.value = false
+  totpEnrollment.value = null
+  totpConfirmCode.value = ""
+}
+
+async function disableTotp() {
+  totpBusy.value = true
+  try {
+    await auth.TotpDisable()
+    totpRecoveryCodes.value = null
+    await loadTotpStatus()
+    notify({ title: "2FA disabled", text: "Two-factor authentication has been turned off.", type: 'warn' })
+  } catch (e) {
+    notify({ title: "Failed to disable 2FA", text: e.toString(), type: 'error' })
+  } finally {
+    totpBusy.value = false
+  }
+}
 
 const selectedCredential = ref({})
 
@@ -240,6 +313,68 @@ const updatePassword = async () => {
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- TOTP 2FA (opt-in, database users only) -->
+  <div class="card" v-if="totpStatus.Available">
+    <div class="card-header">
+      <h3><i class="fa-solid fa-shield-halved me-2"></i>{{ $t('settings.totp.headline') }}</h3>
+      <button v-if="totpStatus.Enabled" class="btn btn-danger btn-sm" :title="$t('settings.totp.button-disable-title')" @click.prevent="disableTotp" :disabled="totpBusy">
+        <i class="fa-solid fa-circle-xmark me-1"></i> {{ $t('settings.totp.button-disable-text') }}
+      </button>
+      <button v-else-if="!totpEnrolling" class="btn btn-primary btn-sm" :title="$t('settings.totp.button-enable-title')" @click.prevent="startTotpEnrollment" :disabled="totpBusy">
+        <i class="fa-solid fa-plus me-1"></i> {{ $t('settings.totp.button-enable-text') }}
+      </button>
+    </div>
+    <div class="card-body">
+      <p class="text-muted-sm mb-4">{{ $t('settings.totp.abstract') }}</p>
+
+      <!-- Enabled state -->
+      <template v-if="totpStatus.Enabled && !totpRecoveryCodes">
+        <p class="text-success"><i class="fa-solid fa-circle-check me-1"></i> {{ $t('settings.totp.active-description') }}</p>
+      </template>
+
+      <!-- Enrollment: QR + confirm -->
+      <template v-if="totpEnrolling && totpEnrollment">
+        <div class="mb-3">
+          <p class="mb-2">{{ $t('settings.totp.scan-hint') }}</p>
+          <img v-if="totpQrDataUrl" :src="totpQrDataUrl" alt="TOTP QR code" class="totp-qr mb-3" style="width:200px;height:200px;image-rendering:pixelated;">
+          <p class="text-muted-sm">{{ $t('settings.totp.manual-entry') }}</p>
+          <code class="d-block mb-3 p-2" style="word-break:break-all;">{{ totpEnrollment.Secret }}</code>
+        </div>
+        <div class="form-group mb-3" style="max-width:280px;">
+          <label class="form-label" for="totpConfirmInput">{{ $t('settings.totp.confirm-label') }}</label>
+          <input id="totpConfirmInput" v-model="totpConfirmCode" class="form-control" :placeholder="$t('settings.totp.confirm-placeholder')" type="text" inputmode="numeric" autocomplete="one-time-code">
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary" :disabled="totpConfirmCode === '' || totpBusy" @click.prevent="confirmTotpEnrollment">
+            <i class="fa-solid fa-check me-1"></i> {{ $t('settings.totp.confirm-button') }}
+          </button>
+          <button class="btn btn-secondary" :disabled="totpBusy" @click.prevent="cancelTotpEnrollment">
+            {{ $t('settings.totp.cancel-button') }}
+          </button>
+        </div>
+      </template>
+
+      <!-- Recovery codes (shown once after enabling) -->
+      <template v-if="totpRecoveryCodes && totpRecoveryCodes.length > 0">
+        <div class="alert alert-warning mt-3">
+          <h5><i class="fa-solid fa-triangle-exclamation me-1"></i> {{ $t('settings.totp.recovery-headline') }}</h5>
+          <p class="mb-2">{{ $t('settings.totp.recovery-hint') }}</p>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <code v-for="c in totpRecoveryCodes" :key="c" class="p-2 border rounded">{{ c }}</code>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" @click.prevent="totpRecoveryCodes = null">
+            {{ $t('settings.totp.recovery-dismiss') }}
+          </button>
+        </div>
+      </template>
+
+      <!-- Disabled state -->
+      <template v-if="!totpStatus.Enabled && !totpEnrolling && !totpRecoveryCodes">
+        <p class="text-muted"><i class="fa-solid fa-circle-info me-1"></i> {{ $t('settings.totp.inactive-description') }}</p>
+      </template>
     </div>
   </div>
 

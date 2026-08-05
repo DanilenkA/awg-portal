@@ -15,6 +15,9 @@ export const authStore = defineStore('auth',{
         returnUrl: localStorage.getItem('returnUrl'),
         webAuthnCredentials: [],
         fetching: false,
+        // needsTotp is true when the first factor succeeded but the user must
+        // still complete the TOTP second factor before being logged in.
+        needsTotp: false,
     }),
     getters: {
         UserIdentifier: (state) => state.user?.Identifier || 'unknown',
@@ -23,6 +26,7 @@ export const authStore = defineStore('auth',{
         IsAuthenticated: (state) => state.user != null,
         IsAdmin: (state) => state.user?.IsAdmin || false,
         ReturnUrl: (state) => state.returnUrl || '/',
+        NeedsTotp: (state) => state.needsTotp,
         IsWebAuthnEnabled: (state) => {
             if (state.webAuthnCredentials) {
                 return state.webAuthnCredentials.length > 0
@@ -91,18 +95,42 @@ export const authStore = defineStore('auth',{
                 })
         },
         // Login returns promise that might have been rejected if the login attempt was not successful.
+        // When the user has 2FA enabled, the backend answers {NeedTotp:true} and holds the session
+        // in a pending state — we must NOT log in yet, but switch the UI to the TOTP step instead.
         async Login(username, password) {
             return apiWrapper.post(`/auth/login`, { username, password })
-                .then(user =>  {
+                .then(res =>  {
+                    if (res && res.NeedTotp === true) {
+                        this.needsTotp = true
+                        return { needTotp: true }
+                    }
+                    this.needsTotp = false
                     this.ResetReturnUrl()
-                    this.setUserInfo(user)
-                    return user.Identifier
+                    this.setUserInfo(res)
+                    return res.Identifier
                 })
                 .catch(err => {
                     console.log("Login failed:", err)
                     this.setUserInfo(null)
                     return Promise.reject(new Error("login failed"))
                 })
+        },
+        // LoginTotp completes the second factor after a successful first factor (password or passkey).
+        async LoginTotp(code) {
+            return apiWrapper.post(`/auth/login/totp`, { code })
+                .then(() => {
+                    this.needsTotp = false
+                    // The full session is now established server-side; load it to populate user info.
+                    return this.LoadSession()
+                })
+                .catch(err => {
+                    console.log("TOTP login failed:", err)
+                    return Promise.reject(new Error("totp failed"))
+                })
+        },
+        // CancelTotp aborts the pending second factor and returns to the first-factor form.
+        CancelTotp() {
+            this.needsTotp = false
         },
         async Logout() {
             this.setUserInfo(null)
@@ -258,11 +286,17 @@ export const authStore = defineStore('auth',{
                     return startAuthentication({ optionsJSON: optionsJSON.publicKey }).then(asseResp => {
                         console.log("Finishing WebAuthn login ...")
                         return apiWrapper.post(`/auth/webauthn/login/finish`, asseResp)
-                            .then(user =>  {
-                                console.log("Passkey login finished successfully for user:", user.Identifier)
+                            .then(res =>  {
+                                if (res && res.NeedTotp === true) {
+                                    console.log("Passkey first factor OK, TOTP second factor required")
+                                    this.needsTotp = true
+                                    return { needTotp: true }
+                                }
+                                console.log("Passkey login finished successfully for user:", res.Identifier)
+                                this.needsTotp = false
                                 this.ResetReturnUrl()
-                                this.setUserInfo(user)
-                                return user.Identifier
+                                this.setUserInfo(res)
+                                return res.Identifier
                             })
                             .catch(err => {
                                 console.error("Failed to login with passkey:", err)
@@ -280,6 +314,24 @@ export const authStore = defineStore('auth',{
                     this.setUserInfo(null)
                     return Promise.reject(new Error("login failed"))
                 })
+        },
+        // -- TOTP 2FA management (opt-in, database users only)
+        async LoadTotpStatus() {
+            return apiWrapper.get(`/auth/totp/status`)
+                .then(status => status)
+                .catch(err => {
+                    console.log("Failed to load TOTP status:", err)
+                    return { Available: false, Enabled: false }
+                })
+        },
+        async TotpEnrollStart() {
+            return apiWrapper.post(`/auth/totp/enroll/start`, {})
+        },
+        async TotpEnrollConfirm(code) {
+            return apiWrapper.post(`/auth/totp/enroll/confirm`, { code })
+        },
+        async TotpDisable() {
+            return apiWrapper.post(`/auth/totp/disable`, {})
         },
         // -- internal setters
         setUserInfo(userInfo) {

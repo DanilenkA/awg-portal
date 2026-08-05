@@ -18,6 +18,11 @@ const username = ref("")
 const password = ref("")
 const passwordRef = ref(null)
 
+// TOTP second factor state
+const totpCode = ref("")
+const totpRef = ref(null)
+const totpFailed = ref(false)
+
 // Bug 3 fix: track failed-login attempts so we can clear the password
 // field's "is-valid" green-check styling. Bootstrap treats a non-empty
 // field with no .is-invalid class as valid, so after a 401 the password
@@ -53,7 +58,16 @@ const finishLogin = async function (loginAction) {
   const target = postLoginRoute()
   loggingIn.value = true
   try {
-    await loginAction()
+    const result = await loginAction()
+    // Second factor required? Switch to the TOTP step WITHOUT treating this as
+    // a completed login (no settings reload, no redirect, no success notify).
+    if (result && result.needTotp === true) {
+      loginFailed.value = false
+      loggingIn.value = false
+      await nextTick()
+      if (totpRef.value && totpRef.value.focus) totpRef.value.focus()
+      return
+    }
     loginFailed.value = false
     notify({
       title: "Logged in",
@@ -107,6 +121,36 @@ const loginWebAuthn = async function () {
   await finishLogin(() => auth.LoginWebAuthn())
 }
 
+// loginTotp submits the TOTP (or recovery) code as the second factor.
+const loginTotp = async function () {
+  console.log("Submitting TOTP second factor");
+  loggingIn.value = true
+  totpFailed.value = false
+  try {
+    await auth.LoginTotp(totpCode.value)
+    // success: full session established — hard reload into the authenticated app
+    notify({ title: "Logged in", text: "Authentication succeeded!", type: 'success' })
+    await settings.LoadSettings()
+    const target = postLoginRoute()
+    const targetHash = target.startsWith('/') ? `#${target}` : target
+    window.location.assign(`${window.location.origin}${window.location.pathname}${window.location.search}${targetHash}`)
+  } catch (error) {
+    totpFailed.value = true
+    totpCode.value = ""
+    notify({ title: "Login failed!", text: t('login.totp.invalid'), type: 'error' })
+    setTimeout(() => loggingIn.value = false, 1000)
+    await nextTick()
+    if (totpRef.value && totpRef.value.focus) totpRef.value.focus()
+  }
+}
+
+// cancelTotp aborts the second factor and returns to the first-factor form.
+const cancelTotp = function () {
+  auth.CancelTotp()
+  totpCode.value = ""
+  totpFailed.value = false
+}
+
 const externalLogin = function (provider) {
   console.log("Performing external login for provider", provider.Identifier);
   loggingIn.value = true;
@@ -136,6 +180,35 @@ const externalLogin = function (provider) {
         </div>
         <form method="post">
           <fieldset>
+            <!-- TOTP second factor step (shown after a successful first factor when 2FA is enabled) -->
+            <template v-if="auth.NeedsTotp">
+              <div class="form-group">
+                <p class="text-muted mb-3">{{ $t('login.totp.prompt') }}</p>
+                <label class="form-label" for="inputTotp">{{ $t('login.totp.label') }}</label>
+                <div class="input-group mb-3">
+                  <span class="input-group-text"><span class="fas fa-shield-halved p-2"></span></span>
+                  <input id="inputTotp" ref="totpRef" v-model="totpCode" :class="{'is-invalid':totpFailed}"
+                         :placeholder="$t('login.totp.placeholder')" class="form-control"
+                         name="totp" type="text" inputmode="numeric" autocomplete="one-time-code" autofocus>
+                </div>
+                <small class="form-text text-muted">{{ $t('login.totp.recovery_hint') }}</small>
+              </div>
+              <div class="row mt-4 mb-2">
+                <div class="col-sm-6 col-xs-12">
+                  <button :disabled="totpCode === '' || loggingIn" class="btn btn-primary mb-2" type="submit" @click.prevent="loginTotp">
+                    {{ $t('login.totp.button') }} <div v-if="loggingIn" class="d-inline"><i class="ms-2 fa-solid fa-circle-notch fa-spin"></i></div>
+                  </button>
+                </div>
+                <div class="col-sm-6 col-xs-12 text-sm-end">
+                  <button :disabled="loggingIn" class="btn btn-outline-secondary" type="button" @click.prevent="cancelTotp">
+                    {{ $t('login.totp.cancel') }}
+                  </button>
+                </div>
+              </div>
+            </template>
+
+            <!-- First factor step (username/password + passkey + external providers) -->
+            <template v-else>
             <div class="form-group">
               <label class="form-label" for="inputUsername">{{ $t('login.username.label') }}</label>
               <div class="input-group mb-3">
@@ -178,6 +251,7 @@ const externalLogin = function (provider) {
 
             <div class="mt-3">
             </div>
+            </template>
           </fieldset>
         </form>
       </div>
