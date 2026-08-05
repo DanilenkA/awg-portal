@@ -23,6 +23,10 @@ const totpCode = ref("")
 const totpRef = ref(null)
 const totpFailed = ref(false)
 
+// Reactive binding for the 2FA step. Read the raw Pinia state (not a getter) so
+// the computed reliably tracks the change when needsTotp flips after the first factor.
+const needsTotp = computed(() => auth.needsTotp)
+
 // Bug 3 fix: track failed-login attempts so we can clear the password
 // field's "is-valid" green-check styling. Bootstrap treats a non-empty
 // field with no .is-invalid class as valid, so after a 401 the password
@@ -116,6 +120,16 @@ const login = async function () {
   await finishLogin(() => auth.Login(username.value, password.value))
 }
 
+// onSubmit handles the form's native submit (Enter key in an input). Route it to
+// the right action depending on whether we're on the first or second factor step.
+const onSubmit = function () {
+  if (needsTotp.value) {
+    if (totpCode.value !== "") loginTotp()
+  } else if (!disableLoginBtn.value) {
+    login()
+  }
+}
+
 const loginWebAuthn = async function () {
   console.log("Performing webauthn login");
   await finishLogin(() => auth.LoginWebAuthn())
@@ -178,10 +192,10 @@ const externalLogin = function (provider) {
           <img src="@/assets/wg-logo.webp" alt="AWG Portal" class="login-logo-icon" />
           <span class="login-logo-text">AWG Portal</span>
         </div>
-        <form method="post">
+        <form method="post" @submit.prevent="onSubmit">
           <fieldset>
             <!-- TOTP second factor step (shown after a successful first factor when 2FA is enabled) -->
-            <template v-if="auth.NeedsTotp">
+            <template v-if="needsTotp">
               <div class="form-group">
                 <p class="text-muted mb-3">{{ $t('login.totp.prompt') }}</p>
                 <label class="form-label" for="inputTotp">{{ $t('login.totp.label') }}</label>
@@ -195,7 +209,7 @@ const externalLogin = function (provider) {
               </div>
               <div class="row mt-4 mb-2">
                 <div class="col-sm-6 col-xs-12">
-                  <button :disabled="totpCode === '' || loggingIn" class="btn btn-primary mb-2" type="submit" @click.prevent="loginTotp">
+                  <button :disabled="totpCode === '' || loggingIn" class="btn btn-primary mb-2" type="button" @click.prevent="loginTotp">
                     {{ $t('login.totp.button') }} <div v-if="loggingIn" class="d-inline"><i class="ms-2 fa-solid fa-circle-notch fa-spin"></i></div>
                   </button>
                 </div>
@@ -229,12 +243,12 @@ const externalLogin = function (provider) {
 
             <div class="row mt-5 mb-2">
               <div class="col-sm-4 col-xs-12">
-                <button :disabled="disableLoginBtn" class="btn btn-primary mb-2" type="submit" @click.prevent="login">
+                <button :disabled="disableLoginBtn" class="btn btn-primary mb-2" type="button" @click.prevent="login">
                   {{ $t('login.button') }} <div v-if="loggingIn" class="d-inline"><i class="ms-2 fa-solid fa-circle-notch fa-spin"></i></div>
                 </button>
               </div>
               <div class="col-sm-8 col-xs-12 text-sm-end">
-                <button v-if="settings.Setting('WebAuthnEnabled')" class="btn btn-primary" type="submit" @click.prevent="loginWebAuthn">
+                <button v-if="settings.Setting('WebAuthnEnabled')" class="btn btn-primary" type="button" @click.prevent="loginWebAuthn">
                   {{ $t('login.button-webauthn') }} <div v-if="loggingIn" class="d-inline"><i class="ms-2 fa-solid fa-circle-notch fa-spin"></i></div>
                 </button>
               </div>
