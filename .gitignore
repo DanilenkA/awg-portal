@@ -61,3 +61,4 @@ HANDOFF.md
 
 # graphify: ignore all build output (regenerable via graphify extract)
 graphify-out/
+/handoffs/
