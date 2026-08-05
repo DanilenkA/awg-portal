@@ -373,6 +373,10 @@ func (e AuthEndpoint) handleOauthCallbackGet() http.HandlerFunc {
 }
 
 func (e AuthEndpoint) setAuthenticatedUser(r *http.Request, user *domain.User, oauthProvider, idTokenHint string) {
+	// Preserve the CSRF token across the session destroy: the SPA reuses the token
+	// it fetched before login for subsequent requests until it reloads the page.
+	csrfToken := e.session.GetData(r.Context()).CsrfToken
+
 	// start a fresh session
 	e.session.DestroyData(r.Context())
 
@@ -390,6 +394,7 @@ func (e AuthEndpoint) setAuthenticatedUser(r *http.Request, user *domain.User, o
 	currentSession.OauthProvider = oauthProvider
 	currentSession.OauthReturnTo = ""
 	currentSession.OauthIdToken = idTokenHint
+	currentSession.CsrfToken = csrfToken
 
 	e.session.SetData(r.Context(), currentSession)
 }
@@ -423,6 +428,10 @@ func clientIP(r *http.Request) string {
 // setPendingTwoFactor puts the session into a pending-2FA state: the first factor
 // succeeded, but the user is NOT logged in (LoggedIn=false) until the TOTP code is validated.
 func (e AuthEndpoint) setPendingTwoFactor(r *http.Request, user *domain.User) {
+	// Preserve the CSRF token across the session destroy: the SPA keeps using the
+	// token it fetched before login for the follow-up /login/totp request.
+	csrfToken := e.session.GetData(r.Context()).CsrfToken
+
 	// start a fresh session, do not grant access
 	e.session.DestroyData(r.Context())
 
@@ -430,6 +439,7 @@ func (e AuthEndpoint) setPendingTwoFactor(r *http.Request, user *domain.User) {
 	currentSession.LoggedIn = false
 	currentSession.PendingTwoFactor = true
 	currentSession.PendingTwoFactorUserId = string(user.Identifier)
+	currentSession.CsrfToken = csrfToken
 	e.session.SetData(r.Context(), currentSession)
 }
 
