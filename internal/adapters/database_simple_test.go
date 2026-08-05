@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/glebarez/sqlite"
 	"github.com/DanilenkA/awg-portal/internal/config"
 	"github.com/DanilenkA/awg-portal/internal/domain"
+	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -31,6 +31,9 @@ func (dummySerializer) Value(ctx context.Context, field *schema.Field, dst refle
 		return v, nil
 	}
 	if v, ok := fieldValue.(domain.PreSharedKey); ok {
+		return string(v), nil
+	}
+	if v, ok := fieldValue.(domain.PrivateString); ok {
 		return string(v), nil
 	}
 	return fieldValue, nil
@@ -66,7 +69,7 @@ func TestSqlRepo_SaveInterface_Simple(t *testing.T) {
 	// 3. Verify that the address was NOT deleted
 	var finalIface domain.Interface
 	require.NoError(t, db.Preload("Addresses").First(&finalIface, "identifier = ?", ifaceId).Error)
-	
+
 	require.Equal(t, "New Name", finalIface.DisplayName)
 	require.Len(t, finalIface.Addresses, 1, "Address list should still have 1 entry!")
 	require.Equal(t, "10.0.0.1/24", finalIface.Addresses[0].Cidr)
