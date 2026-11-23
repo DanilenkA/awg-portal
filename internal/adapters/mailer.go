@@ -55,7 +55,7 @@ func (r MailRepo) Send(_ context.Context, subject, body string, to []string, opt
 		bcc := RemoveDuplicates(internal.UniqueStringSlice(options.Bcc), uniqueTo)
 		bcc = RemoveDuplicates(bcc, options.Cc)
 
-		email.AddCc(internal.UniqueStringSlice(options.Bcc)...)
+		email.AddBcc(bcc...)
 	}
 	if options.HtmlBody != "" {
 		email.AddAlternative(mail.TextHTML, options.HtmlBody)

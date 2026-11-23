@@ -2,6 +2,7 @@ package lowlevel
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
@@ -168,7 +169,26 @@ func IsAWGAvailable() bool {
 // cmd.Wait() — it owns ProcessState exclusively. Once Wait returns it records
 // the wait error, removes the iface from the procs map (under procsMu), and
 // closes the entry's done channel so any waiter can return.
+// isValidAWGInterfaceName applies the kernel rules for interface names and, on top of them,
+// rejects a leading dash: the name is handed to amneziawg-go as a command line argument.
+func isValidAWGInterfaceName(name string) bool {
+	if name == "" || name == "." || name == ".." || len(name) > 15 || strings.HasPrefix(name, "-") {
+		return false
+	}
+	return !strings.ContainsAny(name, "/: \t\r\n")
+}
+
+// dialUAPI connects to a UAPI socket with a bounded timeout.
+func dialUAPI(sock string, timeout time.Duration) (net.Conn, error) {
+	dialer := net.Dialer{Timeout: timeout}
+	return dialer.Dial("unix", sock)
+}
+
 func StartAWGProcess(ifaceName string) error {
+	if !isValidAWGInterfaceName(ifaceName) {
+		return fmt.Errorf("awg: invalid interface name %q", ifaceName)
+	}
+
 	procsMu.Lock()
 	if entry, running := procs[ifaceName]; running {
 		if entry != nil && entry.stopping {
@@ -187,8 +207,8 @@ func StartAWGProcess(ifaceName string) error {
 		// check). If yes, mark this iface as managed by an external
 		// process and bail out — we did not start it, but we should
 		// not spawn a competing process.
-		if conn, dialErr := net.DialTimeout("unix", sock, awgUAPIDialTimeout); dialErr == nil {
-			conn.Close()
+		if conn, dialErr := dialUAPI(sock, awgUAPIDialTimeout); dialErr == nil {
+			_ = conn.Close()
 			slog.Debug("awg: socket alive on entry, not starting a new process",
 				"iface", ifaceName)
 			procsMu.Unlock()
@@ -204,7 +224,7 @@ func StartAWGProcess(ifaceName string) error {
 	// --foreground is REQUIRED: without it amneziawg-go forks to
 	// background and the parent PID dies, making StopAWGProcess
 	// (SIGTERM) non-functional.
-	cmd := exec.Command("amneziawg-go", "--foreground", ifaceName)
+	cmd := exec.Command("amneziawg-go", "--foreground", ifaceName) //nolint:gosec,noctx // G204: the interface name is validated above and no shell is involved; the daemon outlives any request context
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	if err := cmd.Start(); err != nil {
@@ -289,11 +309,13 @@ func uapiReady(sock string) bool {
 	if _, err := os.Stat(sock); err != nil {
 		return false
 	}
-	conn, err := net.DialTimeout("unix", sock, awgUAPIDialTimeout)
+	conn, err := dialUAPI(sock, awgUAPIDialTimeout)
 	if err != nil {
 		return false
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 	_ = conn.SetReadDeadline(time.Now().Add(awgUAPIDialTimeout))
 	if _, werr := conn.Write([]byte("get=1\n\n")); werr != nil {
 		return false
@@ -330,8 +352,8 @@ func StopAWGProcess(ifaceName string) error {
 
 	if !ok {
 		// Not managed by us; try pkill as fallback
-		kill := exec.Command("pkill", "-f", "amneziawg-go "+ifaceName)
-		_ = kill.Run() // best effort
+		kill := exec.Command("pkill", "-f", "amneziawg-go "+ifaceName) //nolint:gosec,noctx // G204: one argument with a fixed prefix and no shell; a one-shot cleanup command
+		_ = kill.Run()                                                 // best effort
 		return nil
 	}
 
@@ -423,11 +445,13 @@ func UAPIKeyToHex(keyB64 string) string {
 // communication with the amneziawg-go process. Uses hex-encoded keys.
 func SetAWGPeer(ifaceName string, peer AWGUAPIPeerConfig) error {
 	sock := SocketPath(ifaceName)
-	conn, err := net.DialTimeout("unix", sock, 3*time.Second)
+	conn, err := dialUAPI(sock, 3*time.Second)
 	if err != nil {
 		return fmt.Errorf("awg uapi: dial %s: %w", sock, err)
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	pubHex := UAPIKeyToHex(peer.PublicKey)
 	if pubHex == "" {
@@ -436,26 +460,26 @@ func SetAWGPeer(ifaceName string, peer AWGUAPIPeerConfig) error {
 
 	var buf strings.Builder
 	buf.WriteString("set=1\n")
-	buf.WriteString(fmt.Sprintf("public_key=%s\n", pubHex))
+	buf.WriteString("public_key=" + pubHex + "\n")
 
 	// Optional preshared key (hex-encoded)
 	if peer.PresharedKey != "" {
 		pskHex := UAPIKeyToHex(peer.PresharedKey)
 		if pskHex != "" {
-			buf.WriteString(fmt.Sprintf("preshared_key=%s\n", pskHex))
+			buf.WriteString("preshared_key=" + pskHex + "\n")
 		}
 	}
 
 	// Optional endpoint
 	if peer.Endpoint != "" {
-		buf.WriteString(fmt.Sprintf("endpoint=%s\n", peer.Endpoint))
+		buf.WriteString("endpoint=" + peer.Endpoint + "\n")
 	}
 
 	for _, cidr := range peer.AllowedIPs {
-		buf.WriteString(fmt.Sprintf("allowed_ip=%s\n", cidr))
+		buf.WriteString("allowed_ip=" + cidr + "\n")
 	}
 	if peer.Keepalive > 0 {
-		buf.WriteString(fmt.Sprintf("persistent_keepalive_interval=%d\n", peer.Keepalive))
+		buf.WriteString("persistent_keepalive_interval=" + strconv.Itoa(peer.Keepalive) + "\n")
 	}
 	buf.WriteString("\n")
 
@@ -464,7 +488,9 @@ func SetAWGPeer(ifaceName string, peer AWGUAPIPeerConfig) error {
 	}
 
 	resp := make([]byte, 128)
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	if err := conn.SetReadDeadline(time.Now().Add(3 * time.Second)); err != nil {
+		return fmt.Errorf("awg uapi: set read deadline: %w", err)
+	}
 	n, err := conn.Read(resp)
 	if err != nil {
 		return fmt.Errorf("awg uapi: read response: %w", err)
@@ -481,11 +507,13 @@ func SetAWGPeer(ifaceName string, peer AWGUAPIPeerConfig) error {
 // RemoveAWGPeer removes a peer from an AWG interface via direct UAPI.
 func RemoveAWGPeer(ifaceName string, pubKeyB64 string) error {
 	sock := SocketPath(ifaceName)
-	conn, err := net.DialTimeout("unix", sock, 3*time.Second)
+	conn, err := dialUAPI(sock, 3*time.Second)
 	if err != nil {
 		return fmt.Errorf("awg uapi: dial %s: %w", sock, err)
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	pubHex := UAPIKeyToHex(pubKeyB64)
 	if pubHex == "" {
@@ -498,7 +526,9 @@ func RemoveAWGPeer(ifaceName string, pubKeyB64 string) error {
 	}
 
 	resp := make([]byte, 128)
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	if err := conn.SetReadDeadline(time.Now().Add(3 * time.Second)); err != nil {
+		return fmt.Errorf("awg uapi: set read deadline: %w", err)
+	}
 	n, err := conn.Read(resp)
 	if err != nil {
 		return fmt.Errorf("awg uapi: read response: %w", err)
@@ -529,7 +559,7 @@ func GenerateAWGParams() (AWGParams, error) {
 		}
 		var b [8]byte
 		_, _ = rand.Read(b[:])
-		return lo + int(binary.LittleEndian.Uint64(b[:])%uint64(hi-lo+1))
+		return lo + int(binary.LittleEndian.Uint64(b[:])%uint64(hi-lo+1)) //nolint:gosec // G115: hi is greater than lo, so the span is a small positive number
 	}
 
 	randU32 := func() uint32 {
@@ -658,12 +688,12 @@ func parseAWGUAPIDevice(r io.Reader) (*wgtypes.Device, error) {
 		if len(line) == 0 {
 			break // empty line terminates dump
 		}
-		eq := bytesIndexByte(line, '=')
-		if eq < 0 {
+		keyBytes, valBytes, found := bytes.Cut(line, []byte("="))
+		if !found {
 			continue // not key=value, skip
 		}
-		key := string(line[:eq])
-		val := string(line[eq+1:])
+		key := string(keyBytes)
+		val := string(valBytes)
 
 		switch key {
 		case "errno":
@@ -692,17 +722,6 @@ func parseAWGUAPIDevice(r io.Reader) (*wgtypes.Device, error) {
 		return nil, fmt.Errorf("awg uapi: scan: %w", serr)
 	}
 	return &dev, nil
-}
-
-// bytesIndexByte is a local equivalent of bytes.IndexByte that avoids
-// pulling in the bytes package for a single call site.
-func bytesIndexByte(b []byte, c byte) int {
-	for i, x := range b {
-		if x == c {
-			return i
-		}
-	}
-	return -1
 }
 
 // parseUAPIHexKey decodes a hex-encoded WireGuard key (32 bytes when

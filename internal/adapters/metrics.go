@@ -42,8 +42,10 @@ func NewMetricsServer(cfg *config.Config) *MetricsServer {
 
 	return &MetricsServer{
 		Server: &http.Server{
-			Addr:    cfg.Statistics.ListeningAddress,
-			Handler: mux,
+			Addr:              cfg.Statistics.ListeningAddress,
+			Handler:           mux,
+			ReadHeaderTimeout: 10 * time.Second,
+			IdleTimeout:       120 * time.Second,
 		},
 
 		ifaceReceivedBytesTotal: promauto.With(reg).NewGaugeVec(
@@ -105,7 +107,7 @@ func (m *MetricsServer) Run(ctx context.Context) {
 	defer cancel()
 
 	// Attempt to gracefully shut down the metrics server
-	if err := m.Shutdown(shutdownCtx); err != nil {
+	if err := m.Shutdown(shutdownCtx); err != nil { //nolint:contextcheck // the request context is cancelled at this point, the shutdown needs a live one
 		slog.Error("metrics service shutdown failed", "address", m.Addr, "error", err)
 	} else {
 		slog.Info("metrics service shutdown gracefully", "address", m.Addr)

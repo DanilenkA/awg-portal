@@ -126,9 +126,14 @@ func NewServer(cfg *config.Config, endpoints ...ApiEndpointSetupFunc) (*Server, 
 
 func (s *Server) Run(ctx context.Context, listenAddress string) {
 	// Run web service
+	// ReadHeaderTimeout bounds slow request headers (Slowloris), IdleTimeout releases idle
+	// keep-alive connections. There is no write timeout on purpose: websocket and long
+	// polling connections stay open as long as the client needs them.
 	srv := &http.Server{
-		Addr:    listenAddress,
-		Handler: s.server,
+		Addr:              listenAddress,
+		Handler:           s.server,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	srvContext, cancelFn := context.WithCancel(ctx)
@@ -154,7 +159,7 @@ func (s *Server) Run(ctx context.Context, listenAddress string) {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_ = srv.Shutdown(shutdownCtx)
+	_ = srv.Shutdown(shutdownCtx) //nolint:contextcheck // the request context is cancelled at this point, the shutdown needs a live one
 
 	slog.Debug("web service shut down")
 }
@@ -193,7 +198,7 @@ func (s *Server) setupFrontendRoutes() {
 	// If the directory is empty or missing, populate it with the embedded frontend-dist content first.
 	useEmbeddedFrontend := true
 	if s.cfg.Web.FrontendFilePath != "" {
-		if err := os.MkdirAll(s.cfg.Web.FrontendFilePath, 0755); err != nil {
+		if err := os.MkdirAll(s.cfg.Web.FrontendFilePath, 0755); err != nil { //nolint:gosec // G301: the directory holds the public static files of the frontend
 			slog.Error("failed to create frontend base directory", "path", s.cfg.Web.FrontendFilePath, "error", err)
 		} else {
 			ok := true
@@ -294,7 +299,7 @@ func (s *Server) updateBasePathInFrontend(useEmbeddedFrontend bool) ([]byte, []b
 	if useEmbeddedFrontend {
 		customCssFile, _ = fs.ReadFile(fsMust(fs.Sub(frontendStatics, "frontend-dist")), "assets/"+cssFileName)
 	} else {
-		customCssFile, _ = os.ReadFile(filepath.Join(s.cfg.Web.FrontendFilePath, "/assets/", cssFileName))
+		customCssFile, _ = os.ReadFile(filepath.Join(s.cfg.Web.FrontendFilePath, "/assets/", cssFileName)) //nolint:gosec // G304: the directory comes from the operator configuration
 	}
 	newCssStr := strings.ReplaceAll(string(customCssFile), "/app/assets/", s.cfg.Web.BasePath+"/app/assets/")
 
@@ -310,14 +315,16 @@ func fsMust(f fs.FS, err error) fs.FS {
 
 // dirHasFiles returns true if the directory contains at least one file (non-directory).
 func dirHasFiles(dir string) (bool, error) {
-	d, err := os.Open(dir)
+	d, err := os.Open(dir) //nolint:gosec // G304: the directory comes from the operator configuration
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
 		}
 		return false, err
 	}
-	defer d.Close()
+	defer func() {
+		_ = d.Close()
+	}()
 
 	// Read a few entries; if any entry exists, consider it having files/dirs.
 	// We want to know if there is at least one file; if only subdirs exist, still treat as content.
@@ -348,10 +355,10 @@ func copyEmbedDirToDisk(srcFS fs.FS, dstDir string) error {
 		}
 		target := filepath.Join(dstDir, path)
 		if d.IsDir() {
-			return os.MkdirAll(target, 0755)
+			return os.MkdirAll(target, 0755) //nolint:gosec // G301: the directory holds the public static files of the frontend
 		}
 		// ensure parent dir exists
-		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil { //nolint:gosec // G301: the directory holds the public static files of the frontend
 			return err
 		}
 		// open source file
@@ -359,8 +366,10 @@ func copyEmbedDirToDisk(srcFS fs.FS, dstDir string) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
-		out, err := os.Create(target)
+		defer func() {
+			_ = f.Close()
+		}()
+		out, err := os.Create(target) //nolint:gosec // G304: the target path is built from the embedded file system
 		if err != nil {
 			return err
 		}

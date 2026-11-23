@@ -69,6 +69,8 @@ func main() {
 		return
 	case shouldExit:
 		slog.Error("Failed to process program args", "error", err)
+		// os.Exit runs no deferred calls, so the AWG processes started so far are stopped here.
+		lowlevel.StopAllAWGProcesses()
 		os.Exit(1)
 	default:
 		internal.AssertNoError(err)

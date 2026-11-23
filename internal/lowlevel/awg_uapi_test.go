@@ -231,16 +231,35 @@ func decodeHex(t *testing.T, s string) ([]byte, error) {
 	return out, nil
 }
 
-// TestBytesIndexByte sanity-checks the local helper.
-func TestBytesIndexByte(t *testing.T) {
-	if got := bytesIndexByte([]byte("foo=bar"), '='); got != 3 {
-		t.Fatalf("got %d, want 3", got)
+// TestIsValidAWGInterfaceName covers the kernel rules and the leading dash.
+func TestIsValidAWGInterfaceName(t *testing.T) {
+	cases := []struct {
+		name  string
+		valid bool
+	}{
+		{"wg0", true},
+		{"awg-1", true},
+		{"abcdefghijklmno", true}, // 15 characters, the kernel limit
+		{"abcdefghijklmnop", false},
+		{"", false},
+		{".", false},
+		{"..", false},
+		{"-version", false},
+		{"a/b", false},
+		{"a:b", false},
+		{"a b", false},
 	}
-	if got := bytesIndexByte([]byte("nope"), '='); got != -1 {
-		t.Fatalf("got %d, want -1", got)
+	for _, c := range cases {
+		if got := isValidAWGInterfaceName(c.name); got != c.valid {
+			t.Errorf("isValidAWGInterfaceName(%q) = %v, want %v", c.name, got, c.valid)
+		}
 	}
-	if got := bytesIndexByte(nil, '='); got != -1 {
-		t.Fatalf("got %d, want -1 for nil", got)
+}
+
+// TestStartAWGProcessRejectsInvalidName ensures an invalid name fails before a process is started.
+func TestStartAWGProcessRejectsInvalidName(t *testing.T) {
+	if err := StartAWGProcess("-version"); err == nil {
+		t.Fatal("expected an error for an interface name with a leading dash")
 	}
 }
 
