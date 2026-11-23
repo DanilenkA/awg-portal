@@ -23,7 +23,7 @@ import (
 // region models
 
 const (
-	PfsenseApiStatusOk    = "ok"    // pfSense REST API uses "ok" in response
+	PfsenseApiStatusOk    = "ok" // pfSense REST API uses "ok" in response
 	PfsenseApiStatusError = "error"
 )
 
@@ -37,8 +37,8 @@ const (
 type PfsenseApiResponse[T any] struct {
 	Status string
 	Code   int
-	Data   T                 `json:"data,omitempty"`
-	Error  *PfsenseApiError  `json:"error,omitempty"`
+	Data   T                `json:"data,omitempty"`
+	Error  *PfsenseApiError `json:"error,omitempty"`
 }
 
 type PfsenseApiError struct {
@@ -243,7 +243,7 @@ func parsePfsenseHttpResponse[T any](resp *http.Response, err error) PfsenseApiR
 	if err != nil {
 		return errToPfsenseApiResponse[T](PfsenseApiErrorCodeResponseDecodeFailed, "failed to read response body", err)
 	}
-	
+
 	// Close the body after reading
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -273,7 +273,7 @@ func parsePfsenseHttpResponse[T any](resp *http.Response, err error) PfsenseApiR
 			"method", resp.Request.Method,
 			"body_preview", bodyPreview,
 			"error", err)
-		return errToPfsenseApiResponse[T](PfsenseApiErrorCodeResponseDecodeFailed, 
+		return errToPfsenseApiResponse[T](PfsenseApiErrorCodeResponseDecodeFailed,
 			fmt.Sprintf("failed to decode response (status %d, content-type: %s): %v", resp.StatusCode, contentType, err), err)
 	}
 
@@ -425,4 +425,3 @@ func (p *PfsenseApiClient) Delete(
 }
 
 // endregion API-client
-

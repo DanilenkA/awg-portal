@@ -16,19 +16,19 @@ func TestInterface_GetAWGParams_RoundTrip(t *testing.T) {
 	}
 
 	iface := &Interface{
-		Identifier:  "wg0",
-		AWGEnabled:  true,
-		AWGJc:       params.Jc,
-		AWGJmin:     params.Jmin,
-		AWGJmax:     params.Jmax,
-		AWGS1:       params.S1,
-		AWGS2:       params.S2,
-		AWGS3:       params.S3,
-		AWGS4:       params.S4,
-		AWGH1:       params.H1,
-		AWGH2:       params.H2,
-		AWGH3:       params.H3,
-		AWGH4:       params.H4,
+		Identifier: "wg0",
+		AWGEnabled: true,
+		AWGJc:      params.Jc,
+		AWGJmin:    params.Jmin,
+		AWGJmax:    params.Jmax,
+		AWGS1:      params.S1,
+		AWGS2:      params.S2,
+		AWGS3:      params.S3,
+		AWGS4:      params.S4,
+		AWGH1:      params.H1,
+		AWGH2:      params.H2,
+		AWGH3:      params.H3,
+		AWGH4:      params.H4,
 	}
 
 	got := iface.GetAWGParams()

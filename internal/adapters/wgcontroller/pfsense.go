@@ -140,7 +140,7 @@ func (c *PfsenseController) GetInterface(ctx context.Context, id domain.Interfac
 	}
 
 	tunnelId := wgReply.Data[0].GetString("id")
-	
+
 	// Query the specific tunnel endpoint to get full details including addresses
 	// Endpoint: GET /api/v2/vpn/wireguard/tunnel?id={id}
 	if tunnelId != "" {
@@ -227,7 +227,7 @@ func (c *PfsenseController) extractAddresses(
 					if addrObj, ok := addrItem.(map[string]any); ok {
 						address := ""
 						mask := 0
-						
+
 						// Extract address
 						if addrVal, ok := addrObj["address"]; ok {
 							if addrStr, ok := addrVal.(string); ok {
@@ -236,7 +236,7 @@ func (c *PfsenseController) extractAddresses(
 								address = fmt.Sprintf("%v", addrVal)
 							}
 						}
-						
+
 						// Extract mask
 						if maskVal, ok := addrObj["mask"]; ok {
 							if maskInt, ok := maskVal.(int); ok {
@@ -249,7 +249,7 @@ func (c *PfsenseController) extractAddresses(
 								}
 							}
 						}
-						
+
 						// Convert to CIDR format
 						if address != "" && mask > 0 {
 							cidrStr := fmt.Sprintf("%s/%d", address, mask)
@@ -286,11 +286,11 @@ func (c *PfsenseController) extractAddresses(
 // Each object has "address" and "mask" fields (similar to allowedips structure)
 func (c *PfsenseController) parseAddressArray(addressArray []lowlevel.GenericJsonObject) []domain.Cidr {
 	addresses := make([]domain.Cidr, 0, len(addressArray))
-	
+
 	for _, addrObj := range addressArray {
 		address := addrObj.GetString("address")
 		mask := addrObj.GetInt("mask")
-		
+
 		if address != "" && mask > 0 {
 			cidrStr := fmt.Sprintf("%s/%d", address, mask)
 			if cidr, err := domain.CidrFromString(cidrStr); err == nil {
@@ -303,7 +303,7 @@ func (c *PfsenseController) parseAddressArray(addressArray []lowlevel.GenericJso
 			}
 		}
 	}
-	
+
 	return addresses
 }
 
@@ -405,7 +405,7 @@ func (c *PfsenseController) GetPeers(ctx context.Context, deviceId domain.Interf
 				peerTun = peer.GetString("tunnel")
 			}
 		}
-		
+
 		// Only include peers that match the requested interface name
 		if peerTun != string(deviceId) {
 			if c.cfg.Debug {
@@ -425,7 +425,7 @@ func (c *PfsenseController) GetPeers(ctx context.Context, deviceId domain.Interf
 		}
 		peers = append(peers, peerModel)
 	}
-	
+
 	if c.cfg.Debug {
 		slog.Debug("filtered peers for interface",
 			"interface", deviceId,
@@ -465,7 +465,7 @@ func (c *PfsenseController) convertWireGuardPeer(peer lowlevel.GenericJsonObject
 				if itemObj, ok := item.(map[string]any); ok {
 					address := ""
 					mask := 0
-					
+
 					// Extract address
 					if addrVal, ok := itemObj["address"]; ok {
 						if addrStr, ok := addrVal.(string); ok {
@@ -474,7 +474,7 @@ func (c *PfsenseController) convertWireGuardPeer(peer lowlevel.GenericJsonObject
 							address = fmt.Sprintf("%v", addrVal)
 						}
 					}
-					
+
 					// Extract mask
 					if maskVal, ok := itemObj["mask"]; ok {
 						if maskInt, ok := maskVal.(int); ok {
@@ -487,7 +487,7 @@ func (c *PfsenseController) convertWireGuardPeer(peer lowlevel.GenericJsonObject
 							}
 						}
 					}
-					
+
 					// Convert to CIDR format (e.g., "10.1.2.3/32")
 					if address != "" && mask > 0 {
 						cidrStr := fmt.Sprintf("%s/%d", address, mask)
@@ -502,7 +502,7 @@ func (c *PfsenseController) convertWireGuardPeer(peer lowlevel.GenericJsonObject
 			allowedAddresses, _ = domain.CidrsFromString(allowedIPsStr)
 		}
 	}
-	
+
 	// Fallback to string parsing if array parsing didn't work
 	if len(allowedAddresses) == 0 {
 		allowedIPsStr := peer.GetString("allowedips")
@@ -516,7 +516,7 @@ func (c *PfsenseController) convertWireGuardPeer(peer lowlevel.GenericJsonObject
 
 	endpoint := peer.GetString("endpoint")
 	port := peer.GetString("port")
-	
+
 	// Combine endpoint and port if both are available
 	if endpoint != "" && port != "" {
 		// Check if endpoint already contains a port
@@ -787,7 +787,7 @@ func (c *PfsenseController) getOrCreatePeer(
 	wgReply := c.client.Query(ctx, "/api/v2/vpn/wireguard/peers", &lowlevel.PfsenseRequestOptions{
 		Filters: map[string]string{
 			"publickey": string(id),
-			"tun":        string(deviceId), // Use "tun" field name as that's what the API uses
+			"tun":       string(deviceId), // Use "tun" field name as that's what the API uses
 		},
 	})
 	if wgReply.Status == lowlevel.PfsenseApiStatusOk && len(wgReply.Data) > 0 {
@@ -804,8 +804,8 @@ func (c *PfsenseController) getOrCreatePeer(
 	slog.Debug("creating new pfSense peer", "peer", id, "interface", deviceId)
 	createReply := c.client.Create(ctx, "/api/v2/vpn/wireguard/peer", lowlevel.GenericJsonObject{
 		"name":       fmt.Sprintf("wg-%s", id[0:8]),
-		"interface": string(deviceId),
-		"publickey": string(id),
+		"interface":  string(deviceId),
+		"publickey":  string(id),
 		"allowedips": "0.0.0.0/0", // Use 0.0.0.0/0 as default, will be updated by updatePeer
 	})
 	if createReply.Status == lowlevel.PfsenseApiStatusOk {
@@ -838,14 +838,14 @@ func (c *PfsenseController) updatePeer(
 		"disabled", extras.Disabled)
 
 	payload := lowlevel.GenericJsonObject{
-		"name":                 extras.Name,
-		"description":          extras.Comment,
-		"presharedkey":         string(pp.PresharedKey),
-		"publickey":            pp.KeyPair.PublicKey,
-		"privatekey":           pp.KeyPair.PrivateKey,
-		"persistentkeepalive":  strconv.Itoa(pp.PersistentKeepalive),
-		"disabled":             strconv.FormatBool(extras.Disabled),
-		"allowedips":           allowedIPsStr,
+		"name":                extras.Name,
+		"description":         extras.Comment,
+		"presharedkey":        string(pp.PresharedKey),
+		"publickey":           pp.PublicKey,
+		"privatekey":          pp.PrivateKey,
+		"persistentkeepalive": strconv.Itoa(pp.PersistentKeepalive),
+		"disabled":            strconv.FormatBool(extras.Disabled),
+		"allowedips":          allowedIPsStr,
 	}
 
 	if pp.Endpoint != "" {
@@ -882,7 +882,7 @@ func (c *PfsenseController) DeletePeer(
 	wgReply := c.client.Query(ctx, "/api/v2/vpn/wireguard/peers", &lowlevel.PfsenseRequestOptions{
 		Filters: map[string]string{
 			"publickey": string(id),
-			"tun":        string(deviceId), // Use "tun" field name as that's what the API uses
+			"tun":       string(deviceId), // Use "tun" field name as that's what the API uses
 		},
 	})
 	if wgReply.Status != lowlevel.PfsenseApiStatusOk {
@@ -976,4 +976,3 @@ func (c *PfsenseController) PingAddresses(
 }
 
 // endregion statistics-related
-

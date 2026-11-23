@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/Jipok/wgctrl-go/wgtypes"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestKeyPair_GetPrivateKeyBytesReturnsCorrectBytes(t *testing.T) {

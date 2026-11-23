@@ -74,7 +74,7 @@ type Peer struct {
 	PostDown ConfigOption[string] `json:"PostDown"`
 
 	// AmneziaWG obfuscation parameters (client-side)
-	AWGEnabled bool `json:"AWGEnabled"`
+	AWGEnabled bool   `json:"AWGEnabled"`
 	AWGJc      int    `json:"AWGJc"`
 	AWGJmin    int    `json:"AWGJmin"`
 	AWGJmax    int    `json:"AWGJmax"`

@@ -76,7 +76,7 @@ type Peer struct {
 	PostDown ConfigOption[string] `json:"PostDown"` // action that is executed after the device is down
 
 	// AmneziaWG obfuscation parameters (client-side)
-	AWGEnabled bool `json:"AWGEnabled"` // whether obfuscation is enabled
+	AWGEnabled bool   `json:"AWGEnabled"` // whether obfuscation is enabled
 	AWGJc      int    `json:"AWGJc"`
 	AWGJmin    int    `json:"AWGJmin"`
 	AWGJmax    int    `json:"AWGJmax"`

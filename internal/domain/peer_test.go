@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/DanilenkA/awg-portal/internal/config"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPeer_IsDisabled(t *testing.T) {
