@@ -2,6 +2,8 @@ package logging
 
 import (
 	"testing"
+
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/middleware/tracing"
 )
 
 func TestWithLevel(t *testing.T) {
@@ -34,7 +36,7 @@ func TestWithPrefix(t *testing.T) {
 }
 
 func TestWithContextRequestIdKey(t *testing.T) {
-	key := "contextKey"
+	key := tracing.ContextKey("contextKey")
 	opt := WithContextRequestIdKey(key)
 	o := newOptions(opt)
 

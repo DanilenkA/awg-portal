@@ -108,7 +108,7 @@ func TestAuthEndpointReturnUrlWithLoginStatePreservesHashQuery(t *testing.T) {
 func TestAuthEndpointFrontendUrlUsesBasePathAppMount(t *testing.T) {
 	ep := newBasePathAuthEndpoint(&testSession{})
 
-	if got, want := ep.frontendUrl("/login"), "https://wg.example.com/subpath/app/#/login"; got != want {
+	if got, want := ep.frontendLoginUrl(), "https://wg.example.com/subpath/app/#/login"; got != want {
 		t.Fatalf("expected frontend URL %q, got %q", want, got)
 	}
 }

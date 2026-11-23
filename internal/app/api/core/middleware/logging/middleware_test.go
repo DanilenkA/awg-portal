@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/DanilenkA/awg-portal/internal/app/api/core/middleware/tracing"
 )
 
 type mockLogger struct {
@@ -62,7 +64,7 @@ func TestMiddleware_Extended(t *testing.T) {
 		_, _ = w.Write([]byte("Hello, World!"))
 	})
 
-	middleware := New(WithContextRequestIdKey("requestId"), WithHeaderRequestIdKey("X-Request-Id")).
+	middleware := New(WithContextRequestIdKey(tracing.ContextKey("requestId")), WithHeaderRequestIdKey("X-Request-Id")).
 		Handler(handler)
 	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
 	rr := httptest.NewRecorder()
@@ -93,7 +95,6 @@ func TestMiddleware_Logger_remoteAddr(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	middleware.ServeHTTP(rr, req)
-
 }
 
 func TestMiddleware_Logger_remoteAddrNoPort(t *testing.T) {
@@ -110,7 +111,6 @@ func TestMiddleware_Logger_remoteAddrNoPort(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	middleware.ServeHTTP(rr, req)
-
 }
 
 func TestMiddleware_Logger_remoteAddrV6(t *testing.T) {
@@ -127,7 +127,6 @@ func TestMiddleware_Logger_remoteAddrV6(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	middleware.ServeHTTP(rr, req)
-
 }
 
 func TestMiddleware_Logger_remoteAddrV6NoPort(t *testing.T) {
@@ -144,5 +143,4 @@ func TestMiddleware_Logger_remoteAddrV6NoPort(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	middleware.ServeHTTP(rr, req)
-
 }

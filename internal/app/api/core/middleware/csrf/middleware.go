@@ -6,9 +6,13 @@ import (
 	"slices"
 )
 
-// ContextValueIdentifier is the context value identifier for the CSRF token.
+// ContextKey is the type of the keys this middleware stores in a context.
+// A dedicated type keeps the keys apart from the keys of other packages.
+type ContextKey string
+
+// ContextValueIdentifier is the context key for the CSRF token.
 // The token is only stored in the context if the RefreshToken function was called before.
-const ContextValueIdentifier = "_csrf_token"
+const ContextValueIdentifier ContextKey = "_csrf_token"
 
 // Middleware is a type that creates a new CSRF middleware. The CSRF middleware
 // can be used to mitigate Cross-Site Request Forgery attacks.
@@ -104,16 +108,16 @@ func setToken(ctx context.Context, token string) context.Context {
 // defaultTokenGetter is the default token getter function for the CSRF middleware.
 // It checks the request form values, URL query parameters, and headers for the CSRF token.
 // The order of precedence is:
-//  1. Header "X-CSRF-TOKEN"
-//  2. Header "X-XSRF-TOKEN"
+//  1. Header "X-Csrf-Token"
+//  2. Header "X-Xsrf-Token"
 //  3. URL query parameter "_csrf"
 //  4. Form value "_csrf"
 func defaultTokenGetter(r *http.Request) string {
-	if t := r.Header.Get("X-CSRF-TOKEN"); len(t) > 0 {
+	if t := r.Header.Get("X-Csrf-Token"); len(t) > 0 {
 		return t
 	}
 
-	if t := r.Header.Get("X-XSRF-TOKEN"); len(t) > 0 {
+	if t := r.Header.Get("X-Xsrf-Token"); len(t) > 0 {
 		return t
 	}
 

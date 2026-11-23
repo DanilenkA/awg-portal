@@ -209,7 +209,7 @@ func ClientIp(r *http.Request, allowedProxyIp ...string) string {
 	}
 
 	if isProxiedRequest {
-		realClientIP := r.Header.Get("X-Real-Ip")
+		realClientIP := r.Header.Get("X-Real-IP")
 		if realClientIP == "" {
 			realClientIP = r.Header.Get("X-Forwarded-For")
 		}

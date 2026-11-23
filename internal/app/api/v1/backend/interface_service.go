@@ -21,7 +21,6 @@ type InterfaceService struct {
 	cfg *config.Config
 
 	interfaces InterfaceServiceInterfaceManagerRepo
-	users      PeerServiceUserManagerRepo
 }
 
 func NewInterfaceService(cfg *config.Config, interfaces InterfaceServiceInterfaceManagerRepo) *InterfaceService {

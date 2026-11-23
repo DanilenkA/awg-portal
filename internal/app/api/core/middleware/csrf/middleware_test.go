@@ -39,8 +39,8 @@ func TestMiddleware_Handler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, "/", nil)
-			req.Header.Set("X-CSRF-TOKEN", tt.token)
+			req := httptest.NewRequestWithContext(t.Context(), tt.method, "/", nil)
+			req.Header.Set("X-Csrf-Token", tt.token)
 			rr := httptest.NewRecorder()
 
 			handler.ServeHTTP(rr, req)
@@ -70,7 +70,7 @@ func TestMiddleware_RefreshToken(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest("POST", "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), "POST", "/", nil)
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -104,7 +104,7 @@ func TestMiddleware_RefreshToken_chained(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})))
 
-	req := httptest.NewRequest("POST", "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), "POST", "/", nil)
 	rr := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
@@ -133,11 +133,11 @@ func TestMiddleware_RefreshToken_Handler(t *testing.T) {
 	m := New(sessionReader, sessionWriter)
 
 	// simulate two requests: first one GET request with the RefreshToken handler, the next one is a PUT request with
-	// the token from the first request added as X-CSRF-TOKEN header
+	// the token from the first request added as X-Csrf-Token header
 
 	// first request
 	retrievedToken := ""
-	req := httptest.NewRequest("GET", "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), "GET", "/", nil)
 	rr := httptest.NewRecorder()
 	handler := m.RefreshToken(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		retrievedToken = GetToken(r.Context())
@@ -158,8 +158,8 @@ func TestMiddleware_RefreshToken_Handler(t *testing.T) {
 	}
 
 	// second request
-	req = httptest.NewRequest("PUT", "/", nil)
-	req.Header.Set("X-CSRF-TOKEN", retrievedToken)
+	req = httptest.NewRequestWithContext(t.Context(), "PUT", "/", nil)
+	req.Header.Set("X-Csrf-Token", retrievedToken)
 	rr = httptest.NewRecorder()
 	handler = m.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -197,7 +197,7 @@ func TestMiddleware_Handler_FormBody(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest("POST", "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), "POST", "/", nil)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Form = make(map[string][]string)
 	req.Form.Add("_csrf", "stored-token")
@@ -238,7 +238,7 @@ func TestMiddleware_Handler_FormBodyAvailable(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest("POST", "/?_csrf=stored-token", nil)
+	req := httptest.NewRequestWithContext(t.Context(), "POST", "/?_csrf=stored-token", nil)
 	req.Header.Set("Content-Type", "text/plain")
 	req.Body = io.NopCloser(strings.NewReader("the original body"))
 	rr := httptest.NewRecorder()

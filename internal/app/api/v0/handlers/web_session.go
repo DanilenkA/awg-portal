@@ -72,11 +72,11 @@ func NewSessionWrapper(cfg *config.Config) *SessionWrapper {
 }
 
 func (s *SessionWrapper) SetData(ctx context.Context, value SessionData) {
-	s.SessionManager.Put(ctx, sessionApiV0Key, value)
+	s.Put(ctx, sessionApiV0Key, value)
 }
 
 func (s *SessionWrapper) GetData(ctx context.Context) SessionData {
-	sessionData, ok := s.SessionManager.Get(ctx, sessionApiV0Key).(SessionData)
+	sessionData, ok := s.Get(ctx, sessionApiV0Key).(SessionData)
 	if !ok {
 		return s.defaultSessionData()
 	}
@@ -84,7 +84,7 @@ func (s *SessionWrapper) GetData(ctx context.Context) SessionData {
 }
 
 func (s *SessionWrapper) DestroyData(ctx context.Context) {
-	_ = s.SessionManager.Destroy(ctx)
+	_ = s.Destroy(ctx)
 }
 
 func (s *SessionWrapper) defaultSessionData() SessionData {

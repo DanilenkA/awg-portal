@@ -85,7 +85,7 @@ func addPrefix(o options, message string) string {
 // enabled, the stack trace is included in the response.
 func getDefaultErrCallback(o options) func(err error, stack []byte, w http.ResponseWriter, r *http.Request) {
 	return func(err error, stack []byte, w http.ResponseWriter, r *http.Request) {
-		responseBody := map[string]interface{}{
+		responseBody := map[string]any{
 			"error": "Internal Server Error",
 		}
 		if o.exposeStackTrace && len(stack) > 0 {

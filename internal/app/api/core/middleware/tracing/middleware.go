@@ -4,13 +4,20 @@ import (
 	"context"
 	"math/rand"
 	"net/http"
+	"sync"
 )
+
+// ContextKey is the type of the key under which the request id is stored in the context.
+// A dedicated type keeps the key apart from the keys of other packages.
+type ContextKey string
 
 // Middleware is a type that creates a new tracing middleware. The tracing middleware
 // can be used to trace requests based on a request ID header or parameter.
 type Middleware struct {
 	o options
 
+	// mu guards seededRand: rand.Rand is not safe for concurrent use and requests arrive in parallel.
+	mu         sync.Mutex
 	seededRand *rand.Rand
 }
 
@@ -20,7 +27,7 @@ func New(opts ...Option) *Middleware {
 
 	m := &Middleware{
 		o:          o,
-		seededRand: rand.New(rand.NewSource(o.generateSeed)),
+		seededRand: rand.New(rand.NewSource(o.generateSeed)), //nolint:gosec // G404: request ids only have to be unique, the seed is an operator option
 	}
 
 	return m
@@ -60,6 +67,9 @@ func (m *Middleware) Handler(next http.Handler) http.Handler {
 
 func (m *Middleware) generateRandomId() string {
 	b := make([]byte, m.o.generateLength)
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	for i := range b {
 		b[i] = m.o.generateCharset[m.seededRand.Intn(len(m.o.generateCharset))]
 	}

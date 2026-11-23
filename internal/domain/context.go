@@ -6,7 +6,12 @@ import (
 	"log/slog"
 )
 
-const CtxUserInfo = "userInfo"
+// ctxKey is the type of the keys this package stores in a context.
+// A dedicated type keeps them apart from the keys of other packages.
+type ctxKey string
+
+// CtxUserInfo is the context key for the *ContextUserInfo of the acting user.
+const CtxUserInfo ctxKey = "userInfo"
 
 const (
 	CtxSystemAdminId    = "_WG_SYS_ADMIN_"

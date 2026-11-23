@@ -18,10 +18,10 @@ func (w wildcard) match(s string) bool {
 }
 
 func newWildcard(s string) wildcard {
-	if i := strings.IndexByte(s, '*'); i >= 0 {
+	if prefix, suffix, found := strings.Cut(s, "*"); found {
 		return wildcard{
-			prefix: s[:i],
-			suffix: s[i+1:],
+			prefix: prefix,
+			suffix: suffix,
 		}
 	}
 

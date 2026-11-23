@@ -81,9 +81,9 @@ func (e WebsocketEndpoint) handleWebsocket() http.HandlerFunc {
 		}
 
 		_ = e.bus.Subscribe(app.TopicPeerStatsUpdated, peerStatsHandler)
-		defer e.bus.Unsubscribe(app.TopicPeerStatsUpdated, peerStatsHandler)
+		defer func() { _ = e.bus.Unsubscribe(app.TopicPeerStatsUpdated, peerStatsHandler) }()
 		_ = e.bus.Subscribe(app.TopicInterfaceStatsUpdated, interfaceStatsHandler)
-		defer e.bus.Unsubscribe(app.TopicInterfaceStatsUpdated, interfaceStatsHandler)
+		defer func() { _ = e.bus.Unsubscribe(app.TopicInterfaceStatsUpdated, interfaceStatsHandler) }()
 
 		// Keep connection open until client disconnects or context is cancelled
 		go func() {

@@ -7,7 +7,7 @@ import "time"
 type options struct {
 	upstreamReqIdHeader string
 	headerIdentifier    string
-	contextIdentifier   string
+	contextIdentifier   ContextKey
 	generateLength      int
 	generateCharset     string
 	generateSeed        int64
@@ -60,10 +60,10 @@ func WithUpstreamHeader(header string) Option {
 // WithContextIdentifier specifies the value-key for the request id that is added to the request context.
 // If the identifier is empty, the request id will not be added to the context.
 // If the request id is added to the context, it can be retrieved with:
-// `id := r.Context().Value(THE-IDENTIFIER).(string)`
+// `id := r.Context().Value(tracing.ContextKey(THE-IDENTIFIER)).(string)`
 func WithContextIdentifier(identifier string) Option {
 	return func(o *options) {
-		o.contextIdentifier = identifier
+		o.contextIdentifier = ContextKey(identifier)
 	}
 }
 

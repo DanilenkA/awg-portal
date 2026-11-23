@@ -23,8 +23,8 @@ func TestMiddleware_Handler_WithUpstreamHeader(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	if rr.Header().Get("X-Request-Id") != upstreamHeaderValue {
-		t.Errorf("expected X-Request-Id header to be set in the response")
+	if rr.Header().Get("X-Request-ID") != upstreamHeaderValue {
+		t.Errorf("expected X-Request-ID header to be set in the response")
 	}
 }
 
@@ -32,7 +32,7 @@ func TestMiddleware_Handler_GenerateNewId(t *testing.T) {
 	idLen := 18
 	m := New(WithIdLength(idLen))
 	handler := m.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqId := w.Header().Get("X-Request-Id")
+		reqId := w.Header().Get("X-Request-ID")
 		if len(reqId) != 18 {
 			t.Errorf("expected generated request id length to be %d, got %d", idLen, len(reqId))
 		}
@@ -42,15 +42,15 @@ func TestMiddleware_Handler_GenerateNewId(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	if rr.Header().Get("X-Request-Id") == "" || len(rr.Header().Get("X-Request-Id")) != idLen {
-		t.Errorf("expected X-Request-Id header to be set in the response")
+	if rr.Header().Get("X-Request-ID") == "" || len(rr.Header().Get("X-Request-ID")) != idLen {
+		t.Errorf("expected X-Request-ID header to be set in the response")
 	}
 }
 
 func TestMiddleware_Handler_SetContextValue(t *testing.T) {
 	m := New()
 	handler := m.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqId := r.Context().Value("RequestId").(string)
+		reqId, _ := r.Context().Value(ContextKey("RequestId")).(string)
 		if reqId == "" || len(reqId) != defaultLength {
 			t.Errorf("expected context request id to be set, got empty string")
 		}
@@ -64,7 +64,7 @@ func TestMiddleware_Handler_SetContextValue(t *testing.T) {
 func TestMiddleware_Handler_SetCustomContextValue(t *testing.T) {
 	m := New(WithContextIdentifier("Custom-Id"))
 	handler := m.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqId := r.Context().Value("Custom-Id").(string)
+		reqId, _ := r.Context().Value(ContextKey("Custom-Id")).(string)
 		if reqId == "" || len(reqId) != defaultLength {
 			t.Errorf("expected context request id to be set, got empty string")
 		}
@@ -78,7 +78,7 @@ func TestMiddleware_Handler_SetCustomContextValue(t *testing.T) {
 func TestMiddleware_Handler_NoIdGenerated(t *testing.T) {
 	m := New(WithIdLength(0))
 	handler := m.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqId := w.Header().Get("X-Request-Id")
+		reqId := w.Header().Get("X-Request-ID")
 		if reqId != "" {
 			t.Errorf("expected no request id to be generated, got %s", reqId)
 		}
@@ -92,7 +92,7 @@ func TestMiddleware_Handler_NoIdGenerated(t *testing.T) {
 func TestMiddleware_Handler_NoIdHeaderSet(t *testing.T) {
 	m := New(WithHeaderIdentifier(""))
 	handler := m.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqId := w.Header().Get("X-Request-Id")
+		reqId := w.Header().Get("X-Request-ID")
 		if reqId != "" {
 			t.Errorf("expected no request id to be generated, got %s", reqId)
 		}
@@ -106,7 +106,7 @@ func TestMiddleware_Handler_NoIdHeaderSet(t *testing.T) {
 func TestMiddleware_Handler_NoIdContextSet(t *testing.T) {
 	m := New(WithHeaderIdentifier(""))
 	handler := m.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqId := r.Context().Value("Request-Id")
+		reqId := r.Context().Value(ContextKey("Request-Id"))
 		if reqId != nil {
 			t.Errorf("expected no context request id to be set, got %v", reqId)
 		}
