@@ -138,7 +138,7 @@ func (a *Authenticator) StartBackgroundJobs(ctx context.Context) {
 		ldapQueue := a.cfg.Ldap
 
 		// Immediate attempt
-		failedOidc, failedOauth, failedLdap := a.setupExternalAuthProviders(oidcQueue, oauthQueue, ldapQueue)
+		failedOidc, failedOauth, failedLdap := a.setupExternalAuthProviders(ctx, oidcQueue, oauthQueue, ldapQueue)
 		if len(failedOidc) == 0 && len(failedOauth) == 0 && len(failedLdap) == 0 {
 			slog.Info("successfully setup all external auth providers")
 			return
@@ -157,7 +157,7 @@ func (a *Authenticator) StartBackgroundJobs(ctx context.Context) {
 		for {
 			select {
 			case <-ticker.C:
-				failedOidc, failedOauth, failedLdap := a.setupExternalAuthProviders(oidcQueue, oauthQueue, ldapQueue)
+				failedOidc, failedOauth, failedLdap := a.setupExternalAuthProviders(ctx, oidcQueue, oauthQueue, ldapQueue)
 				if len(failedOidc) > 0 || len(failedOauth) > 0 || len(failedLdap) > 0 {
 					slog.Warn("failed to setup some external auth providers, retrying in 30 seconds",
 						"failedOidc", len(failedOidc), "failedOauth", len(failedOauth), "failedLdap", len(failedLdap))
@@ -178,6 +178,7 @@ func (a *Authenticator) StartBackgroundJobs(ctx context.Context) {
 }
 
 func (a *Authenticator) setupExternalAuthProviders(
+	ctx context.Context,
 	oidc []config.OpenIDConnectProvider,
 	oauth []config.OAuthProvider,
 	ldap []config.LdapProvider,
@@ -186,7 +187,7 @@ func (a *Authenticator) setupExternalAuthProviders(
 	[]config.OAuthProvider,
 	[]config.LdapProvider,
 ) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	var failedOidc []config.OpenIDConnectProvider
@@ -227,13 +228,7 @@ func (a *Authenticator) setupExternalAuthProviders(
 		redirectUrl := *a.callbackUrl
 		redirectUrl.Path = path.Join(redirectUrl.Path, "/auth/login/", providerId, "/callback")
 
-		provider, err := newPlainOauthAuthenticator(ctx, redirectUrl.String(), providerCfg)
-		if err != nil {
-			failedOauth = append(failedOauth, oauth[i])
-			slog.Error("failed to setup oauth authentication provider", "name", providerId, "error", err)
-			continue
-		}
-		a.oauthAuthenticators[providerId] = provider
+		a.oauthAuthenticators[providerId] = newPlainOauthAuthenticator(redirectUrl.String(), providerCfg)
 	}
 	for i := range ldap { // LDAP
 		providerCfg := &ldap[i]
@@ -245,13 +240,7 @@ func (a *Authenticator) setupExternalAuthProviders(
 			continue // skip this provider
 		}
 
-		provider, err := newLdapAuthenticator(ctx, providerCfg)
-		if err != nil {
-			failedLdap = append(failedLdap, ldap[i])
-			slog.Error("failed to setup ldap authentication provider", "name", providerId, "error", err)
-			continue
-		}
-		a.ldapAuthenticators[providerId] = provider
+		a.ldapAuthenticators[providerId] = newLdapAuthenticator(providerCfg)
 	}
 
 	return failedOidc, failedOauth, failedLdap
@@ -406,7 +395,7 @@ func (a *Authenticator) passwordAuthentication(
 				continue // ldap provider does not support registration, skip further checks
 			}
 
-			rawUserInfo, err := ldapAuth.GetUserInfo(context.Background(), identifier)
+			rawUserInfo, err := ldapAuth.GetUserInfo(ctx, identifier)
 			if err != nil {
 				if !errors.Is(err, domain.ErrNotFound) {
 					slog.Warn("failed to fetch ldap user info",
@@ -692,22 +681,6 @@ func (a *Authenticator) registerNewUser(
 		"provider", source)
 
 	return user, nil
-}
-
-func (a *Authenticator) getAuthenticatorConfig(id string) (any, error) {
-	for i := range a.cfg.OpenIDConnect {
-		if a.cfg.OpenIDConnect[i].ProviderName == id {
-			return a.cfg.OpenIDConnect[i], nil
-		}
-	}
-
-	for i := range a.cfg.OAuth {
-		if a.cfg.OAuth[i].ProviderName == id {
-			return a.cfg.OAuth[i], nil
-		}
-	}
-
-	return nil, fmt.Errorf("no configuration for Authenticator id %s", id)
 }
 
 func (a *Authenticator) updateExternalUser(

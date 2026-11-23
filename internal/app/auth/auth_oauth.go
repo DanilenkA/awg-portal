@@ -33,10 +33,9 @@ type PlainOauthAuthenticator struct {
 }
 
 func newPlainOauthAuthenticator(
-	_ context.Context,
 	callbackUrl string,
 	cfg *config.OAuthProvider,
-) (*PlainOauthAuthenticator, error) {
+) *PlainOauthAuthenticator {
 	var provider = &PlainOauthAuthenticator{}
 
 	provider.name = cfg.ProviderName
@@ -63,7 +62,7 @@ func newPlainOauthAuthenticator(
 	provider.allowedDomains = cfg.AllowedDomains
 	provider.allowedUserGroups = cfg.AllowedUserGroups
 
-	return provider, nil
+	return provider
 }
 
 // GetName returns the name of the OAuth authenticator.

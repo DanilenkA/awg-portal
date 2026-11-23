@@ -250,8 +250,8 @@ func TestIsValidAWGInterfaceName(t *testing.T) {
 		{"a b", false},
 	}
 	for _, c := range cases {
-		if got := isValidAWGInterfaceName(c.name); got != c.valid {
-			t.Errorf("isValidAWGInterfaceName(%q) = %v, want %v", c.name, got, c.valid)
+		if got := IsValidInterfaceName(c.name); got != c.valid {
+			t.Errorf("IsValidInterfaceName(%q) = %v, want %v", c.name, got, c.valid)
 		}
 	}
 }

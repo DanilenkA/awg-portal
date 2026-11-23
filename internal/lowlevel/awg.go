@@ -154,6 +154,21 @@ func IsAWGAvailable() bool {
 	return err == nil
 }
 
+// IsValidInterfaceName applies the kernel rules for interface names and, on top of them,
+// rejects a leading dash: the name is passed to amneziawg-go and to shell commands as an argument.
+func IsValidInterfaceName(name string) bool {
+	if name == "" || name == "." || name == ".." || len(name) > 15 || strings.HasPrefix(name, "-") {
+		return false
+	}
+	return !strings.ContainsAny(name, "/: \t\r\n")
+}
+
+// dialUAPI connects to a UAPI socket with a bounded timeout.
+func dialUAPI(sock string, timeout time.Duration) (net.Conn, error) {
+	dialer := net.Dialer{Timeout: timeout}
+	return dialer.Dial("unix", sock)
+}
+
 // StartAWGProcess starts "amneziawg-go --foreground <ifaceName>" and
 // waits for the UAPI socket to become live (timeout configurable via
 // awgProcessStartTimeout). If a stale socket exists (file present but no
@@ -169,23 +184,8 @@ func IsAWGAvailable() bool {
 // cmd.Wait() — it owns ProcessState exclusively. Once Wait returns it records
 // the wait error, removes the iface from the procs map (under procsMu), and
 // closes the entry's done channel so any waiter can return.
-// isValidAWGInterfaceName applies the kernel rules for interface names and, on top of them,
-// rejects a leading dash: the name is handed to amneziawg-go as a command line argument.
-func isValidAWGInterfaceName(name string) bool {
-	if name == "" || name == "." || name == ".." || len(name) > 15 || strings.HasPrefix(name, "-") {
-		return false
-	}
-	return !strings.ContainsAny(name, "/: \t\r\n")
-}
-
-// dialUAPI connects to a UAPI socket with a bounded timeout.
-func dialUAPI(sock string, timeout time.Duration) (net.Conn, error) {
-	dialer := net.Dialer{Timeout: timeout}
-	return dialer.Dial("unix", sock)
-}
-
 func StartAWGProcess(ifaceName string) error {
-	if !isValidAWGInterfaceName(ifaceName) {
+	if !IsValidInterfaceName(ifaceName) {
 		return fmt.Errorf("awg: invalid interface name %q", ifaceName)
 	}
 

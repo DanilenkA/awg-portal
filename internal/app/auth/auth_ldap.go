@@ -19,8 +19,8 @@ type LdapAuthenticator struct {
 	cfg *config.LdapProvider
 }
 
-func newLdapAuthenticator(_ context.Context, cfg *config.LdapProvider) (*LdapAuthenticator, error) {
-	return &LdapAuthenticator{cfg: cfg}, nil
+func newLdapAuthenticator(cfg *config.LdapProvider) *LdapAuthenticator {
+	return &LdapAuthenticator{cfg: cfg}
 }
 
 // GetName returns the name of the LDAP authenticator.
@@ -43,7 +43,7 @@ func (l LdapAuthenticator) PlaintextAuthentication(userId domain.UserIdentifier,
 
 	attrs := []string{"dn"}
 
-	loginFilter := strings.Replace(l.cfg.LoginFilter, "{{login_identifier}}", ldap.EscapeFilter(string(userId)), -1)
+	loginFilter := strings.ReplaceAll(l.cfg.LoginFilter, "{{login_identifier}}", ldap.EscapeFilter(string(userId)))
 	searchRequest := ldap.NewSearchRequest(
 		l.cfg.BaseDN,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 20, false, // 20 second time limit
@@ -89,7 +89,7 @@ func (l LdapAuthenticator) GetUserInfo(_ context.Context, userId domain.UserIden
 
 	attrs := internal.LdapSearchAttributes(&l.cfg.FieldMap)
 
-	loginFilter := strings.Replace(l.cfg.LoginFilter, "{{login_identifier}}", ldap.EscapeFilter(string(userId)), -1)
+	loginFilter := strings.ReplaceAll(l.cfg.LoginFilter, "{{login_identifier}}", ldap.EscapeFilter(string(userId)))
 	searchRequest := ldap.NewSearchRequest(
 		l.cfg.BaseDN,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 20, false, // 20 second time limit
@@ -132,7 +132,12 @@ func (l LdapAuthenticator) ParseUserInfo(raw map[string]any) (*domain.Authentica
 	if l.cfg.FieldMap.GroupMembership != "" {
 		adminInfoAvailable = true
 		var err error
-		isAdmin, err = internal.LdapIsMemberOf(raw[l.cfg.FieldMap.GroupMembership].([][]byte), l.cfg.ParsedAdminGroupDN)
+		memberOf, ok := raw[l.cfg.FieldMap.GroupMembership].([][]byte)
+		if !ok {
+			return nil, fmt.Errorf("group membership attribute %s is missing or not a list",
+				l.cfg.FieldMap.GroupMembership)
+		}
+		isAdmin, err = internal.LdapIsMemberOf(memberOf, l.cfg.ParsedAdminGroupDN)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check admin group: %w", err)
 		}
