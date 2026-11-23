@@ -46,6 +46,7 @@ venv/
 CLAUDE.md
 AGENT.md
 AGENTS.md
+.agent/
 .claude/
 .codex/
 

@@ -67,6 +67,26 @@ test-vet: build-dependencies
 test-race: build-dependencies
 	@$(GOCMD) test -race -short $(GOFILES)
 
+#> lint: Run all enabled linters (golangci-lint)
+.PHONY: lint
+lint:
+	@golangci-lint run ./...
+
+#> lint-fix: Apply the fixes linters can make on their own
+.PHONY: lint-fix
+lint-fix:
+	@golangci-lint run --fix ./...
+
+#> verify-fast: Fast gate: whitespace, secrets, format and lint of changed files
+.PHONY: verify-fast
+verify-fast:
+	@bash scripts/verify-fast.sh
+
+#> verify-full: Full gate: verify-fast, format, vet, build, tests, lint, govulncheck, frontend build
+.PHONY: verify-full
+verify-full:
+	@bash scripts/verify-full.sh
+
 ########################################################################################
 ##
 ## CI TARGETS

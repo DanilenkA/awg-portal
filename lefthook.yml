@@ -1,0 +1,12 @@
+---
+# Local gates. The scripts run the same commands in WSL, on any runner and in CI.
+# Install once per clone: lefthook install
+pre-commit:
+  commands:
+    verify-fast:
+      run: bash scripts/verify-fast.sh
+
+pre-push:
+  commands:
+    verify-full:
+      run: bash scripts/verify-full.sh
