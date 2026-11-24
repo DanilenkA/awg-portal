@@ -1,6 +1,6 @@
 # wg-portal
 
-![Version: 0.7.3](https://img.shields.io/badge/Version-0.7.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v2](https://img.shields.io/badge/AppVersion-v2-informational?style=flat-square)
+![Version: 0.7.3](https://img.shields.io/badge/Version-0.7.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v2.0.6](https://img.shields.io/badge/AppVersion-v2.0.6-informational?style=flat-square)
 
 WireGuard Configuration Portal with LDAP, OAuth, OIDC authentication
 
@@ -43,7 +43,7 @@ The [Values](#values) section lists the parameters that can be configured during
 | workloadType | string | `"Deployment"` | Workload type - `Deployment` or `StatefulSet` |
 | replicas | int | `1` | The replicas for the workload. |
 | strategy | object | `{"type":"RollingUpdate"}` | Update strategy for the workload Valid values are:  `RollingUpdate` or `Recreate` for Deployment,  `RollingUpdate` or `OnDelete` for StatefulSet |
-| image.repository | string | `"ghcr.io/h44z/wg-portal"` | Image repository |
+| image.repository | string | `"ghcr.io/danilenka/awg-portal"` | Image repository |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion |
 | imagePullSecrets | list | `[]` | Image pull secrets |

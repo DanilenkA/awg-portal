@@ -1,18 +1,15 @@
-## Problem Statement
+## Что изменено
 
-What is the problem you're trying to solve?
+<!-- Коротко: что и зачем. -->
 
-## Related Issue
+## Чек-лист
 
-Fixes #...
+- [ ] `VERSION` поднят до новой версии (`vX.Y.Z`)
+- [ ] `CHANGELOG.md` обновлён: `make changelog`
+- [ ] `README.md` или `docs/` обновлены, если изменение видно пользователю
+- [ ] Если документация не нужна, поставлена метка `docs-not-needed`
+- [ ] `make verify-full` зелёный
 
-## Proposed Changes
+## Проверки
 
-How do you like to solve the issue and why?
-
-## Checklist
-
-- [ ] Commits are signed with `git commit --signoff`
-- [ ] Changes have reasonable test coverage
-- [ ] Tests pass with `make test`
-- [ ] Helm docs are up-to-date with `make helm-docs`
+<!-- Команды, тесты, ручные проверки. -->

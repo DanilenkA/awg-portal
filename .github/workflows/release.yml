@@ -1,0 +1,480 @@
+# Publication workflow. Runs only when a pull request is merged into main/master.
+#
+# One run does everything: validates VERSION, builds the multi-arch image, packs
+# the bundle, creates the signed tag, signs SHA256SUMS, attestates the archive
+# and creates the GitHub Release. A tag pushed with GITHUB_TOKEN does not start
+# another workflow, so the tag and the release must stay in this run.
+name: Release
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'frontend/**'
+      - 'Dockerfile'
+      - 'config.yml.sample'
+      - 'deploy/**'
+      - 'install.sh'
+      - 'uninstall.sh'
+      - 'VERSION'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the image, tag and GitHub Release
+        type: boolean
+        default: false
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      short_sha: ${{ steps.version.outputs.short_sha }}
+      on_main: ${{ steps.version.outputs.on_main }}
+      release: ${{ steps.version.outputs.release }}
+      reason: ${{ steps.version.outputs.reason }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - id: version
+        name: Validate VERSION and the tag
+        run: |
+          version="$(tr -d '\r\n' < VERSION)"
+          short_sha="$(git rev-parse --short=7 HEAD)"
+          on_main=false
+          release=false
+          reason="ok"
+
+          case "${GITHUB_REF}" in
+            refs/heads/main|refs/heads/master) on_main=true ;;
+          esac
+
+          if [ "${on_main}" != "true" ]; then
+            reason="not on main/master"
+          elif ! printf '%s' "${version}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            reason="invalid VERSION"
+          elif git rev-parse "refs/tags/${version}" >/dev/null 2>&1; then
+            reason="tag ${version} already exists"
+          else
+            latest="$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1)"
+            if [ -z "${latest}" ]; then
+              release=true
+            else
+              newer="$(printf '%s\n%s\n' "${latest}" "${version}" | sort -V | tail -n1)"
+              if [ "${version}" = "${latest}" ] || [ "${newer}" != "${version}" ]; then
+                reason="VERSION ${version} is not greater than ${latest}"
+              else
+                release=true
+              fi
+            fi
+          fi
+
+          {
+            echo "version=${version}"
+            echo "short_sha=${short_sha}"
+            echo "on_main=${on_main}"
+            echo "release=${release}"
+            echo "reason=${reason}"
+          } >> "${GITHUB_OUTPUT}"
+          echo "version=${version} on_main=${on_main} release=${release} reason=${reason}"
+
+  verify:
+    name: Verify
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend assets
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run tests
+        run: go test -race -short ./...
+
+      - name: Lint Go (new findings only until the existing findings are resolved)
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.15.0
+          only-new-issues: true
+
+      - name: Install git-cliff
+        run: |
+          cd /tmp
+          curl -fsSLO https://github.com/orhun/git-cliff/releases/download/v2.14.2/git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz
+          curl -fsSLO https://github.com/orhun/git-cliff/releases/download/v2.14.2/git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz.sha512
+          sha512sum -c git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz.sha512
+          mkdir -p /tmp/git-cliff
+          tar xzf git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz -C /tmp/git-cliff --strip-components=1
+          sudo install /tmp/git-cliff/git-cliff /usr/local/bin/git-cliff
+
+      - name: Release consistency
+        run: bash scripts/check-release-consistency
+
+      - name: CHANGELOG is generated
+        run: bash scripts/changelog --check
+
+  build:
+    name: Build image and bundle
+    needs: [preflight, verify]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - id: image
+        name: Compute the lowercase image name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "${GITHUB_OUTPUT}"
+
+      - uses: docker/setup-qemu-action@v3.6.0
+        with:
+          platforms: arm64,arm
+
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: Login to GitHub Container Registry
+        if: ${{ needs.preflight.outputs.on_main == 'true' && (github.event_name == 'push' || github.event.inputs.publish == 'true') }}
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          push: ${{ needs.preflight.outputs.on_main == 'true' && (github.event_name == 'push' || github.event.inputs.publish == 'true') }}
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          tags: |
+            ${{ steps.image.outputs.image }}:sha-${{ needs.preflight.outputs.short_sha }}
+            ${{ steps.image.outputs.image }}:main
+          build-args: |
+            BUILD_VERSION=${{ needs.preflight.outputs.version }}
+          cache-from: type=gha,scope=image
+          cache-to: type=gha,mode=max,scope=image
+          provenance: mode=max
+          sbom: true
+
+      - name: Export wg-portal binaries
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          target: binaries
+          outputs: type=local,dest=./binaries/wg-portal
+          build-args: |
+            BUILD_VERSION=${{ needs.preflight.outputs.version }}
+          cache-from: type=gha,scope=wg-portal
+          cache-to: type=gha,mode=max,scope=wg-portal
+
+      - name: Export amneziawg-go binaries
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          target: amneziawg-bin
+          outputs: type=local,dest=./binaries/amneziawg-go
+          cache-from: type=gha,scope=amneziawg
+          cache-to: type=gha,mode=max,scope=amneziawg
+
+      - name: Normalize binary paths
+        run: |
+          BINROOT="./binaries"
+          mkdir -p "${BINROOT}/final"
+          for src_dir in linux_amd64 linux_arm64 linux_arm_v7; do
+            case "${src_dir}" in
+              linux_amd64)  arch="amd64" ;;
+              linux_arm64)  arch="arm64" ;;
+              linux_arm_v7) arch="arm" ;;
+            esac
+            mkdir -p "${BINROOT}/final/${arch}"
+            if [ -f "${BINROOT}/wg-portal/${src_dir}/wg-portal" ]; then
+              cp "${BINROOT}/wg-portal/${src_dir}/wg-portal" "${BINROOT}/final/${arch}/wg-portal"
+            fi
+            if [ -f "${BINROOT}/amneziawg-go/${src_dir}/amneziawg-go" ]; then
+              cp "${BINROOT}/amneziawg-go/${src_dir}/amneziawg-go" "${BINROOT}/final/${arch}/amneziawg-go"
+            fi
+          done
+          if [ -f "${BINROOT}/wg-portal/wg-portal" ] && [ ! -f "${BINROOT}/final/amd64/wg-portal" ]; then
+            cp "${BINROOT}/wg-portal/wg-portal" "${BINROOT}/final/amd64/wg-portal"
+          fi
+          if [ -f "${BINROOT}/amneziawg-go/amneziawg-go" ] && [ ! -f "${BINROOT}/final/amd64/amneziawg-go" ]; then
+            cp "${BINROOT}/amneziawg-go/amneziawg-go" "${BINROOT}/final/amd64/amneziawg-go"
+          fi
+          find "${BINROOT}/final" -type f -ls
+          echo "BINROOT=${BINROOT}" >> "${GITHUB_ENV}"
+
+      - name: Package the bundle
+        if: ${{ needs.preflight.outputs.release == 'true' || github.event_name == 'workflow_dispatch' }}
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          BUNDLE_ROOT="artifacts/awg-portal-${VERSION}"
+          mkdir -p "${BUNDLE_ROOT}/bin"
+
+          cp install.sh "${BUNDLE_ROOT}/install.sh"
+          cp uninstall.sh "${BUNDLE_ROOT}/uninstall.sh"
+          cp config.yml.sample "${BUNDLE_ROOT}/config.yml.sample"
+          cp release-key.asc "${BUNDLE_ROOT}/release-key.asc"
+          printf '%s\n' "${VERSION}" > "${BUNDLE_ROOT}/VERSION"
+
+          for arch_dir in amd64 arm64 arm; do
+            src="${BINROOT}/final/${arch_dir}"
+            if [ -f "${src}/wg-portal" ]; then
+              cp "${src}/wg-portal" "${BUNDLE_ROOT}/bin/wg-portal-${arch_dir}"
+            fi
+            if [ -f "${src}/amneziawg-go" ]; then
+              cp "${src}/amneziawg-go" "${BUNDLE_ROOT}/bin/amneziawg-go-${arch_dir}"
+            fi
+          done
+
+          # shellcheck disable=SC2016 # $0 belongs to awk, not to the shell
+          awk -v ver="${VERSION}" '
+            index($0, "## [" ver "]") == 1 { found=1 }
+            found && /^## \[/ && index($0, "## [" ver "]") != 1 { exit }
+            found { print }
+          ' CHANGELOG.md > /tmp/changelog-section.md
+          section_sha="$(sha256sum /tmp/changelog-section.md | cut -d" " -f1)"
+
+          {
+            echo "# awg-portal ${VERSION}"
+            echo
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo
+            echo "## Что изменилось"
+            echo
+            sed -E 's/^(##+) /\1# /' /tmp/changelog-section.md
+            echo
+            echo "## Состав"
+            echo
+            echo "| Файл | Размер | SHA256 |"
+            echo "|---|---:|---|"
+            find "${BUNDLE_ROOT}" -type f ! -name MANIFEST.json ! -name BUNDLE.md -printf '%P\n' \
+              | sort \
+              | while IFS= read -r rel; do
+                  size="$(stat -c%s "${BUNDLE_ROOT}/${rel}")"
+                  sha="$(sha256sum "${BUNDLE_ROOT}/${rel}" | cut -d" " -f1)"
+                  printf '| \x60%s\x60 | %s | \x60%s\x60 |\n' "${rel}" "${size}" "${sha}"
+                done
+            echo
+            echo "## Установка"
+            echo
+            echo '```bash'
+            echo "sudo bash install.sh"
+            echo '```'
+            echo
+            echo "## Проверка"
+            echo
+            echo '```bash'
+            echo "sha256sum -c --ignore-missing SHA256SUMS"
+            echo "gpg --verify SHA256SUMS.sig SHA256SUMS"
+            echo '```'
+          } > /tmp/BUNDLE.md
+          mv /tmp/BUNDLE.md "${BUNDLE_ROOT}/BUNDLE.md"
+
+          python3 scripts/bundle-manifest "${BUNDLE_ROOT}" "${VERSION}" "${GITHUB_SHA}" "${section_sha}" \
+            > "${BUNDLE_ROOT}/MANIFEST.json"
+
+          (
+            cd "${BUNDLE_ROOT}"
+            find . -type f ! -name SHA256SUMS | sort | xargs sha256sum
+          ) > /tmp/SHA256SUMS
+          mv /tmp/SHA256SUMS SHA256SUMS
+
+          tar czf "awg-portal-${VERSION}-bundle.tar.gz" -C artifacts "awg-portal-${VERSION}"
+          cp "awg-portal-${VERSION}-bundle.tar.gz" "awg-portal-bundle.tar.gz"
+          sha256sum "awg-portal-${VERSION}-bundle.tar.gz" "awg-portal-bundle.tar.gz" >> SHA256SUMS
+
+          tar tzf "awg-portal-${VERSION}-bundle.tar.gz"
+          cat SHA256SUMS
+
+      - name: Upload release assets
+        if: ${{ needs.preflight.outputs.release == 'true' || github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-assets
+          path: |
+            awg-portal-*-bundle.tar.gz
+            awg-portal-bundle.tar.gz
+            SHA256SUMS
+          retention-days: 10
+
+  release:
+    name: Tag, sign and publish
+    needs: [preflight, build]
+    if: ${{ needs.preflight.outputs.release == 'true' && (github.event_name == 'push' || github.event.inputs.publish == 'true') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    env:
+      GPG_KEY_ID: 95F966F1D92CB9D113F5E1E5C7EE105BD95C41BD
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Download release assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-assets
+
+      - name: Import the release key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
+          gpg --list-secret-keys --keyid-format long
+
+      - name: Create and push the signed tag
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.signingkey "${GPG_KEY_ID}"
+          git tag -s "${VERSION}" -m "${VERSION}" "${GITHUB_SHA}"
+          git push origin "refs/tags/${VERSION}"
+
+      - name: Tag the image with the version and latest
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+          SHORT_SHA: ${{ needs.preflight.outputs.short_sha }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker buildx imagetools create \
+            -t "${image}:${VERSION}" \
+            -t "${image}:latest" \
+            "${image}:sha-${SHORT_SHA}"
+
+      - name: Sign SHA256SUMS
+        run: |
+          gpg --batch --yes --pinentry-mode loopback \
+            --default-key "${GPG_KEY_ID}" \
+            --detach-sign --armor \
+            --output SHA256SUMS.sig \
+            SHA256SUMS
+          gpg --verify SHA256SUMS.sig SHA256SUMS
+
+      - name: Attest the bundle
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: awg-portal-*-bundle.tar.gz
+
+      - name: Generate release notes
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          # shellcheck disable=SC2016 # $0 belongs to awk, not to the shell
+          awk -v ver="${VERSION}" '
+            index($0, "## [" ver "]") == 1 { found=1 }
+            found && /^## \[/ && index($0, "## [" ver "]") != 1 { exit }
+            found { print }
+          ' CHANGELOG.md > /tmp/release-notes.md
+
+          {
+            echo
+            echo "## Установка"
+            echo
+            echo '```bash'
+            echo "curl -LO https://github.com/${{ github.repository }}/releases/latest/download/awg-portal-bundle.tar.gz"
+            echo "mkdir awg-portal && cd awg-portal"
+            echo "tar xzf ../awg-portal-bundle.tar.gz --strip-components=1"
+            echo "sudo bash install.sh --auto-install-deps"
+            echo "sudo nano /opt/awg-portal/config.yml"
+            echo "sudo systemctl enable --now awg-portal"
+            echo '```'
+            echo
+            echo "## Проверка подписи"
+            echo
+            echo "Ключ: \`95F9 66F1 D92C B9D1 13F5 E1E5 C7EE 105B D95C 41BD\`"
+            echo
+            echo '```bash'
+            echo "gpg --import release-key.asc"
+            echo "gpg --verify SHA256SUMS.sig SHA256SUMS"
+            echo "sha256sum -c --ignore-missing SHA256SUMS"
+            echo '```'
+          } >> /tmp/release-notes.md
+
+          cat /tmp/release-notes.md
+
+      - name: Create the GitHub Release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        with:
+          body_path: /tmp/release-notes.md
+          files: |
+            awg-portal-*-bundle.tar.gz
+            awg-portal-bundle.tar.gz
+            SHA256SUMS
+            SHA256SUMS.sig
+            release-key.asc
+          fail_on_unmatched_globs: true
+          make_latest: true
+
+  chart:
+    name: Publish the helm chart
+    needs: [preflight, release]
+    if: ${{ needs.preflight.outputs.release == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package and push the chart
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          helm package deploy/helm --version "${VERSION#v}" --app-version "${VERSION}" --destination /tmp/chart
+          helm push /tmp/chart/*.tgz "oci://ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts"

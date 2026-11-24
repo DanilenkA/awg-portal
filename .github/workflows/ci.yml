@@ -1,0 +1,158 @@
+# Pull request checks. Nothing is published from this workflow.
+#
+# Publication lives in release.yml and runs only on push to main/master, which
+# is the merge of a pull request.
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Changed paths
+    runs-on: ubuntu-24.04
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+      user_facing: ${{ steps.diff.outputs.user_facing }}
+      docs: ${{ steps.diff.outputs.docs }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+
+      - id: diff
+        name: Classify changed paths
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git diff --name-only "${BASE_SHA}...${HEAD_SHA}" > /tmp/changed.txt
+          code=false
+          user_facing=false
+          docs=false
+          if grep -Eq '(\.go$)|(^go\.(mod|sum)$)|(^frontend/)|(^Dockerfile$)|(^install\.sh$)|(^uninstall\.sh$)|(^config\.yml\.sample$)|(^VERSION$)' /tmp/changed.txt; then
+            code=true
+          fi
+          if grep -Eq '(^config\.yml\.sample$)|(^install\.sh$)|(^uninstall\.sh$)|(^docker-compose\.yml$)|(^deploy/)|(^frontend/src/)|(^internal/app/api/core/assets/doc/)' /tmp/changed.txt; then
+            user_facing=true
+          fi
+          if grep -Eq '(^README\.md$)|(^docs/)' /tmp/changed.txt; then
+            docs=true
+          fi
+          {
+            echo "code=${code}"
+            echo "user_facing=${user_facing}"
+            echo "docs=${docs}"
+          } >> "${GITHUB_OUTPUT}"
+
+  docs-gate:
+    name: Documentation gate
+    needs: changes
+    if: needs.changes.outputs.user_facing == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require README or docs update
+        if: ${{ needs.changes.outputs.docs != 'true' && !contains(github.event.pull_request.labels.*.name, 'docs-not-needed') }}
+        run: |
+          echo "User-facing paths changed. Update README.md or docs/, or add the docs-not-needed label." >&2
+          exit 1
+
+  version-check:
+    name: Version, changelog and consistency
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install git-cliff
+        run: |
+          cd /tmp
+          curl -fsSLO https://github.com/orhun/git-cliff/releases/download/v2.14.2/git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz
+          curl -fsSLO https://github.com/orhun/git-cliff/releases/download/v2.14.2/git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz.sha512
+          sha512sum -c git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz.sha512
+          mkdir -p /tmp/git-cliff
+          tar xzf git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz -C /tmp/git-cliff --strip-components=1
+          sudo install /tmp/git-cliff/git-cliff /usr/local/bin/git-cliff
+
+      - name: VERSION must be bumped
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          version="$(tr -d '\r\n' < VERSION)"
+          base_version="$(git show "${BASE_SHA}:VERSION" | tr -d '\r\n')"
+          if ! printf '%s' "${version}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "VERSION must look like vX.Y.Z, got '${version}'" >&2
+            exit 1
+          fi
+          if [ "${version}" = "${base_version}" ]; then
+            echo "VERSION was not bumped (still ${version}). Bump it in this PR." >&2
+            exit 1
+          fi
+          latest="$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1)"
+          if [ -n "${latest}" ]; then
+            newer="$(printf '%s\n%s\n' "${latest}" "${version}" | sort -V | tail -n1)"
+            if [ "${version}" = "${latest}" ] || [ "${newer}" != "${version}" ]; then
+              echo "VERSION ${version} is not greater than the latest tag ${latest}" >&2
+              exit 1
+            fi
+          fi
+          if git rev-parse "refs/tags/${version}" >/dev/null 2>&1; then
+            echo "Tag ${version} already exists" >&2
+            exit 1
+          fi
+
+      - name: Release consistency
+        run: bash scripts/check-release-consistency
+
+      - name: CHANGELOG is generated
+        run: bash scripts/changelog --check
+
+  checks:
+    name: Tests and lint
+    needs: changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend assets
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run tests
+        run: go test -race -short ./...
+
+      - name: Lint Go (new findings only until the existing findings are resolved)
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.15.0
+          only-new-issues: true
+
+      - name: Build the image for amd64
+        run: docker build --platform linux/amd64 -t awg-portal:ci .

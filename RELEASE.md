@@ -1,130 +1,61 @@
 # Release Process
 
-## 1. Подготовка
+Релиз собирается автоматически. Руками делаются только `VERSION` и `CHANGELOG.md`
+в релизном PR. После мержа в `main` workflow `Release` создаёт тег, образ, бандл
+и GitHub Release одним прогоном.
+
+## 1. Подготовка релизного PR
+
+1. `VERSION` содержит новый `vX.Y.Z`.
+2. `make changelog` обновляет `CHANGELOG.md`.
+3. `README.md` или `docs/` обновлены, если изменение видно пользователю.
+4. `make verify-full` и `make release-check` зелёные.
+
+## 2. Мерж
+
+PR мержится в `main`. Ruleset требует PR, поэтому push в `main` означает мерж.
+
+## 3. Что делает CI
+
+1. Preflight: версия валидна, больше последнего тега, тег ещё не существует.
+2. Verify: сборка фронтенда, тесты, линт, `changelog --check`, `release-check`.
+3. Build: multi-arch образ `amd64/arm64/armv7`, теги `sha-<short>` и `main`.
+4. Bundle: `VERSION`, `BUNDLE.md`, `MANIFEST.json`, `release-key.asc`, `install.sh`,
+   `uninstall.sh`, `config.yml.sample`, шесть бинарников, `SHA256SUMS`.
+5. Release: подписанный тег, ретиг `vX.Y.Z` и `latest`, `SHA256SUMS.sig`,
+   provenance attestation, GitHub Release.
+6. Chart: `helm package` с версией релиза и push в `oci://ghcr.io/<owner>/charts`.
+
+## 4. Если релиз не нужен
+
+CI при мерже без бампа `VERSION` публикует только образ `main`/`sha` и пропускает
+релиз. Для PR, который меняет только документацию, workflow не запускается.
+
+## 5. Ручной запуск
+
+`workflow_dispatch` с `publish: false` собирает образ и бандл без публикации.
+С `publish: true` выполняет полный релиз, но только на `main`/`master`.
+
+## 6. Проверка релиза
 
 ```bash
-cd /home/openclaw/projects/awg-portal
-
-# Переключиться на main, подтянуть
-git checkout main && git pull
-
-# Убедиться что бинарники собраны
-ls dist/wg-portal-* dist/amneziawg-go-*
-```
-
-## 2. Сборка бандла
-
-```bash
-VERSION="v<version>"
-BUNDLE="/tmp/awg-portal-${VERSION}"
-rm -rf "${BUNDLE}"
-mkdir -p "${BUNDLE}/bin"
-
-# wg-portal — все архитектуры
-cp dist/wg-portal-amd64   "${BUNDLE}/bin/wg-portal-amd64"
-cp dist/wg-portal-arm64   "${BUNDLE}/bin/wg-portal-arm64"
-cp dist/wg-portal-arm     "${BUNDLE}/bin/wg-portal-arm"
-
-# amneziawg-go — amd64 без суффикса, arm64/arm с суффиксом
-cp dist/amneziawg-go-amd64  "${BUNDLE}/bin/amneziawg-go"
-cp dist/amneziawg-go-arm64  "${BUNDLE}/bin/amneziawg-go-arm64"
-cp dist/amneziawg-go-arm    "${BUNDLE}/bin/amneziawg-go-arm"
-
-# install.sh (с версией) + config
-cp deploy/install.sh      "${BUNDLE}/install.sh"
-sed -i "s/VERSION=.*/VERSION=\"${VERSION}\"/" "${BUNDLE}/install.sh"
-cp config.yml.sample      "${BUNDLE}/"
-
-# Архив
-cd /tmp && tar czf "awg-portal-${VERSION}-bundle.tar.gz" "awg-portal-${VERSION}"
-```
-
-## 3. Подпись бандла
-
-```bash
-cd /tmp
-
-# SHA256 хеш
-sha256sum awg-portal-<version>-bundle.tar.gz > SHA256SUMS
-
-# GPG подпись ключом DanilenkA
-gpg --default-key 95F966F1D92CB9D113F5E1E5C7EE105BD95C41BD \
-  --detach-sign --armor \
-  --output SHA256SUMS.sig \
-  SHA256SUMS
-
-# Проверка
-cat SHA256SUMS
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-bundle.tar.gz
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/SHA256SUMS
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/SHA256SUMS.sig
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/release-key.asc
+gpg --import release-key.asc
 gpg --verify SHA256SUMS.sig SHA256SUMS
+sha256sum -c --ignore-missing SHA256SUMS
+gh attestation verify awg-portal-bundle.tar.gz --repo DanilenkA/awg-portal
 ```
 
-Файлы `SHA256SUMS` и `SHA256SUMS.sig` загружаются в релиз вместе с бандлом.
+Отпечаток ключа: `95F9 66F1 D92C B9D1 13F5 E1E5 C7EE 105B D95C 41BD`.
 
-## 4. Проверка на стенде
+## 7. Ограничения
 
-```bash
-# Очистить
-sudo systemctl stop awg-portal 2>/dev/null
-sudo systemctl disable awg-portal 2>/dev/null
-sudo rm -f /usr/local/bin/awg-portal /usr/local/bin/amneziawg-go
-sudo rm -rf /opt/awg-portal /etc/systemd/system/awg-portal.service /run/amneziawg
-sudo systemctl daemon-reload
-
-# Установить из бандла
-sudo bash /tmp/awg-portal-v<version>/install.sh
-
-# Запустить
-sudo systemctl enable --now awg-portal
-sleep 2
-sudo systemctl status awg-portal --no-pager
-journalctl -u awg-portal --no-pager -n 10
-
-# Проверить что работает
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8888
-
-# Очистить стенд
-sudo systemctl stop awg-portal 2>/dev/null
-sudo systemctl disable awg-portal 2>/dev/null
-sudo rm -f /usr/local/bin/awg-portal /usr/local/bin/amneziawg-go
-sudo rm -rf /opt/awg-portal /etc/systemd/system/awg-portal.service /run/amneziawg
-sudo systemctl daemon-reload
-```
-
-## 5. Коммит и пуш
-
-```bash
-# Коммит изменений (install.sh, RELEASE.md и т.д.)
-git add deploy/install.sh RELEASE.md
-git commit -m "chore: update install.sh with arch detection, add RELEASE.md"
-git push
-
-# Создать подписанный тег
-git tag -a -s "v<version>" -m "v<version> — <описание>"
-git push origin "v<version>"
-```
-
-## 6. Публикация релиза
-
-```bash
-gh release create "v<version>" \
-  --repo DanilenkA/awg-portal \
-  --title "awg-portal v<version>" \
-  --notes-file /tmp/release-notes.md \
-  "/tmp/awg-portal-${VERSION}-bundle.tar.gz#awg-portal-${VERSION}-bundle.tar.gz" \
-  "/tmp/SHA256SUMS#SHA256SUMS" \
-  "/tmp/SHA256SUMS.sig#SHA256SUMS.sig"
-```
-
-Формат release-notes.md — как в прошлом релизе: изменения, состав бандла, инструкция (из бандла и через Docker).
-
-## 7. Состав бандла
-
-```
-awg-portal-v<version>/
-├── install.sh              ← скрипт установки (автовыбор архитектуры)
-├── config.yml.sample       ← минимальный конфиг
-└── bin/
-    ├── wg-portal-amd64      + amneziawg-go          ← x86_64
-    ├── wg-portal-arm64      + amneziawg-go-arm64    ← ARM64
-    └── wg-portal-arm        + amneziawg-go-arm      ← ARM32
-```
+1. Подпись покрывает `SHA256SUMS`, а он покрывает внутренние файлы, версионированный
+   архив и стабильный алиас.
+2. Тег создаётся от `github-actions[bot]`; GitHub может показать его как Unverified,
+   потому что ключ не привязан к боту. Криптографическая подпись при этом валидна.
+3. Если ruleset запрещает push тега от `GITHUB_TOKEN`, шаг создания тега упадёт.
+   В этом случае тег создаётся владельцем, а workflow запускается по тегу.

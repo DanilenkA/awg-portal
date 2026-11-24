@@ -5,40 +5,9 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/DanilenkA/awg-portal)](https://goreportcard.com/report/github.com/DanilenkA/awg-portal)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/DanilenkA/awg-portal)
 
-## Что нового в v2.0.6
+## Что нового
 
-- **Двухфакторная аутентификация (TOTP 2FA)** — опциональный второй фактор поверх
-  любого первого (пароль **или** Passkey). Включение — в настройках профиля
-  (QR-код для Google Authenticator / Authy). Только для локальных (database)
-  пользователей; OAuth/LDAP/OIDC — 2FA на стороне провайдера.
-  - **Rate limiting** — блокировка после 5 неверных кодов за 15 минут (защита от брутфорса)
-  - **Replay protection** — код нельзя использовать дважды
-  - **Recovery codes** — 8 одноразовых кодов на случай потери доступа к приложению
-- **2FA на обеих формах входа** — и на дашборде (HomeView), и на странице /login
-- **Reproducible build amneziawg-go** — Dockerfile теперь фетчит по точному SHA
-  (гарантированно v0.2.19), сборки воспроизводимы
-- **GPG-подпись релизов в CI** — `SHA256SUMS.sig` подписывается автоматически
-  ключом DanilenkA при публикации релиза
-
-**Полный список изменений:** [v2.0.3...v2.0.6](https://github.com/DanilenkA/awg-portal/compare/v2.0.3...v2.0.6)
-
-## Что нового в v2.0.3
-
-- **CI:** изоляция сборки amneziawg-go, фикс путей бандла в multi-arch экспорте
-
-## Что нового в v2.0.2
-
-- **Счётчики трафика: cumulative вместо rate** — накопленные RX/TX показываются
-  по умолчанию, переключатель Totals/Rate в action-bar (`InterfaceView.vue`)
-- **Идемпотентный install.sh + uninstall.sh** — единый установщик для Linux
-  (amd64/arm64/armv7/riscv64), флаги `--auto-install-deps`, `--no-install-deps`,
-  `--dry-run`, `--keep-data`; deploy/install.sh → симлинк на корневой install.sh
-- **Фикс shared mutable state в AWG-UAPI** — `hsSec`/`hsNano` больше не
-  протекают между peer'ами при парсинге
-- **Фикс JS-бандла** — устранён рассинхрон между HTML и embedded статикой
-- **Фикс admin route guard** — не-админы больше не получают auto-logout (#55)
-
-**Полный список изменений:** [v2.0.0...v2.0.2](https://github.com/DanilenkA/awg-portal/compare/v2.0.0...v2.0.2)
+История изменений по версиям: [CHANGELOG.md](CHANGELOG.md) и [GitHub Releases](https://github.com/DanilenkA/awg-portal/releases).
 
 ## Screenshots
 
@@ -117,22 +86,30 @@
 (`wireguard-tools`, `iptables`, `openresolv`) и разворачивает systemd-сервис.
 
 ```bash
-# 1. Скачать последний бандл
-curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.6-bundle.tar.gz
+# 1. Скачать бандл, суммы, подпись и ключ
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-bundle.tar.gz
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/SHA256SUMS
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/SHA256SUMS.sig
+curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/release-key.asc
 
-# 2. Распаковать
+# 2. Проверить подпись и хеш архива
+gpg --import release-key.asc
+gpg --verify SHA256SUMS.sig SHA256SUMS
+sha256sum -c --ignore-missing SHA256SUMS
+
+# 3. Распаковать
 mkdir awg-portal && cd awg-portal
-tar xzf ../awg-portal-v2.0.6-bundle.tar.gz --strip-components=1
+tar xzf ../awg-portal-bundle.tar.gz --strip-components=1
 
-# 3. Запустить установку
+# 4. Запустить установку
 sudo bash install.sh                # интерактивно спросит про apt-get/dnf
 sudo bash install.sh --auto-install-deps   # без вопросов (headless/CI)
 
-# 4. Настроить конфиг и запустить
+# 5. Настроить конфиг и запустить
 sudo nano /opt/awg-portal/config.yml
 sudo systemctl enable --now awg-portal
 
-# 5. Открыть браузер: http://<сервер>:8888
+# 6. Открыть браузер: http://<сервер>:8888
 ```
 
 Скрипт устанавливает всё необходимое:
@@ -148,28 +125,25 @@ sudo systemctl enable --now awg-portal
 ### Docker
 
 ```bash
-# 1. Скачать бандл (последняя версия)
-curl -LO https://github.com/DanilenkA/awg-portal/releases/latest/download/awg-portal-v2.0.6-bundle.tar.gz
+# 1. Скачать compose-файл
+curl -LO https://raw.githubusercontent.com/DanilenkA/awg-portal/main/docker-compose.yml
 
-# 2. Распаковать
-mkdir awg-portal && cd awg-portal
-tar xzf ../awg-portal-v2.0.6-bundle.tar.gz --strip-components=1
+# 2. Запустить (образ latest, тег можно задать через AWG_PORTAL_VERSION)
+docker compose up -d
 
-# 3. Запустить установку (автовыбор архитектуры)
-sudo bash install.sh
-
-# 4. Настроить конфиг и запустить
-sudo nano /opt/awg-portal/config.yml
-sudo systemctl enable --now awg-portal
+# 3. Открыть браузер: http://<сервер>:8888
 ```
 
-В бандле (`awg-portal-v2.0.6/`):
+В бандле (`awg-portal-vX.Y.Z/`):
+- `VERSION` — версия релиза
+- `BUNDLE.md` — что изменилось и полный состав
+- `MANIFEST.json` — версия, коммит, размеры и SHA256 файлов
+- `release-key.asc` — публичный ключ подписи
 - `install.sh` — единый идемпотентный инсталлятор (см. выше)
-- `uninstall.sh` — идемпотентный деинсталлятор (полный purge по умолчанию)
-- `bin/wg-portal-amd64` — основной бинарник (есть также `wg-portal-arm64`,
-  `wg-portal-arm`, `wg-portal-riscv64`)
-- `bin/amneziawg-go` — userspace AmneziaWG (для обфускации)
+- `uninstall.sh` — идемпотентный деинсталлятор
 - `config.yml.sample` — образец конфига
+- `bin/wg-portal-{amd64,arm64,arm}` — бинарники портала
+- `bin/amneziawg-go-{amd64,arm64,arm}` — userspace AmneziaWG для обфускации
 
 Скрипт устанавливает основной бинарник в `/usr/local/bin/awg-portal`,
 создаёт `/opt/awg-portal/data` и `/opt/awg-portal/config`, а systemd-юнит
@@ -178,9 +152,8 @@ sudo systemctl enable --now awg-portal
 Юнит также задаёт `RuntimeDirectory=amneziawg`: systemd создаёт
 `/run/amneziawg` для UAPI-сокетов AWG при старте сервиса.
 
-> **Примечание:** В бандлах до v1.4.0 включительно `install.sh` лежал
-> в `deploy/install.sh`. С v2.0.0 это симлинк на корневой `install.sh` —
-> поведение и команды не изменились.
+> **Примечание:** В старых бандлах `install.sh` лежал в `deploy/install.sh`.
+> В текущих бандлах это корневой `install.sh`, поведение и команды не изменились.
 
 ### Ручной запуск (без установки)
 
@@ -283,7 +256,7 @@ WG_PORTAL_<СЕКЦИЯ>_<ПАРАМЕТР>
 
 > **Важно:** `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH` обязателен для работы
 > функции `save-config`. Без него сохранение конфигов возвращает ошибку.
-> Начиная с v1.3.2, nil-pointer в этой ситуации устранён — портал корректно
+> В текущих версиях nil-pointer в этой ситуации устранён, портал корректно
 > сообщает "config persistence not configured".
 
 ### Монтируемые тома
@@ -371,7 +344,7 @@ make build-docker-multiarch
 
 2. **save-config:** Для сохранения wg-конфигов на диск требуется
    `WG_PORTAL_ADVANCED_CONFIG_STORAGE_PATH`. Без него save-config не работает.
-   Начиная с v1.3.2 возвращается ошибка, а не паника.
+   В текущих версиях возвращается ошибка, а не паника.
 
 3. **Маршрутизация:** Портал использует `wg set`, а не `wg-quick`. После
    применения маршрутов портал восстанавливает connected route для адресных
@@ -386,7 +359,7 @@ make build-docker-multiarch
 
 5. **AmneziaWG (обфускация):** Для работы AWG требуется бинарник
    `amneziawg-go`. В Docker-образ AWG-PORTAL он **встроен** —
-   дополнительная установка не требуется. Начиная с v1.3.2 при
+   дополнительная установка не требуется. В текущих версиях при
    `awg_mode: auto` amneziawg-go запускается **только** для интерфейсов
    с обфускацией (AWGEnabled). Обычные WG-интерфейсы — kernel WG, без TUN.
    `awg_mode: always` заставляет использовать `amneziawg-go` для всех
@@ -495,10 +468,10 @@ make build-docker              # Docker-образ (latest + version tag)
 make build-docker-multiarch    # Мультиархитектурная сборка + push в ghcr.io
 
 # Прямая сборка через Docker (без Makefile)
-docker build --build-arg BUILD_VERSION=v1.4.0 -t ghcr.io/danilenka/awg-portal:v1.4.0 .
+docker build --build-arg BUILD_VERSION="$(cat VERSION)" -t "ghcr.io/danilenka/awg-portal:$(cat VERSION)" .
 
 # Прямая сборка бинарника (требуется Go на хосте)
-CGO_ENABLED=0 go build -ldflags "-X github.com/DanilenkA/awg-portal/internal.Version=v1.4.0" -o awg-portal_x86-64 cmd/wg-portal/main.go
+CGO_ENABLED=0 go build -ldflags "-X github.com/DanilenkA/awg-portal/internal.Version=$(cat VERSION)" -o awg-portal_x86-64 cmd/wg-portal/main.go
 ```
 
 ### Бинарный бандл (без Docker)
@@ -600,7 +573,7 @@ echo "blacklist amneziawg" | sudo tee /etc/modprobe.d/blacklist-amneziawg.conf
 **Причина 2: нет connected route.**
 amneziawg-go не добавляет автоматический connected route для TUN-интерфейса,
 а очистка policy routes может удалить такой маршрут и у kernel WireGuard.
-Начиная с v1.3.2 портал восстанавливает connected route для всех локальных
+В текущих версиях портал восстанавливает connected route для всех локальных
 интерфейсов после применения маршрутов. На ранних версиях добавьте вручную:
 
 ```bash
