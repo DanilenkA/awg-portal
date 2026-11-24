@@ -223,7 +223,6 @@ func (m Manager) handleUserEnabledEvent(user domain.User) {
 				"error", err)
 		}
 	}
-	return
 }
 
 func (m Manager) handleUserDeletedEvent(user domain.User) {

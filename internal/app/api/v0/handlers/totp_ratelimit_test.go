@@ -10,7 +10,7 @@ func TestTotpRateLimiter_AllowsBelowThreshold(t *testing.T) {
 	rl := newTotpLoginRateLimit()
 	key := "user1|10.0.0.1"
 
-	for i := 0; i < totpRateLimitMaxAttempts-1; i++ {
+	for i := range totpRateLimitMaxAttempts - 1 {
 		require.True(t, rl.allow(key), "attempt %d should be allowed", i)
 		rl.recordFailure(key)
 	}
@@ -20,7 +20,7 @@ func TestTotpRateLimiter_LocksAfterThreshold(t *testing.T) {
 	rl := newTotpLoginRateLimit()
 	key := "user2|10.0.0.2"
 
-	for i := 0; i < totpRateLimitMaxAttempts; i++ {
+	for range totpRateLimitMaxAttempts {
 		rl.recordFailure(key)
 	}
 
@@ -31,7 +31,7 @@ func TestTotpRateLimiter_ResetClearsState(t *testing.T) {
 	rl := newTotpLoginRateLimit()
 	key := "user3|10.0.0.3"
 
-	for i := 0; i < totpRateLimitMaxAttempts; i++ {
+	for range totpRateLimitMaxAttempts {
 		rl.recordFailure(key)
 	}
 	require.False(t, rl.allow(key))
@@ -45,7 +45,7 @@ func TestTotpRateLimiter_PerKeyIsolation(t *testing.T) {
 	attacker := "user4|10.0.0.4"
 	victim := "user5|10.0.0.5"
 
-	for i := 0; i < totpRateLimitMaxAttempts; i++ {
+	for range totpRateLimitMaxAttempts {
 		rl.recordFailure(attacker)
 	}
 

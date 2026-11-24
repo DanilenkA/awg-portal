@@ -6,6 +6,7 @@ import (
 	"math"
 	"net"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -65,7 +66,7 @@ type Interface struct {
 	// Default settings for the peer, used for new peers, those settings will be published to ConfigOption options of
 	// the peer config
 
-	PeerDefNetworkStr          string // the default subnets from which peers will get their IP addresses, comma seperated
+	PeerDefNetworkStr          string // the default subnets from which peers will get their IP addresses, comma separated
 	PeerDefDnsStr              string // the default dns server for the peer
 	PeerDefDnsSearchStr        string // the default dns search options for the peer
 	PeerDefEndpoint            string // the default endpoint for the peer
@@ -191,10 +192,8 @@ func (i *Interface) IsUserAllowed(userId UserIdentifier, cfg *config.Config) boo
 	}
 
 	for _, allowedUsers := range i.LdapAllowedUsers {
-		for _, uid := range allowedUsers {
-			if uid == userId {
-				return true
-			}
+		if slices.Contains(allowedUsers, userId) {
+			return true
 		}
 	}
 	return false
@@ -302,7 +301,6 @@ func (i *Interface) ManageRoutingTable() bool {
 //
 //	-1 if RoutingTable was set to "off" or an error occurred
 func (i *Interface) GetRoutingTable() int {
-
 	routingTableStr := strings.ToLower(i.RoutingTable)
 	switch {
 	case routingTableStr == "":
@@ -463,7 +461,10 @@ func ConvertPhysicalInterface(pi *PhysicalInterface) *Interface {
 	now := time.Now()
 	switch pi.ImportSource {
 	case ControllerTypeMikrotik:
-		extras := pi.GetExtras().(MikrotikInterfaceExtras)
+		extras, ok := pi.GetExtras().(MikrotikInterfaceExtras)
+		if !ok {
+			break
+		}
 		iface.DisplayName = extras.Comment
 		if extras.Disabled {
 			iface.Disabled = &now
@@ -471,7 +472,10 @@ func ConvertPhysicalInterface(pi *PhysicalInterface) *Interface {
 			iface.Disabled = nil
 		}
 	case ControllerTypePfsense:
-		extras := pi.GetExtras().(PfsenseInterfaceExtras)
+		extras, ok := pi.GetExtras().(PfsenseInterfaceExtras)
+		if !ok {
+			break
+		}
 		iface.DisplayName = extras.Comment
 		if extras.Disabled {
 			iface.Disabled = &now
@@ -527,11 +531,7 @@ func (r RoutingTableInfo) String() string {
 }
 
 func (r RoutingTableInfo) ManagementEnabled() bool {
-	if r.Table == -1 {
-		return false
-	}
-
-	return true
+	return r.Table != -1
 }
 
 func (r RoutingTableInfo) GetRoutingTable() int {

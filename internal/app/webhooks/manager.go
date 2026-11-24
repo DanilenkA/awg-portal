@@ -87,12 +87,11 @@ func (m Manager) sendWebhook(ctx context.Context, data io.Reader) error {
 	if err != nil {
 		return err
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
 			slog.Error("[WEBHOOK] failed to close response body", "error", err)
 		}
-	}(resp.Body)
+	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("webhook request failed with status: %s", resp.Status)

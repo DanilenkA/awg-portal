@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -102,7 +103,7 @@ func NewConfigFileManager(
 }
 
 func (m Manager) createStorageDirectory() error {
-	err := os.MkdirAll(m.cfg.Advanced.ConfigStoragePath, os.ModePerm)
+	err := os.MkdirAll(m.cfg.Advanced.ConfigStoragePath, os.ModePerm) //nolint:gosec // G301: the directory follows the umask, the same as the files the repository writes into it
 	if err != nil {
 		return fmt.Errorf("failed to create configuration storage path %s: %w",
 			m.cfg.Advanced.ConfigStoragePath, err)
@@ -263,7 +264,7 @@ func (m Manager) PersistInterfaceConfig(ctx context.Context, id domain.Interface
 	}
 
 	if m.fsRepo == nil {
-		return fmt.Errorf("config persistence not configured: set advanced.config_storage_path")
+		return errors.New("config persistence not configured: set advanced.config_storage_path")
 	}
 	if err := m.fsRepo.WriteFile(iface.GetConfigFileName(), cfg); err != nil {
 		return fmt.Errorf("failed to write interface config: %w", err)
@@ -275,7 +276,7 @@ func (m Manager) PersistInterfaceConfig(ctx context.Context, id domain.Interface
 // UnpersistInterfaceConfig removes the configuration file for the given interface from the file system.
 func (m Manager) UnpersistInterfaceConfig(_ context.Context, filename string) error {
 	if m.fsRepo == nil {
-		return fmt.Errorf("config persistence not configured: set advanced.config_storage_path")
+		return errors.New("config persistence not configured: set advanced.config_storage_path")
 	}
 	if err := m.fsRepo.DeleteFile(filename); err != nil {
 		return fmt.Errorf("failed to remove interface config: %w", err)

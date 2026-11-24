@@ -24,7 +24,7 @@ func TestTemplateRenderer_Render(t *testing.T) {
 	renderer.Render(rec, http.StatusOK, "test", "text/plain", "World")
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)
@@ -49,7 +49,7 @@ func TestTemplateRenderer_HTML(t *testing.T) {
 	renderer.HTML(rec, http.StatusOK, "test", "World")
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)

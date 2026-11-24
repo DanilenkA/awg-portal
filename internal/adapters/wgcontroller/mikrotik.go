@@ -440,7 +440,7 @@ func (c *MikrotikController) updateInterface(ctx context.Context, pi *domain.Phy
 		"comment":     extras.Comment,
 		"mtu":         strconv.Itoa(pi.Mtu),
 		"listen-port": strconv.Itoa(pi.ListenPort),
-		"private-key": pi.KeyPair.PrivateKey,
+		"private-key": pi.PrivateKey,
 		"disabled":    strconv.FormatBool(!pi.DeviceUp),
 	})
 	if wgReply.Status != lowlevel.MikrotikApiStatusOk {
@@ -686,8 +686,8 @@ func (c *MikrotikController) updatePeer(
 		"name":                 extras.Name,
 		"comment":              extras.Comment,
 		"preshared-key":        pp.PresharedKey,
-		"public-key":           pp.KeyPair.PublicKey,
-		"private-key":          pp.KeyPair.PrivateKey,
+		"public-key":           pp.PublicKey,
+		"private-key":          pp.PrivateKey,
 		"persistent-keepalive": (time.Duration(pp.PersistentKeepalive) * time.Second).String(),
 		"disabled":             strconv.FormatBool(extras.Disabled),
 		"responder":            strconv.FormatBool(extras.IsResponder),

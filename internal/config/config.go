@@ -244,7 +244,7 @@ func GetConfig() (*Config, error) {
 	}
 
 	// check if the config file exists, otherwise use the fallback file name
-	if _, err := os.Stat(cfgFileName); os.IsNotExist(err) {
+	if _, err := os.Stat(cfgFileName); os.IsNotExist(err) { //nolint:gosec // G703: the path is the operators configuration, either the default file or WG_PORTAL_CONFIG
 		cfgFileName = cfgFileNameFallback
 	}
 

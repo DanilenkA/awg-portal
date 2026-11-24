@@ -643,11 +643,13 @@ func AWGDeviceFromUAPI(ifaceName string) (*wgtypes.Device, error) {
 		return nil, fmt.Errorf("awg uapi: stat %s: %w", sock, err)
 	}
 
-	conn, err := net.DialTimeout("unix", sock, 3*time.Second)
+	conn, err := dialUAPI(sock, 3*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("awg uapi: dial %s: %w", sock, err)
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	if _, err := io.WriteString(conn, "get=1\n\n"); err != nil {
 		return nil, fmt.Errorf("awg uapi: write get=1: %w", err)

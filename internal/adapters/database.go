@@ -98,7 +98,7 @@ func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (stri
 		attrs = append(attrs, l.SourceField, utils.FileWithLineNum())
 	}
 
-	if err != nil && !(errors.Is(err, gorm.ErrRecordNotFound) && l.IgnoreErrRecordNotFound) {
+	if err != nil && (!errors.Is(err, gorm.ErrRecordNotFound) || !l.IgnoreErrRecordNotFound) {
 		attrs = append(attrs, "error", err)
 		slog.ErrorContext(ctx, l.prefix+sql, attrs...)
 		return

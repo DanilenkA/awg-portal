@@ -61,7 +61,7 @@ func (e WebsocketEndpoint) handleWebsocket() http.HandlerFunc {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		ctx, cancel := context.WithCancel(r.Context())
 		defer cancel()

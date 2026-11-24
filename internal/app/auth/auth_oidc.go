@@ -41,8 +41,9 @@ func newOidcAuthenticator(
 	var provider = &OidcAuthenticator{}
 
 	provider.name = cfg.ProviderName
-	provider.provider, err = oidc.NewProvider(context.Background(),
-		cfg.BaseUrl) // use new context here, see https://github.com/coreos/go-oidc/issues/339
+	// go-oidc keeps this context for its background refreshes, so it must not be cancelled:
+	// https://github.com/coreos/go-oidc/issues/339
+	provider.provider, err = oidc.NewProvider(context.Background(), cfg.BaseUrl) //nolint:contextcheck // deliberate, see the comment above
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new oidc provider: %w", err)
 	}

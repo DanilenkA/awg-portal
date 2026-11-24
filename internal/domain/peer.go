@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"slices"
 	"strings"
 	"time"
 
@@ -18,10 +19,7 @@ type PeerIdentifier string
 
 func (i PeerIdentifier) IsPublicKey() bool {
 	_, err := wgtypes.ParseKey(string(i))
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (i PeerIdentifier) ToPublicKey() wgtypes.Key {
@@ -36,8 +34,8 @@ type Peer struct {
 
 	Endpoint            ConfigOption[string] `gorm:"embedded;embeddedPrefix:endpoint_"`        // the endpoint address
 	EndpointPublicKey   ConfigOption[string] `gorm:"embedded;embeddedPrefix:endpoint_pubkey_"` // the endpoint public key
-	AllowedIPsStr       ConfigOption[string] `gorm:"embedded;embeddedPrefix:allowed_ips_str_"` // all allowed ip subnets, comma seperated
-	ExtraAllowedIPsStr  string               // all allowed ip subnets on the server side, comma seperated
+	AllowedIPsStr       ConfigOption[string] `gorm:"embedded;embeddedPrefix:allowed_ips_str_"` // all allowed ip subnets, comma separated
+	ExtraAllowedIPsStr  string               // all allowed ip subnets on the server side, comma separated
 	PresharedKey        PreSharedKey         `gorm:"serializer:encstr"`                              // the pre-shared Key of the peer
 	PersistentKeepalive ConfigOption[int]    `gorm:"embedded;embeddedPrefix:persistent_keep_alive_"` // the persistent keep-alive interval
 
@@ -309,7 +307,10 @@ func ConvertPhysicalPeer(pp *PhysicalPeer) *Peer {
 	now := time.Now()
 	switch pp.ImportSource {
 	case ControllerTypeMikrotik:
-		extras := pp.GetExtras().(MikrotikPeerExtras)
+		extras, ok := pp.GetExtras().(MikrotikPeerExtras)
+		if !ok {
+			break
+		}
 		peer.Notes = extras.Comment
 		peer.DisplayName = extras.Name
 		if extras.ClientEndpoint != "" { // if the client endpoint is set, we assume that this is a client peer
@@ -374,11 +375,11 @@ func MergeToPhysicalPeer(pp *PhysicalPeer, p *Peer) {
 			allowedIPs[i] = ip.HostAddr() // add the peer's host address to the allowed IPs
 		}
 		extraAllowedIPs, _ := CidrsFromString(p.ExtraAllowedIPsStr)
-		pp.AllowedIPs = append(allowedIPs, extraAllowedIPs...)
+		pp.AllowedIPs = slices.Concat(allowedIPs, extraAllowedIPs)
 	case InterfaceTypeServer: // this means that the corresponding interface in wgportal is a client interface
 		allowedIPs, _ := CidrsFromString(p.AllowedIPsStr.GetValue())
 		extraAllowedIPs, _ := CidrsFromString(p.ExtraAllowedIPsStr)
-		pp.AllowedIPs = append(allowedIPs, extraAllowedIPs...)
+		pp.AllowedIPs = slices.Concat(allowedIPs, extraAllowedIPs)
 		pp.Endpoint = p.Endpoint.GetValue()
 		pp.PersistentKeepalive = p.PersistentKeepalive.GetValue()
 	case InterfaceTypeAny: // this means that the corresponding interface in wgportal has no specific type
@@ -387,7 +388,7 @@ func MergeToPhysicalPeer(pp *PhysicalPeer, p *Peer) {
 			allowedIPs[i] = ip.HostAddr() // add the peer's host address to the allowed IPs
 		}
 		extraAllowedIPs, _ := CidrsFromString(p.ExtraAllowedIPsStr)
-		pp.AllowedIPs = append(allowedIPs, extraAllowedIPs...)
+		pp.AllowedIPs = slices.Concat(allowedIPs, extraAllowedIPs)
 		pp.Endpoint = p.Endpoint.GetValue()
 		pp.PersistentKeepalive = p.PersistentKeepalive.GetValue()
 	}

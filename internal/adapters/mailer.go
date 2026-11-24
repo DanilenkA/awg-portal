@@ -113,7 +113,7 @@ func (r MailRepo) getMailServer() *mail.SMTPServer {
 	default: // MailEncryptionNone
 		srv.Encryption = mail.EncryptionNone
 	}
-	srv.TLSConfig = &tls.Config{ServerName: srv.Host, InsecureSkipVerify: !r.cfg.CertValidation}
+	srv.TLSConfig = &tls.Config{ServerName: srv.Host, InsecureSkipVerify: !r.cfg.CertValidation} //nolint:gosec // G402: certificate validation is switched off only by the operator through cert_validation
 	switch r.cfg.AuthType {
 	case config.MailAuthPlain:
 		srv.Authentication = mail.AuthPlain

@@ -20,7 +20,7 @@ type DatabaseRepo interface {
 
 type EventBus interface {
 	// Subscribe subscribes to a topic
-	Subscribe(topic string, fn interface{}) error
+	Subscribe(topic string, fn any) error
 }
 
 // endregion dependencies
@@ -124,8 +124,8 @@ func (r *Recorder) authEventToAuditEntry(event domain.AuditEventWrapper[AuthEven
 		CreatedAt:   time.Now(),
 		Severity:    domain.AuditSeverityLevelLow,
 		ContextUser: contextUser.UserId(),
-		Origin:      fmt.Sprintf("auth: %s", event.Source),
-		Message:     fmt.Sprintf("%s logged in", event.Event.Username),
+		Origin:      "auth: " + event.Source,
+		Message:     event.Event.Username + " logged in",
 	}
 
 	if event.Event.Error != "" {
@@ -142,7 +142,7 @@ func (r *Recorder) interfaceEventToAuditEntry(event domain.AuditEventWrapper[Int
 		CreatedAt:   time.Now(),
 		Severity:    domain.AuditSeverityLevelLow,
 		ContextUser: contextUser.UserId(),
-		Origin:      fmt.Sprintf("interface: %s", event.Event.Action),
+		Origin:      "interface: " + event.Event.Action,
 	}
 
 	switch event.Event.Action {

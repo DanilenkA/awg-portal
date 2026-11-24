@@ -193,7 +193,7 @@ func DecryptAES256(encrypted, key string) (string, error) {
 
 func pkcs7Padding(ciphertext []byte, blockSize int) []byte {
 	padding := blockSize - len(ciphertext)%blockSize
-	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding) //nolint:gosec // G115: the padding is between 1 and the block size
 	return append(ciphertext, padtext...)
 }
 
@@ -209,7 +209,7 @@ func trimEncKey(key string) string {
 	}
 
 	if len(key) < 32 {
-		key = key + strings.Repeat("0", 32-len(key))
+		key += strings.Repeat("0", 32-len(key))
 	}
 	return key
 }

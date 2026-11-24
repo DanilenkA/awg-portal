@@ -277,28 +277,19 @@ func (m Manager) CreatePeer(ctx context.Context, peer *domain.Peer) (*domain.Pee
 	// Ensure key material is always present
 	// - Non-admin users always go through PreparePeer (generates fresh keys)
 	// - Admin users: use provided keys if present, otherwise fall back to PreparePeer
-	if !sessionUser.IsAdmin {
-		preparedPeer, err := m.PreparePeer(ctx, peer.InterfaceIdentifier)
-		if err != nil {
-			return nil, fmt.Errorf("failed to prepare peer for interface %s: %w", peer.InterfaceIdentifier, err)
-		}
-
-		preparedPeer.OverwriteUserEditableFields(peer, m.cfg)
-
-		peer = preparedPeer
-	} else if peer.Interface.PrivateKey == "" {
-		// Admin didn't provide a PrivateKey — generate fresh keys
-		preparedPeer, err := m.PreparePeer(ctx, peer.InterfaceIdentifier)
-		if err != nil {
-			return nil, fmt.Errorf("failed to prepare peer for interface %s: %w", peer.InterfaceIdentifier, err)
-		}
-
-		preparedPeer.OverwriteUserEditableFields(peer, m.cfg)
-
-		peer = preparedPeer
-	} else {
+	if sessionUser.IsAdmin && peer.Interface.PrivateKey != "" {
 		// Admin provided keys — ensure Identifier matches PublicKey
 		peer.Identifier = domain.PeerIdentifier(peer.Interface.PublicKey)
+	} else {
+		// A non-admin user, or an admin without a private key, gets a prepared peer with fresh keys
+		preparedPeer, err := m.PreparePeer(ctx, peer.InterfaceIdentifier)
+		if err != nil {
+			return nil, fmt.Errorf("failed to prepare peer for interface %s: %w", peer.InterfaceIdentifier, err)
+		}
+
+		preparedPeer.OverwriteUserEditableFields(peer, m.cfg)
+
+		peer = preparedPeer
 	}
 
 	if err := m.validatePeerCreation(ctx, existingPeer, peer); err != nil {

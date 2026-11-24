@@ -81,7 +81,7 @@ func copyDocForMkdocs(workingDir, basePath, version string) error {
 	dstPath := filepath.Join(workingDir, apiMkDocPath, "swagger.yaml")
 
 	// copy the file
-	input, err := os.ReadFile(srcPath)
+	input, err := os.ReadFile(srcPath) //nolint:gosec // G304: the paths are build tool arguments
 	if err != nil {
 		return fmt.Errorf("error while reading swagger doc: %w", err)
 	}
@@ -91,7 +91,7 @@ func copyDocForMkdocs(workingDir, basePath, version string) error {
 		return fmt.Errorf("error while removing authorize button: %w", err)
 	}
 
-	err = os.WriteFile(dstPath, output, 0644)
+	err = os.WriteFile(dstPath, output, 0644) //nolint:gosec // G306: the swagger doc is a published file
 	if err != nil {
 		return fmt.Errorf("error while writing swagger doc: %w", err)
 	}

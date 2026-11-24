@@ -11,7 +11,6 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/DanilenkA/awg-portal/internal"
 	"github.com/DanilenkA/awg-portal/internal/config"
 	"github.com/DanilenkA/awg-portal/internal/domain"
 )
@@ -126,7 +125,11 @@ func (p PlainOauthAuthenticator) GetUserInfo(
 		}
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
-	defer internal.LogClose(response.Body)
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			slog.Error("error during Close()", "error", err)
+		}
+	}()
 	contents, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)

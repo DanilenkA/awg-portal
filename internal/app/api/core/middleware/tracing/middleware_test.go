@@ -18,7 +18,7 @@ func TestMiddleware_Handler_WithUpstreamHeader(t *testing.T) {
 		}
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	req.Header.Set("X-Upstream-Id", upstreamHeaderValue)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -38,7 +38,7 @@ func TestMiddleware_Handler_GenerateNewId(t *testing.T) {
 		}
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
@@ -56,7 +56,7 @@ func TestMiddleware_Handler_SetContextValue(t *testing.T) {
 		}
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 }
@@ -70,7 +70,7 @@ func TestMiddleware_Handler_SetCustomContextValue(t *testing.T) {
 		}
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 }
@@ -84,7 +84,7 @@ func TestMiddleware_Handler_NoIdGenerated(t *testing.T) {
 		}
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 }
@@ -98,7 +98,7 @@ func TestMiddleware_Handler_NoIdHeaderSet(t *testing.T) {
 		}
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 }
@@ -112,7 +112,7 @@ func TestMiddleware_Handler_NoIdContextSet(t *testing.T) {
 		}
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 }

@@ -34,7 +34,7 @@ func (r *TemplateRenderer) Render(w http.ResponseWriter, code int, name, content
 
 	err := r.t.ExecuteTemplate(w, name, data)
 	if err != nil {
-		panic(fmt.Errorf("error rendering template %s: %v", name, err))
+		panic(fmt.Errorf("error rendering template %s: %w", name, err))
 	}
 }
 
