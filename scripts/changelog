@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Generate CHANGELOG.md with git-cliff.
+#
+# Usage:
+#   scripts/changelog            write CHANGELOG.md
+#   scripts/changelog --check    fail if CHANGELOG.md differs from the generated one
+#   scripts/changelog --output F write the result to F
+#
+# When VERSION is greater than the latest tag the unreleased commits are labelled
+# with VERSION. Otherwise they stay under [Unreleased]. This keeps the release PR
+# and ordinary PRs on one code path.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+mode="write"
+out="CHANGELOG.md"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --check) mode="check"; shift ;;
+    --output) out="$2"; shift 2 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+version="$(tr -d '\r\n' < VERSION)"
+latest="$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1)"
+
+if [ "${mode}" = "check" ] && [ -n "${latest}" ] && [ "${version}" = "${latest}" ] && \
+   [ -z "$(git log --oneline "${latest}..HEAD")" ]; then
+  echo "CHANGELOG.md is up to date (no commits since ${latest})."
+  exit 0
+fi
+
+if [ "${mode}" = "check" ]; then
+  out="$(mktemp)"
+  trap 'rm -f "${out}"' EXIT
+fi
+
+if [ -n "${latest}" ] && [ "${version}" != "${latest}" ] && \
+   [ "$(printf '%s\n%s\n' "${latest}" "${version}" | sort -V | tail -n1)" = "${version}" ]; then
+  git-cliff --tag "${version}" --output "${out}"
+else
+  git-cliff --output "${out}"
+fi
+
+# git-cliff can leave extra blank lines at EOF; keep exactly one newline.
+perl -0777 -pi -e 's/\n+\z/\n/' "${out}"
+
+if [ "${mode}" = "check" ]; then
+  if ! diff -u CHANGELOG.md "${out}"; then
+    echo "CHANGELOG.md is stale. Run: make changelog" >&2
+    exit 1
+  fi
+  echo "CHANGELOG.md is up to date."
+fi

@@ -1,0 +1,73 @@
+# git-cliff configuration.
+# Format: Keep a Changelog 1.1.0. Versions: Semantic Versioning 2.0.0.
+# Commits: Conventional Commits 1.0.0.
+#
+# Regenerate with `make changelog`. CI runs `make changelog-check` and rejects
+# any drift, so the file must never be edited by hand.
+
+[changelog]
+header = """# Changelog
+
+All notable changes to this project are documented in this file.
+The format is based on Keep a Changelog 1.1.0, and this project adheres to Semantic Versioning 2.0.0.
+
+"""
+body = """
+{% if version %}\
+## [{{ version }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% set breaking = commits | filter(attribute="breaking", value=true) %}\
+{% if breaking | length > 0 %}
+### Breaking Changes
+{% for commit in breaking %}\
+- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | upper_first }}
+{% endfor %}\
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}\
+{% if group %}
+### {{ group }}
+{% for commit in commits %}\
+{% if not commit.breaking %}\
+- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | upper_first }}
+{% endif %}\
+{% endfor %}\
+{% endif %}\
+{% endfor %}\
+{% if version and previous %}
+
+[{{ version }}]: <REPO>/compare/{{ previous.version }}...{{ version }}
+
+{% endif %}\
+"""
+trim = true
+render_always = true
+postprocessors = [
+  { pattern = '<REPO>', replace = "https://github.com/DanilenkA/awg-portal" },
+]
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+require_conventional = false
+split_commits = false
+protect_breaking_commits = true
+commit_parsers = [
+  { message = "^feat", group = "Added" },
+  { message = "^fix", group = "Fixed" },
+  { message = "^revert", group = "Fixed" },
+  { message = "^perf", group = "Changed" },
+  { message = "^refactor", group = "Changed" },
+  { message = "^deps", group = "Changed" },
+  { message = "^security", group = "Security" },
+  { message = "^docs", skip = true },
+  { message = "^test", skip = true },
+  { message = "^ci", skip = true },
+  { message = "^build", skip = true },
+  { message = "^chore", skip = true },
+  { message = "^style", skip = true },
+]
+filter_commits = true
+tag_pattern = "v[0-9]*"
+sort_commits = "oldest"

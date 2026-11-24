@@ -24,7 +24,6 @@
 #
 set -euo pipefail
 
-VERSION="v2.0.2"
 BIN_DIR="/usr/local/bin"
 SYSTEMD_DIR="/etc/systemd/system"
 PORTAL_DIR="/opt/awg-portal"
@@ -33,6 +32,14 @@ WG_CONFIG_DIR="/etc/wireguard"
 SERVICE_USER="awg-portal"
 SERVICE_NAME="awg-portal"
 SERVICE_UNIT="${SERVICE_NAME}.service"
+
+# ─── Версия ───────────────────────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VERSION="${AWG_PORTAL_VERSION:-}"
+if [ -z "${VERSION}" ] && [ -f "${SCRIPT_DIR}/VERSION" ]; then
+  VERSION="$(cat "${SCRIPT_DIR}/VERSION")"
+fi
+VERSION="${VERSION:-dev}"
 
 # ─── Флаги ────────────────────────────────────────────────────────────────────
 ASSUME_YES=0

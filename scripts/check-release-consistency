@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Release consistency gate.
+#
+# VERSION is the only place where a release version is written by hand. This
+# script rejects stale version literals in files that must stay version-agnostic
+# and checks that the changelog and the installer follow the release policy.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+fail=0
+err() { printf 'ERROR: %s\n' "$*" >&2; fail=1; }
+
+version="$(tr -d '\r\n' < VERSION)"
+if ! printf '%s' "${version}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+  err "VERSION must look like vX.Y.Z, got '${version}'"
+fi
+
+latest="$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1)"
+
+if [ -f CHANGELOG.md ]; then
+  if grep -Fq "## [${version}]" CHANGELOG.md; then
+    :
+  elif [ "${version}" = "${latest}" ] && grep -Fq "## [Unreleased]" CHANGELOG.md; then
+    :
+  else
+    err "CHANGELOG.md has no section for ${version}"
+  fi
+else
+  err "CHANGELOG.md is missing"
+fi
+
+# Files that must not pin the previous release.
+if [ -n "${latest}" ]; then
+  while IFS= read -r hit; do
+    [ -z "${hit}" ] && continue
+    err "stale version ${latest} in ${hit}"
+  done < <(git grep -n -F "${latest}" -- \
+      README.md docker-compose.yml install.sh uninstall.sh config.yml.sample RELEASE.md \
+      deploy .github 2>/dev/null || true)
+fi
+
+# README must not pin any release version.
+while IFS= read -r hit; do
+  [ -z "${hit}" ] && continue
+  err "README.md pins a release version: ${hit}"
+done < <(grep -nE 'v[0-9]+\.[0-9]+\.[0-9]+' README.md 2>/dev/null || true)
+
+# The compose file must follow the release tag through a variable.
+if ! grep -q 'AWG_PORTAL_VERSION' docker-compose.yml; then
+  err "docker-compose.yml must use \${AWG_PORTAL_VERSION:-latest}"
+fi
+if grep -qE 'image:[[:space:]]+ghcr\.io/[^:]+:v[0-9]' docker-compose.yml; then
+  err "docker-compose.yml pins a release tag"
+fi
+
+# The installer must read the version from the bundle.
+if grep -qE '^VERSION="v[0-9]' install.sh; then
+  err "install.sh hardcodes VERSION"
+fi
+if ! grep -q 'BUNDLE_DIR}/VERSION' install.sh; then
+  err "install.sh does not read VERSION from the bundle"
+fi
+if grep -qE '^VERSION="v[0-9]' uninstall.sh; then
+  err "uninstall.sh hardcodes VERSION"
+fi
+if ! grep -q 'SCRIPT_DIR}/VERSION' uninstall.sh; then
+  err "uninstall.sh does not read VERSION from the bundle"
+fi
+
+if [ "${fail}" -ne 0 ]; then
+  printf 'release consistency: FAILED\n' >&2
+  exit 1
+fi
+printf 'release consistency: OK\n'

@@ -23,17 +23,23 @@
 #
 # Поддерживаемые бандлы:
 #     awg-portal-vX.Y.Z/
+#       VERSION
+#       BUNDLE.md
+#       MANIFEST.json
+#       release-key.asc
 #       install.sh
+#       uninstall.sh
 #       config.yml.sample
 #       bin/wg-portal-amd64
 #       bin/wg-portal-arm64
 #       bin/wg-portal-arm
-#       bin/amneziawg-go
+#       bin/amneziawg-go-amd64
+#       bin/amneziawg-go-arm64
+#       bin/amneziawg-go-arm
 #
 set -euo pipefail
 
-# ─── Версия и пути ────────────────────────────────────────────────────────────
-VERSION="v2.0.2"
+# ─── Пути ─────────────────────────────────────────────────────────────────────
 BIN_DIR="/usr/local/bin"
 SYSTEMD_DIR="/etc/systemd/system"
 PORTAL_DIR="/opt/awg-portal"
@@ -79,6 +85,13 @@ elif [ -d "${SCRIPT_DIR}/../bin" ]; then
 else
   BUNDLE_DIR="${SCRIPT_DIR}"
 fi
+
+# ─── Версия ───────────────────────────────────────────────────────────────────
+VERSION="${AWG_PORTAL_VERSION:-}"
+if [ -z "${VERSION}" ] && [ -f "${BUNDLE_DIR}/VERSION" ]; then
+  VERSION="$(cat "${BUNDLE_DIR}/VERSION")"
+fi
+VERSION="${VERSION:-dev}"
 
 # ─── ANSI-коды (определяем заранее — используются ниже в логе) ─────────────
 WARN=$'\033[1;33m'

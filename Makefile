@@ -87,6 +87,21 @@ verify-fast:
 verify-full:
 	@bash scripts/verify-full.sh
 
+#> changelog: Regenerate CHANGELOG.md from Conventional Commits
+.PHONY: changelog
+changelog:
+	@bash scripts/changelog
+
+#> changelog-check: Fail if CHANGELOG.md is out of date
+.PHONY: changelog-check
+changelog-check:
+	@bash scripts/changelog --check
+
+#> release-check: Check version consistency and release policy
+.PHONY: release-check
+release-check:
+	@bash scripts/check-release-consistency
+
 ########################################################################################
 ##
 ## CI TARGETS

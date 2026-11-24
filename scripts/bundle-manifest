@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Write MANIFEST.json for a release bundle.
+
+Usage:
+    scripts/bundle-manifest BUNDLE_DIR VERSION COMMIT [CHANGELOG_SECTION_SHA256]
+
+The manifest lists every file in the bundle with its size and SHA256, plus the
+build metadata. It is generated inside the bundle and never committed.
+"""
+
+import hashlib
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+
+def sha256_file(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def main() -> int:
+    if len(sys.argv) not in (4, 5):
+        print(__doc__, file=sys.stderr)
+        return 2
+
+    bundle_dir = sys.argv[1]
+    version = sys.argv[2]
+    commit = sys.argv[3]
+    changelog_sha = sys.argv[4] if len(sys.argv) == 5 else ""
+
+    files = []
+    for root, dirs, names in os.walk(bundle_dir):
+        dirs.sort()
+        for name in sorted(names):
+            path = os.path.join(root, name)
+            rel = os.path.relpath(path, bundle_dir).replace(os.sep, "/")
+            if rel == "MANIFEST.json":
+                continue
+            files.append(
+                {
+                    "path": rel,
+                    "size": os.path.getsize(path),
+                    "sha256": sha256_file(path),
+                }
+            )
+
+    manifest = {
+        "name": "awg-portal",
+        "version": version,
+        "commit": commit,
+        "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "changelog_section_sha256": changelog_sha,
+        "files": files,
+    }
+    json.dump(manifest, sys.stdout, indent=2, ensure_ascii=False)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
