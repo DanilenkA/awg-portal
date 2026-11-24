@@ -69,7 +69,9 @@ jobs:
   version-check:
     name: Version, changelog and consistency
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    # Dependency bots do not bump VERSION; their chore(deps) commits are skipped
+    # by git-cliff and ride along with the next release.
+    if: ${{ needs.changes.outputs.code == 'true' && github.event.pull_request.user.login != 'dependabot[bot]' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
