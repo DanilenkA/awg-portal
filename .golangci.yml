@@ -1,0 +1,54 @@
+# golangci-lint configuration, format version 2 (golangci-lint 2.x).
+# Opinionated linters (line length, function length, complexity limits, naming) are not enabled:
+# they produce hundreds of findings on this code base without pointing at defects.
+version: "2"
+
+run:
+  tests: true
+
+linters:
+  enable:
+    # Correctness
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - errorlint
+    - nilerr
+    - forcetypeassert
+    - bodyclose
+    - noctx
+    # Security
+    - gosec
+    # Code quality
+    - gocritic
+    - modernize
+    - intrange
+    - unconvert
+    - perfsprint
+    - canonicalheader
+    - contextcheck
+    - unparam
+    - whitespace
+    - misspell
+    - dupword
+    # Meta
+    - nolintlint
+  settings:
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+  exclusions:
+    generated: lax
+    rules:
+      # Test fixtures hold sample keys and passwords, not credentials.
+      - path: _test\.go$
+        linters:
+          - gosec
+        text: "G101:"
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

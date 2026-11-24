@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"slices"
 
 	"github.com/DanilenkA/awg-portal/internal/app/api/core/respond"
 	"github.com/DanilenkA/awg-portal/internal/app/api/v0/model"
@@ -91,10 +92,8 @@ func UserHasScopes(user *domain.User, scopes ...Scope) bool {
 	}
 
 	// Check if admin scope is required
-	for _, scope := range scopes {
-		if scope == ScopeAdmin {
-			return false
-		}
+	if slices.Contains(scopes, ScopeAdmin) {
+		return false
 	}
 
 	return true

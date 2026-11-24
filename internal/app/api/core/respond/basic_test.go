@@ -15,7 +15,7 @@ func TestStatus(t *testing.T) {
 	Status(rec, http.StatusNoContent)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusNoContent {
 		t.Errorf("expected status %d, got %d", http.StatusNoContent, res.StatusCode)
@@ -32,7 +32,7 @@ func TestString(t *testing.T) {
 	String(rec, http.StatusOK, "Hello, World!")
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)
@@ -54,7 +54,7 @@ func TestJSON(t *testing.T) {
 	JSON(rec, http.StatusOK, data)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)
@@ -76,7 +76,7 @@ func TestJSON_empty(t *testing.T) {
 	JSON(rec, http.StatusOK, nil)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)
@@ -98,7 +98,7 @@ func TestData(t *testing.T) {
 	Data(rec, http.StatusOK, "text/plain", data)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)
@@ -120,7 +120,7 @@ func TestData_noContentType(t *testing.T) {
 	Data(rec, http.StatusOK, "", data)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)
@@ -143,7 +143,7 @@ func TestReader(t *testing.T) {
 	Reader(rec, http.StatusOK, "text/plain", len(data), reader)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)
@@ -169,7 +169,7 @@ func TestReader_unknownLength(t *testing.T) {
 	Reader(rec, http.StatusOK, "text/plain", 0, data)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)
@@ -195,7 +195,7 @@ func TestAttachment(t *testing.T) {
 	Attachment(rec, http.StatusOK, "example.txt", "text/plain", data)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)
@@ -217,7 +217,7 @@ func TestAttachmentReader(t *testing.T) {
 	AttachmentReader(rec, http.StatusOK, "example.txt", "text/plain", data.Len(), data)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, res.StatusCode)
@@ -241,7 +241,7 @@ func TestRedirect(t *testing.T) {
 	Redirect(rec, req, http.StatusMovedPermanently, url)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusMovedPermanently {
 		t.Errorf("expected status %d, got %d", http.StatusMovedPermanently, res.StatusCode)
@@ -261,7 +261,7 @@ func TestRedirect_relative(t *testing.T) {
 	Redirect(rec, req, http.StatusMovedPermanently, url)
 
 	res := rec.Result()
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusMovedPermanently {
 		t.Errorf("expected status %d, got %d", http.StatusMovedPermanently, res.StatusCode)

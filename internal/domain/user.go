@@ -112,11 +112,7 @@ func (u *User) IsLocked() bool {
 }
 
 func (u *User) IsApiEnabled() bool {
-	if u.ApiToken != "" {
-		return true
-	}
-
-	return false
+	return u.ApiToken != ""
 }
 
 func (u *User) CanChangePassword() error {

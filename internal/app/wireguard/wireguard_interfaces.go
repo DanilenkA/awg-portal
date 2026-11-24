@@ -627,7 +627,7 @@ func (m Manager) saveInterface(ctx context.Context, iface *domain.Interface) (
 		//     the config (keys, port, AWG params, IPs, MTU, routes).
 		if err := m.applyPhysicalInterface(ctx, iface); err != nil {
 			if rollbackErr := m.rollbackPhysicalInterface(ctx, oldInterface, oldPeers, iface, modeSwitched); rollbackErr != nil {
-				return nil, fmt.Errorf("awg mode switch: failed to create new interface %s: %w; rollback failed: %v",
+				return nil, fmt.Errorf("awg mode switch: failed to create new interface %s: %w; rollback failed: %w",
 					iface.Identifier, err, rollbackErr)
 			}
 			return nil, fmt.Errorf("awg mode switch: failed to create new interface %s: %w",
@@ -661,7 +661,7 @@ func (m Manager) saveInterface(ctx context.Context, iface *domain.Interface) (
 		if rollbackErr := m.rollbackPhysicalInterface(ctx, oldInterface, oldPeers, iface, modeSwitched); rollbackErr != nil {
 			slog.Error("awg: physical layer updated but DB save failed and rollback failed; manual reconciliation required",
 				"interface", iface.Identifier, "error", err, "rollback_error", rollbackErr)
-			return nil, fmt.Errorf("failed to save interface: %w; rollback failed: %v", err, rollbackErr)
+			return nil, fmt.Errorf("failed to save interface: %w; rollback failed: %w", err, rollbackErr)
 		}
 		slog.Warn("awg: DB save failed after physical apply; restored previous physical state",
 			"interface", iface.Identifier, "error", err)

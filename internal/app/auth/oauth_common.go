@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/DanilenkA/awg-portal/internal"
@@ -49,11 +50,8 @@ func parseOauthUserInfo(
 	if !isAdmin && mapping.UserGroups != "" && adminMapping.AdminGroupRegex != "" {
 		adminInfoAvailable = true
 		re := adminMapping.GetAdminGroupRegex()
-		for _, group := range userInfo.UserGroups {
-			if re.MatchString(group) {
-				isAdmin = true
-				break
-			}
+		if slices.ContainsFunc(userInfo.UserGroups, re.MatchString) {
+			isAdmin = true
 		}
 		userInfo.IsAdmin = isAdmin
 		userInfo.AdminInfoAvailable = adminInfoAvailable

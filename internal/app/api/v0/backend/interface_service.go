@@ -2,7 +2,7 @@ package backend
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io"
 
 	"github.com/DanilenkA/awg-portal/internal/config"
@@ -94,7 +94,7 @@ func (i InterfaceService) ApplyPeerDefaults(ctx context.Context, in *domain.Inte
 
 func (i InterfaceService) CreateDefaultPeers(ctx context.Context, id domain.InterfaceIdentifier) error {
 	if !i.cfg.DefaultPeerCreationEnabled() {
-		return fmt.Errorf("default peer creation is not enabled")
+		return errors.New("default peer creation is not enabled")
 	}
 	return i.interfaces.CreateDefaultPeers(ctx, id)
 }

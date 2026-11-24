@@ -55,8 +55,6 @@ type StatisticsCollector struct {
 	db StatisticsDatabaseRepo
 	wg *ControllerManager
 	ms StatisticsMetricsServer
-
-	peerChangeEvent chan domain.PeerIdentifier
 }
 
 // NewStatisticsCollector creates a new statistics collector.

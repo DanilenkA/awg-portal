@@ -1,0 +1,20 @@
+---
+extends: default
+
+ignore:
+  - frontend/
+  # Generated OpenAPI specs.
+  - internal/app/api/core/assets/doc/
+  - docs/documentation/rest-api/swagger.yaml
+  # Helm templates are not valid YAML before rendering; check them with helm lint.
+  - deploy/helm/templates/
+
+rules:
+  line-length: disable
+  document-start: disable
+  comments:
+    # Pinned actions are annotated right after the SHA: "uses: x@sha # vX.Y.Z".
+    min-spaces-from-content: 1
+  truthy:
+    # GitHub Actions workflows use the key "on", which YAML 1.1 reads as a boolean.
+    check-keys: false

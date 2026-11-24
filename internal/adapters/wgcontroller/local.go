@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -135,7 +136,7 @@ func (c LocalController) convertWireGuardInterface(device *wgtypes.Device) (doma
 		ListenPort:    device.ListenPort,
 		Addresses:     nil,
 		Mtu:           0,
-		FirewallMark:  uint32(device.FirewallMark),
+		FirewallMark:  fwMarkUint32(device.FirewallMark),
 		DeviceUp:      false,
 		ImportSource:  domain.ControllerTypeLocal,
 		DeviceType:    device.Type.String(),
@@ -178,17 +179,13 @@ func (c LocalController) GetPeers(_ context.Context, deviceId domain.InterfaceId
 
 	peers := make([]domain.PhysicalPeer, 0, len(device.Peers))
 	for _, peer := range device.Peers {
-		peerModel, err := c.convertWireGuardPeer(&peer)
-		if err != nil {
-			return nil, fmt.Errorf("peer convert failed for %v: %w", peer.PublicKey, err)
-		}
-		peers = append(peers, peerModel)
+		peers = append(peers, c.convertWireGuardPeer(&peer))
 	}
 
 	return peers, nil
 }
 
-func (c LocalController) convertWireGuardPeer(peer *wgtypes.Peer) (domain.PhysicalPeer, error) {
+func (c LocalController) convertWireGuardPeer(peer *wgtypes.Peer) domain.PhysicalPeer {
 	peerModel := domain.PhysicalPeer{
 		Identifier: domain.PeerIdentifier(peer.PublicKey.String()),
 		Endpoint:   "",
@@ -200,8 +197,8 @@ func (c LocalController) convertWireGuardPeer(peer *wgtypes.Peer) (domain.Physic
 		PersistentKeepalive: int(peer.PersistentKeepaliveInterval.Seconds()),
 		LastHandshake:       peer.LastHandshakeTime,
 		ProtocolVersion:     peer.ProtocolVersion,
-		BytesUpload:         uint64(peer.ReceiveBytes),
-		BytesDownload:       uint64(peer.TransmitBytes),
+		BytesUpload:         uint64(peer.ReceiveBytes),  //nolint:gosec // G115: byte counters are never negative
+		BytesDownload:       uint64(peer.TransmitBytes), //nolint:gosec // G115: byte counters are never negative
 		ImportSource:        domain.ControllerTypeLocal,
 	}
 
@@ -220,7 +217,7 @@ func (c LocalController) convertWireGuardPeer(peer *wgtypes.Peer) (domain.Physic
 		peerModel.PresharedKey = domain.PreSharedKey(peer.PresharedKey.String())
 	}
 
-	return peerModel, nil
+	return peerModel
 }
 
 func (c LocalController) SaveInterface(
@@ -461,15 +458,7 @@ func (c LocalController) updateLowLevelInterface(pi *domain.PhysicalInterface) e
 	}
 	for _, rawAddr := range rawAddresses {
 		netlinkAddr := domain.CidrFromNetlinkAddr(rawAddr)
-		remove := true
-		for _, addr := range pi.Addresses {
-			if addr == netlinkAddr {
-				remove = false
-				break
-			}
-		}
-
-		if !remove {
+		if slices.Contains(pi.Addresses, netlinkAddr) {
 			continue
 		}
 
@@ -494,7 +483,7 @@ func (c LocalController) updateLowLevelInterface(pi *domain.PhysicalInterface) e
 }
 
 func (c LocalController) updateWireGuardInterface(pi *domain.PhysicalInterface) error {
-	pKey, err := wgtypes.NewKey(pi.KeyPair.GetPrivateKeyBytes())
+	pKey, err := wgtypes.NewKey(pi.GetPrivateKeyBytes())
 	if err != nil {
 		return err
 	}
@@ -537,10 +526,10 @@ func (c LocalController) updateWireGuardInterface(pi *domain.PhysicalInterface) 
 		cfg.S2 = &awgParams.S2
 		cfg.S3 = &awgParams.S3
 		cfg.S4 = &awgParams.S4
-		h1 := fmt.Sprintf("%d", awgParams.H1)
-		h2 := fmt.Sprintf("%d", awgParams.H2)
-		h3 := fmt.Sprintf("%d", awgParams.H3)
-		h4 := fmt.Sprintf("%d", awgParams.H4)
+		h1 := strconv.FormatUint(uint64(awgParams.H1), 10)
+		h2 := strconv.FormatUint(uint64(awgParams.H2), 10)
+		h3 := strconv.FormatUint(uint64(awgParams.H3), 10)
+		h4 := strconv.FormatUint(uint64(awgParams.H4), 10)
 		cfg.H1 = &h1
 		cfg.H2 = &h2
 		cfg.H3 = &h3
@@ -622,14 +611,9 @@ func (c LocalController) SavePeer(
 
 	// Check if the peer is disabled by looking at the backend extras
 	// For local controller, disabled peers should be deleted
-	if physicalPeer.GetExtras() != nil {
-		switch extras := physicalPeer.GetExtras().(type) {
-		case domain.LocalPeerExtras:
-			if extras.Disabled {
-				// Delete the peer instead of updating it
-				return c.deletePeer(deviceId, id)
-			}
-		}
+	if extras, ok := physicalPeer.GetExtras().(domain.LocalPeerExtras); ok && extras.Disabled {
+		// Delete the peer instead of updating it
+		return c.deletePeer(deviceId, id)
 	}
 
 	if err := c.updatePeer(deviceId, physicalPeer); err != nil {
@@ -660,13 +644,8 @@ func (c LocalController) saveAWGPeer(
 	}
 
 	// Check if the peer is disabled
-	if pp.GetExtras() != nil {
-		switch extras := pp.GetExtras().(type) {
-		case domain.LocalPeerExtras:
-			if extras.Disabled {
-				return lowlevel.RemoveAWGPeer(string(deviceId), string(id))
-			}
-		}
+	if extras, ok := pp.GetExtras().(domain.LocalPeerExtras); ok && extras.Disabled {
+		return lowlevel.RemoveAWGPeer(string(deviceId), string(id))
 	}
 
 	// Build allowed IPs from the peer
@@ -747,8 +726,8 @@ func (c LocalController) getPeer(deviceId domain.InterfaceIdentifier, id domain.
 			continue
 		}
 
-		peerModel, err := c.convertWireGuardPeer(&peer)
-		return &peerModel, err
+		peerModel := c.convertWireGuardPeer(&peer)
+		return &peerModel, nil
 	}
 
 	return nil, os.ErrNotExist
@@ -839,10 +818,10 @@ func (c LocalController) SetDNS(_ context.Context, id domain.InterfaceIdentifier
 	dnsCommandInput := make([]string, 0, len(dnsServers)+len(dnsSearchDomains))
 
 	for _, dnsServer := range dnsServers {
-		dnsCommandInput = append(dnsCommandInput, fmt.Sprintf("nameserver %s", dnsServer))
+		dnsCommandInput = append(dnsCommandInput, "nameserver "+dnsServer)
 	}
 	for _, searchDomain := range dnsSearchDomains {
-		dnsCommandInput = append(dnsCommandInput, fmt.Sprintf("search %s", searchDomain))
+		dnsCommandInput = append(dnsCommandInput, "search "+searchDomain)
 	}
 
 	err := c.exec(dnsCommand, id, dnsCommandInput...)
@@ -873,7 +852,13 @@ func (c LocalController) replaceCommandPlaceHolders(command string, interfaceId 
 }
 
 func (c LocalController) exec(command string, interfaceId domain.InterfaceIdentifier, stdin ...string) error {
+	// The interface name becomes part of a shell command, so it must not carry shell characters.
+	if !lowlevel.IsValidInterfaceName(string(interfaceId)) {
+		return fmt.Errorf("invalid interface identifier %q", interfaceId)
+	}
 	commandWithInterfaceName := c.replaceCommandPlaceHolders(command, interfaceId)
+	// The command comes from the operator configuration or from the constants of this file.
+	//nolint:gosec,noctx // G204: operator configuration and fixed strings only; hooks and resolvconf calls are one-shot commands
 	cmd := exec.Command(c.shellCmd, "-ce", commandWithInterfaceName)
 	if len(stdin) > 0 {
 		b := &bytes.Buffer{}
@@ -912,10 +897,7 @@ func (c LocalController) SetRoutes(_ context.Context, info domain.RoutingTableIn
 	}
 
 	cidrsV4, cidrsV6 := domain.CidrsPerFamily(info.AllowedIps)
-	realTable, realFwMark, err := c.getOrCreateRoutingTableAndFwMark(link, info.Table, info.FwMark)
-	if err != nil {
-		return fmt.Errorf("failed to get or create routing table and fwmark for %s: %w", interfaceId, err)
-	}
+	realTable, realFwMark := c.getOrCreateRoutingTableAndFwMark(link, info.Table, info.FwMark)
 	wgDev, err := c.wg.Device(string(interfaceId))
 	if err != nil {
 		return fmt.Errorf("failed to get wg device for %s: %w", interfaceId, err)
@@ -1047,7 +1029,7 @@ func (c LocalController) setRoutesForFamily(
 		return rule.SuppressPrefixlen == 0 && rule.Table == unix.RT_TABLE_MAIN
 	})
 	if !mainRuleExists && domain.ContainsDefaultRoute(cidrs) {
-		err = c.nl.RuleAdd(&netlink.Rule{
+		if err := c.nl.RuleAdd(&netlink.Rule{
 			Family:            family,
 			Table:             unix.RT_TABLE_MAIN,
 			SuppressIfgroup:   -1,
@@ -1057,7 +1039,9 @@ func (c LocalController) setRoutesForFamily(
 			Mask:              nil,
 			Goto:              -1,
 			Flow:              -1,
-		})
+		}); err != nil {
+			return fmt.Errorf("failed to setup main rule for family-id %d: %w", family, err)
+		}
 	}
 
 	// finally, clean up extra main rules - only one rule is allowed
@@ -1080,21 +1064,23 @@ func (c LocalController) setRoutesForFamily(
 	return nil
 }
 
+// fwMarkUint32 converts a firewall mark as wgctrl reports it. A mark is a 32 bit value; wgctrl
+// delivers it as int, where a negative value is a mark with the top bit set.
+func fwMarkUint32(mark int) uint32 {
+	return uint32(mark) //nolint:gosec // G115: the conversion keeps all 32 bits of the mark
+}
+
 func (c LocalController) getOrCreateRoutingTableAndFwMark(
 	link netlink.Link,
 	tableIn int,
 	fwMarkIn uint32,
-) (
-	table int,
-	fwmark uint32,
-	err error,
-) {
+) (table int, fwmark uint32) {
 	table = tableIn
 	fwmark = fwMarkIn
 
 	if fwmark == 0 {
 		// generate a new (temporary) firewall mark based on the interface index
-		fwmark = uint32(c.cfg.Advanced.RouteTableOffset + link.Attrs().Index)
+		fwmark = fwMarkUint32(c.cfg.Advanced.RouteTableOffset + link.Attrs().Index)
 	}
 	if table == 0 {
 		table = int(fwmark) // generate a new routing table base on interface index
@@ -1184,7 +1170,7 @@ func (c LocalController) RemoveRoutes(_ context.Context, info domain.RoutingTabl
 
 	fwMark := info.FwMark
 	if wgDev != nil && info.FwMark == 0 {
-		fwMark = uint32(wgDev.FirewallMark)
+		fwMark = fwMarkUint32(wgDev.FirewallMark)
 	}
 	table := info.Table
 	if wgDev != nil && info.Table == 0 {
@@ -1196,10 +1182,7 @@ func (c LocalController) RemoveRoutes(_ context.Context, info domain.RoutingTabl
 	}
 
 	cidrsV4, cidrsV6 := domain.CidrsPerFamily(info.AllowedIps)
-	realTable, realFwMark, err := c.getOrCreateRoutingTableAndFwMark(link, table, fwMark)
-	if err != nil {
-		return fmt.Errorf("failed to get or create routing table and fwmark for %s: %w", interfaceId, err)
-	}
+	realTable, realFwMark := c.getOrCreateRoutingTableAndFwMark(link, table, fwMark)
 
 	if linkIndex > 0 {
 		err = c.removeRoutesForFamily(interfaceId, link, netlink.FAMILY_V4, realTable, realFwMark, cidrsV4)

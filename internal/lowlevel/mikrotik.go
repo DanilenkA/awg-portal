@@ -55,8 +55,8 @@ func (e *MikrotikApiError) String() string {
 type GenericJsonObject map[string]any
 type EmptyResponse struct{}
 
-func (JsonObject GenericJsonObject) GetString(key string) string {
-	if value, ok := JsonObject[key]; ok {
+func (obj GenericJsonObject) GetString(key string) string {
+	if value, ok := obj[key]; ok {
 		if strValue, ok := value.(string); ok {
 			return strValue
 		} else {
@@ -66,8 +66,8 @@ func (JsonObject GenericJsonObject) GetString(key string) string {
 	return ""
 }
 
-func (JsonObject GenericJsonObject) GetInt(key string) int {
-	if value, ok := JsonObject[key]; ok {
+func (obj GenericJsonObject) GetInt(key string) int {
+	if value, ok := obj[key]; ok {
 		if intValue, ok := value.(int); ok {
 			return intValue
 		} else {
@@ -84,8 +84,8 @@ func (JsonObject GenericJsonObject) GetInt(key string) int {
 	return 0
 }
 
-func (JsonObject GenericJsonObject) GetBool(key string) bool {
-	if value, ok := JsonObject[key]; ok {
+func (obj GenericJsonObject) GetBool(key string) bool {
+	if value, ok := obj[key]; ok {
 		if boolValue, ok := value.(bool); ok {
 			return boolValue
 		} else {
@@ -150,21 +150,18 @@ func NewMikrotikApiClient(coreCfg *config.Config, cfg *config.BackendMikrotik) (
 		cfg:     cfg,
 	}
 
-	err := c.setup()
-	if err != nil {
-		return nil, err
-	}
+	c.setup()
 
 	c.debugLog("Mikrotik api client created", "api_url", cfg.ApiUrl)
 
 	return c, nil
 }
 
-func (m *MikrotikApiClient) setup() error {
+func (m *MikrotikApiClient) setup() {
 	m.client = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: !m.cfg.ApiVerifyTls,
+				InsecureSkipVerify: !m.cfg.ApiVerifyTls, //nolint:gosec // G402: certificate validation is switched off only by the operator through api_verify_tls
 			},
 		},
 		Timeout: m.cfg.GetApiTimeout(),
@@ -180,8 +177,6 @@ func (m *MikrotikApiClient) setup() error {
 				},
 			}))
 	}
-
-	return nil
 }
 
 func (m *MikrotikApiClient) debugLog(msg string, args ...any) {
@@ -261,18 +256,18 @@ func errToApiResponse[T any](code int, message string, err error) MikrotikApiRes
 	}
 }
 
-func parseHttpResponse[T any](resp *http.Response, err error) MikrotikApiResponse[T] {
+func parseHttpResponse[T any](client *http.Client, req *http.Request) MikrotikApiResponse[T] {
+	resp, err := client.Do(req)
 	if err != nil {
 		return errToApiResponse[T](MikrotikApiErrorCodeRequestFailed, "failed to execute request", err)
 	}
 
-	defer func(Body io.ReadCloser) {
-		_, _ = io.Copy(io.Discard, Body) // ensure to empty the body
-		err := Body.Close()
-		if err != nil {
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body) // ensure to empty the body
+		if err := resp.Body.Close(); err != nil {
 			slog.Error("failed to close response body", "error", err)
 		}
-	}(resp.Body)
+	}()
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		var data T
@@ -314,7 +309,7 @@ func (m *MikrotikApiClient) Query(
 
 	start := time.Now()
 	m.debugLog("executing API query", "url", fullUrl)
-	response := parseHttpResponse[[]GenericJsonObject](m.client.Do(req))
+	response := parseHttpResponse[[]GenericJsonObject](m.client, req)
 	m.debugLog("retrieved API query result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }
@@ -337,7 +332,7 @@ func (m *MikrotikApiClient) Get(
 
 	start := time.Now()
 	m.debugLog("executing API get", "url", fullUrl)
-	response := parseHttpResponse[GenericJsonObject](m.client.Do(req))
+	response := parseHttpResponse[GenericJsonObject](m.client, req)
 	m.debugLog("retrieved API get result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }
@@ -360,7 +355,7 @@ func (m *MikrotikApiClient) Create(
 
 	start := time.Now()
 	m.debugLog("executing API put", "url", fullUrl)
-	response := parseHttpResponse[GenericJsonObject](m.client.Do(req))
+	response := parseHttpResponse[GenericJsonObject](m.client, req)
 	m.debugLog("retrieved API put result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }
@@ -383,7 +378,7 @@ func (m *MikrotikApiClient) Update(
 
 	start := time.Now()
 	m.debugLog("executing API patch", "url", fullUrl)
-	response := parseHttpResponse[GenericJsonObject](m.client.Do(req))
+	response := parseHttpResponse[GenericJsonObject](m.client, req)
 	m.debugLog("retrieved API patch result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }
@@ -405,7 +400,7 @@ func (m *MikrotikApiClient) Delete(
 
 	start := time.Now()
 	m.debugLog("executing API delete", "url", fullUrl)
-	response := parseHttpResponse[EmptyResponse](m.client.Do(req))
+	response := parseHttpResponse[EmptyResponse](m.client, req)
 	m.debugLog("retrieved API delete result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }
@@ -428,7 +423,7 @@ func (m *MikrotikApiClient) ExecList(
 
 	start := time.Now()
 	m.debugLog("executing API post", "url", fullUrl)
-	response := parseHttpResponse[[]GenericJsonObject](m.client.Do(req))
+	response := parseHttpResponse[[]GenericJsonObject](m.client, req)
 	m.debugLog("retrieved API post result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }

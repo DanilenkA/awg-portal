@@ -256,7 +256,7 @@ func (e AuthEndpoint) handleOauthInitiateGet() http.HandlerFunc {
 			return
 		}
 
-		authCodeUrl, state, nonce, err := e.authService.OauthLoginStep1(context.Background(), provider)
+		authCodeUrl, state, nonce, err := e.authService.OauthLoginStep1(r.Context(), provider)
 		if err != nil {
 			slog.Debug("failed to create oauth auth code URL",
 				"provider", provider, "error", err)
@@ -346,7 +346,7 @@ func (e AuthEndpoint) handleOauthCallbackGet() http.HandlerFunc {
 			return
 		}
 
-		loginCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second) // avoid long waits
+		loginCtx, cancel := context.WithTimeout(r.Context(), 30*time.Second) // avoid long waits
 		user, idTokenHint, err := e.authService.OauthLoginStep2(loginCtx, provider, currentSession.OauthNonce,
 			oauthCode)
 		cancel()
@@ -416,8 +416,8 @@ func (e AuthEndpoint) currentUser(r *http.Request) (*domain.User, error) {
 }
 
 // totpUser loads the user record for a pending-2FA session (not yet logged in).
-func (e AuthEndpoint) totpUser(id domain.UserIdentifier) (*domain.User, error) {
-	return e.authService.GetUser(context.Background(), id)
+func (e AuthEndpoint) totpUser(ctx context.Context, id domain.UserIdentifier) (*domain.User, error) {
+	return e.authService.GetUser(ctx, id)
 }
 
 // clientIP returns the real client IP, honoring trusted proxies.
@@ -477,7 +477,7 @@ func (e AuthEndpoint) handleLoginTotpPost() http.HandlerFunc {
 			return
 		}
 
-		user, err := e.totpUser(domain.UserIdentifier(currentSession.PendingTwoFactorUserId))
+		user, err := e.totpUser(r.Context(), domain.UserIdentifier(currentSession.PendingTwoFactorUserId))
 		if err != nil {
 			respond.JSON(w, http.StatusUnauthorized,
 				model.Error{Code: http.StatusUnauthorized, Message: "invalid session"})
@@ -668,7 +668,7 @@ func (e AuthEndpoint) handleLoginPost() http.HandlerFunc {
 			return
 		}
 
-		user, err := e.authService.PlainLogin(context.Background(), loginData.Username,
+		user, err := e.authService.PlainLogin(r.Context(), loginData.Username,
 			loginData.Password)
 		if err != nil {
 			respond.JSON(w, http.StatusUnauthorized,
@@ -706,7 +706,7 @@ func (e AuthEndpoint) handleLogoutPost() http.HandlerFunc {
 			return
 		}
 
-		postLogoutRedirectUri := e.frontendUrl("/login")
+		postLogoutRedirectUri := e.frontendLoginUrl()
 
 		var redirectUrl *string
 		if currentSession.OauthProvider != "" {
@@ -747,19 +747,16 @@ func (e AuthEndpoint) isValidReturnUrl(returnUrl string) bool {
 	return true
 }
 
-func (e AuthEndpoint) frontendUrl(route string) string {
-	frontendUrl := e.cfg.Web.ExternalUrl + e.cfg.Web.BasePath + "/app/"
-	if route != "" {
-		frontendUrl += "#" + route
-	}
-	return frontendUrl
+// frontendLoginUrl returns the absolute URL of the SPA login route.
+func (e AuthEndpoint) frontendLoginUrl() string {
+	return e.cfg.Web.ExternalUrl + e.cfg.Web.BasePath + "/app/#/login"
 }
 
 func (e AuthEndpoint) returnUrlWithLoginState(returnUrl *url.URL, loginState string) string {
 	if returnUrl == nil {
-		frontendURL, err := url.Parse(e.frontendUrl("/login"))
+		frontendURL, err := url.Parse(e.frontendLoginUrl())
 		if err != nil {
-			return e.frontendUrl("/login")
+			return e.frontendLoginUrl()
 		}
 		returnUrl = frontendURL
 	}

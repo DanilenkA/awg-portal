@@ -47,7 +47,7 @@ type Peer struct {
 	InterfaceIdentifier string     `json:"InterfaceIdentifier"`                  // the interface id
 	Disabled            bool       `json:"Disabled"`                             // flag that specifies if the peer is enabled (up) or not (down)
 	DisabledReason      string     `json:"DisabledReason"`                       // the reason why the peer has been disabled
-	ExpiresAt           ExpiryDate `json:"ExpiresAt,omitempty"`                  // expiry dates for peers
+	ExpiresAt           ExpiryDate `json:"ExpiresAt,omitempty"`                  //nolint:modernize // omitzero would hide the field for peers without expiry, that is an API change
 	Notes               string     `json:"Notes"`                                // a note field for peers
 
 	Endpoint            ConfigOption[string]   `json:"Endpoint"`            // the endpoint address
@@ -76,7 +76,7 @@ type Peer struct {
 	PostDown ConfigOption[string] `json:"PostDown"` // action that is executed after the device is down
 
 	// AmneziaWG obfuscation parameters (client-side)
-	AWGEnabled bool `json:"AWGEnabled"` // whether obfuscation is enabled
+	AWGEnabled bool   `json:"AWGEnabled"` // whether obfuscation is enabled
 	AWGJc      int    `json:"AWGJc"`
 	AWGJmin    int    `json:"AWGJmin"`
 	AWGJmax    int    `json:"AWGJmax"`

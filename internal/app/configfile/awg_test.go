@@ -107,7 +107,7 @@ func TestGetPeerConfig_WithAWGEnabled(t *testing.T) {
 				PublicKey:  "MojDxVk+x0RBZ0VHcI4wCjYh8CTDxXBIJ0E8J5HH1Dc=",
 			},
 			AWGEnabled: true,
-			AWGJc: 7, AWGJmin: 55, AWGJmax: 700,
+			AWGJc:      7, AWGJmin: 55, AWGJmax: 700,
 			AWGS1: 25, AWGS2: 35, AWGS3: 12, AWGS4: 3,
 			AWGH1: 101, AWGH2: 202, AWGH3: 303, AWGH4: 404,
 		},

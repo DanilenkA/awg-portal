@@ -40,7 +40,7 @@ func newTemplateHandler(portalUrl, portalName string, basePath string) (*Templat
 
 	// If a basePath is provided, ensure existence, populate if empty, then parse to override
 	if basePath != "" {
-		if err := os.MkdirAll(basePath, 0755); err != nil {
+		if err := os.MkdirAll(basePath, 0755); err != nil { //nolint:gosec // G301: the directory holds mail templates, they carry no secrets
 			return nil, fmt.Errorf("failed to create templates base directory %s: %w", basePath, err)
 		}
 
@@ -120,7 +120,7 @@ func copyEmbeddedTemplates(basePath string) error {
 			return err
 		}
 		out := filepath.Join(basePath, name)
-		if err := os.WriteFile(out, data, 0644); err != nil {
+		if err := os.WriteFile(out, data, 0644); err != nil { //nolint:gosec // G306: mail templates carry no secrets
 			return err
 		}
 	}

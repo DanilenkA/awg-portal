@@ -36,7 +36,7 @@ func TestMiddleware(t *testing.T) {
 			options: []Option{
 				WithErrCallback(func(err error, stack []byte, w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusTeapot)
-					w.Write([]byte("custom error"))
+					_, _ = w.Write([]byte("custom error"))
 				}),
 			},
 			panicSimulator: func() {
@@ -50,7 +50,7 @@ func TestMiddleware(t *testing.T) {
 			options: []Option{
 				WithBrokenPipeCallback(func(err error, stack []byte, w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusServiceUnavailable)
-					w.Write([]byte("broken pipe"))
+					_, _ = w.Write([]byte("broken pipe"))
 				}),
 			},
 			panicSimulator: func() {

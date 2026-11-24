@@ -1,5 +1,7 @@
 package logging
 
+import "github.com/DanilenkA/awg-portal/internal/app/api/core/middleware/tracing"
+
 // options is a struct that contains options for the logging middleware.
 // It uses the functional options pattern for flexible configuration.
 type options struct {
@@ -7,7 +9,7 @@ type options struct {
 	logger   Logger
 	prefix   string
 
-	contextRequestIdKey string
+	contextRequestIdKey tracing.ContextKey
 	headerRequestIdKey  string
 }
 
@@ -36,9 +38,10 @@ func WithPrefix(prefix string) Option {
 
 // WithContextRequestIdKey is a method that sets the key for the request ID in the
 // request context. If a key is set, the logging middleware will use this key to
-// retrieve the request ID from the request context.
+// retrieve the request ID from the request context. The key is the context identifier
+// the tracing middleware was configured with.
 // The default value is an empty string, meaning the request ID will not be logged.
-func WithContextRequestIdKey(key string) Option {
+func WithContextRequestIdKey(key tracing.ContextKey) Option {
 	return func(o *options) {
 		o.contextRequestIdKey = key
 	}

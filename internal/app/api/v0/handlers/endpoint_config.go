@@ -124,7 +124,6 @@ func (e ConfigEndpoint) handleSettingsGet() http.HandlerFunc {
 			}
 
 			return names
-
 		}
 
 		hasSocialLogin := len(e.cfg.Auth.OAuth) > 0 || len(e.cfg.Auth.OpenIDConnect) > 0 || e.cfg.Auth.WebAuthn.Enabled

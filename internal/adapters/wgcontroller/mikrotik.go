@@ -165,10 +165,7 @@ func (c *MikrotikController) loadInterfaceData(
 	}
 	addresses := c.convertIpAddresses(ipv4, ipv6)
 
-	interfaceModel, err := c.convertWireGuardInterface(wireGuardObj, ifaceReply.Data, addresses)
-	if err != nil {
-		return nil, fmt.Errorf("interface convert failed for %s: %w", deviceName, err)
-	}
+	interfaceModel := c.convertWireGuardInterface(wireGuardObj, ifaceReply.Data, addresses)
 	return &interfaceModel, nil
 }
 
@@ -258,10 +255,7 @@ func (c *MikrotikController) convertIpAddresses(
 func (c *MikrotikController) convertWireGuardInterface(
 	wg, iface lowlevel.GenericJsonObject,
 	addresses []domain.Cidr,
-) (
-	domain.PhysicalInterface,
-	error,
-) {
+) domain.PhysicalInterface {
 	pi := domain.PhysicalInterface{
 		Identifier: domain.InterfaceIdentifier(wg.GetString("name")),
 		KeyPair: domain.KeyPair{
@@ -275,8 +269,8 @@ func (c *MikrotikController) convertWireGuardInterface(
 		DeviceUp:      wg.GetBool("running"),
 		ImportSource:  domain.ControllerTypeMikrotik,
 		DeviceType:    domain.ControllerTypeMikrotik,
-		BytesUpload:   uint64(iface.GetInt("tx-byte")),
-		BytesDownload: uint64(iface.GetInt("rx-byte")),
+		BytesUpload:   uint64(iface.GetInt("tx-byte")), //nolint:gosec // G115: byte counters are never negative
+		BytesDownload: uint64(iface.GetInt("rx-byte")), //nolint:gosec // G115: byte counters are never negative
 	}
 
 	pi.SetExtras(domain.MikrotikInterfaceExtras{
@@ -285,7 +279,7 @@ func (c *MikrotikController) convertWireGuardInterface(
 		Disabled: wg.GetBool("disabled"),
 	})
 
-	return pi, nil
+	return pi
 }
 
 func (c *MikrotikController) GetPeers(ctx context.Context, deviceId domain.InterfaceIdentifier) (
@@ -312,20 +306,13 @@ func (c *MikrotikController) GetPeers(ctx context.Context, deviceId domain.Inter
 
 	peers := make([]domain.PhysicalPeer, 0, len(wgReply.Data))
 	for _, peer := range wgReply.Data {
-		peerModel, err := c.convertWireGuardPeer(peer)
-		if err != nil {
-			return nil, fmt.Errorf("peer convert failed for %v: %w", peer.GetString("name"), err)
-		}
-		peers = append(peers, peerModel)
+		peers = append(peers, c.convertWireGuardPeer(peer))
 	}
 
 	return peers, nil
 }
 
-func (c *MikrotikController) convertWireGuardPeer(peer lowlevel.GenericJsonObject) (
-	domain.PhysicalPeer,
-	error,
-) {
+func (c *MikrotikController) convertWireGuardPeer(peer lowlevel.GenericJsonObject) domain.PhysicalPeer {
 	keepAliveSeconds := 0
 	duration, err := time.ParseDuration(peer.GetString("persistent-keepalive"))
 	if err == nil {
@@ -364,9 +351,9 @@ func (c *MikrotikController) convertWireGuardPeer(peer lowlevel.GenericJsonObjec
 		PresharedKey:        domain.PreSharedKey(peer.GetString("preshared-key")),
 		PersistentKeepalive: keepAliveSeconds,
 		LastHandshake:       lastHandshakeTime,
-		ProtocolVersion:     0, // Mikrotik does not support protocol versioning, so we set it to 0
-		BytesUpload:         uint64(peer.GetInt("rx")),
-		BytesDownload:       uint64(peer.GetInt("tx")),
+		ProtocolVersion:     0,                         // Mikrotik does not support protocol versioning, so we set it to 0
+		BytesUpload:         uint64(peer.GetInt("rx")), //nolint:gosec // G115: byte counters are never negative
+		BytesDownload:       uint64(peer.GetInt("tx")), //nolint:gosec // G115: byte counters are never negative
 		ImportSource:        domain.ControllerTypeMikrotik,
 	}
 
@@ -382,7 +369,7 @@ func (c *MikrotikController) convertWireGuardPeer(peer lowlevel.GenericJsonObjec
 		ClientKeepalive: clientKeepAliveSeconds,
 	})
 
-	return peerModel, nil
+	return peerModel
 }
 
 func (c *MikrotikController) SaveInterface(
@@ -453,7 +440,7 @@ func (c *MikrotikController) updateInterface(ctx context.Context, pi *domain.Phy
 		"comment":     extras.Comment,
 		"mtu":         strconv.Itoa(pi.Mtu),
 		"listen-port": strconv.Itoa(pi.ListenPort),
-		"private-key": pi.KeyPair.PrivateKey,
+		"private-key": pi.PrivateKey,
 		"disabled":    strconv.FormatBool(!pi.DeviceUp),
 	})
 	if wgReply.Status != lowlevel.MikrotikApiStatusOk {
@@ -647,10 +634,7 @@ func (c *MikrotikController) getOrCreatePeer(
 	})
 	if wgReply.Status == lowlevel.MikrotikApiStatusOk && len(wgReply.Data) > 0 {
 		slog.Debug("found existing Mikrotik peer", "peer", id, "interface", deviceId)
-		existingPeer, err := c.convertWireGuardPeer(wgReply.Data[0])
-		if err != nil {
-			return nil, err
-		}
+		existingPeer := c.convertWireGuardPeer(wgReply.Data[0])
 		return &existingPeer, nil
 	}
 
@@ -663,10 +647,7 @@ func (c *MikrotikController) getOrCreatePeer(
 		"allowed-address": "0.0.0.0/0", // Use 0.0.0.0/0 as default, will be updated by updatePeer
 	})
 	if createReply.Status == lowlevel.MikrotikApiStatusOk {
-		newPeer, err := c.convertWireGuardPeer(createReply.Data)
-		if err != nil {
-			return nil, err
-		}
+		newPeer := c.convertWireGuardPeer(createReply.Data)
 		slog.Debug("successfully created Mikrotik peer", "peer", id, "interface", deviceId)
 		return &newPeer, nil
 	}
@@ -705,8 +686,8 @@ func (c *MikrotikController) updatePeer(
 		"name":                 extras.Name,
 		"comment":              extras.Comment,
 		"preshared-key":        pp.PresharedKey,
-		"public-key":           pp.KeyPair.PublicKey,
-		"private-key":          pp.KeyPair.PrivateKey,
+		"public-key":           pp.PublicKey,
+		"private-key":          pp.PrivateKey,
 		"persistent-keepalive": (time.Duration(pp.PersistentKeepalive) * time.Second).String(),
 		"disabled":             strconv.FormatBool(extras.Disabled),
 		"responder":            strconv.FormatBool(extras.IsResponder),
@@ -1023,14 +1004,7 @@ func (c *MikrotikController) setRoutesForFamily(
 			continue
 		}
 
-		valid := false
-		for _, cidr := range cidrs {
-			if existingRoute.EqualPrefix(cidr) {
-				valid = true
-				break
-			}
-		}
-		if valid {
+		if slices.ContainsFunc(cidrs, existingRoute.EqualPrefix) {
 			continue // route is still valid, nothing to do
 		}
 

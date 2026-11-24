@@ -21,6 +21,10 @@ jobs:
   test:
     name: Go Tests
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # golangci-lint-action with only-new-issues reads the pull request diff through the API.
+      pull-requests: read
     steps:
       - name: Check out the repo
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -46,6 +50,12 @@ jobs:
 
       - name: Run tests
         run: go test -race -short ./...
+
+      - name: Lint Go (new findings only until the existing findings are resolved)
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.15.0
+          only-new-issues: true
 
   build-n-push:
     name: Build and Push
@@ -212,15 +222,15 @@ jobs:
           VERSION="${{ github.ref_name }}"
           BUNDLE_ROOT="artifacts/awg-portal-${VERSION}"
           mkdir -p "${BUNDLE_ROOT}/bin"
-          
+
           # install.sh (корневая копия — каноническая, deploy/install.sh
           # legacy-зеркало для обратной совместимости).
           cp install.sh "${BUNDLE_ROOT}/install.sh"
           sed -i "s/VERSION=.*/VERSION=\"$VERSION\"/" "${BUNDLE_ROOT}/install.sh"
-          
+
           # config.yml.sample
           cp config.yml.sample "${BUNDLE_ROOT}/"
-          
+
           # Бинарники для всех архитектур
           for arch_dir in amd64 arm64 arm; do
             src="${BINROOT}/final/${arch_dir}"
@@ -233,7 +243,7 @@ jobs:
               echo "Added: amneziawg-go-${arch_dir}"
             fi
           done
-          
+
           # SHA256SUMS для бандла (один файл на корень artifacts/)
           ( cd "${BUNDLE_ROOT}" && find . -type f | sort | xargs sha256sum ) > SHA256SUMS
 
@@ -307,7 +317,7 @@ jobs:
           else
             LOG=$(git log --oneline --no-merges "${PREV_TAG}..HEAD")
           fi
-          
+
           NOTES_FILE="/tmp/rn-${VERSION}.md"
           {
             echo "# awg-portal ${VERSION}"
@@ -332,7 +342,7 @@ jobs:
             echo "sudo systemctl enable --now awg-portal"
             echo '```'
           } > "$NOTES_FILE"
-          
+
           echo "path=${NOTES_FILE}" >> $GITHUB_OUTPUT
           cat "$NOTES_FILE"
 

@@ -1,0 +1,21 @@
+title = "awg-portal"
+
+[extend]
+useDefault = true
+
+# WireGuard keys in tests and documentation samples were generated for those samples.
+[[allowlists]]
+description = "sample keys in tests and documentation"
+paths = [
+  '''internal/app/configfile/awg_test\.go''',
+  '''internal/app/configfile/awg_template_test\.go''',
+  '''internal/domain/peer_test\.go''',
+  '''internal/app/wireguard/wireguard_peers_test\.go''',
+  '''tests/conf/''',
+  '''docs/documentation/usage/webhooks\.md''',
+]
+
+# The release workflow selects its public signing key by GPG fingerprint (40 upper-case hex digits).
+[[allowlists]]
+description = "gpg key fingerprint"
+regexes = ['''^[0-9A-F]{40}$''']

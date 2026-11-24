@@ -20,7 +20,7 @@ func NewFileSystemRepository(basePath string) (*FilesystemRepo, error) {
 
 	r := &FilesystemRepo{basePath: basePath}
 
-	if err := os.MkdirAll(r.basePath, os.ModePerm); err != nil {
+	if err := os.MkdirAll(r.basePath, os.ModePerm); err != nil { //nolint:gosec // G301: the directory follows the umask so that the tooling of the operator keeps access
 		return nil, fmt.Errorf("failed to create base directory %s: %w", basePath, err)
 	}
 
@@ -43,7 +43,7 @@ func (r *FilesystemRepo) WriteFile(path string, contents io.Reader) error {
 		return fmt.Errorf("failed to create parent directory %s: %w", parentDirectory, err)
 	}
 
-	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm) //nolint:gosec // G302: the file follows the umask, the permissions belong to the operator's setup
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", filePath, err)
 	}

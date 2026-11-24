@@ -114,7 +114,7 @@ func (c Cidr) BroadcastAddr() Cidr {
 		off = 12
 		bits = 32
 	}
-	for b := uint8(prefix.Bits()); b < bits; b++ {
+	for b := uint8(prefix.Bits()); b < bits; b++ { //nolint:gosec // G115: a prefix length is at most 128
 		byteNum, bitInByte := b/8, 7-(b%8)
 		a16[off+byteNum] |= 1 << uint(bitInByte)
 	}

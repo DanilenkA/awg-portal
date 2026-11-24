@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -93,12 +94,12 @@ func (u UserService) ChangePassword(
 	newPassword = strings.TrimSpace(newPassword)
 
 	if newPassword == "" {
-		return nil, fmt.Errorf("new password must not be empty")
+		return nil, errors.New("new password must not be empty")
 	}
 
 	// ensure that the new password is different from the old one
 	if oldPassword == newPassword {
-		return nil, fmt.Errorf("new password must be different from the old one")
+		return nil, errors.New("new password must be different from the old one")
 	}
 
 	user, err := u.users.GetUser(ctx, id)

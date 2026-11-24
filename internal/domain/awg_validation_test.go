@@ -13,9 +13,9 @@ func TestInterface_ValidateAWGParams_Disabled(t *testing.T) {
 	iface := &Interface{
 		Identifier: "wg0",
 		// AWGEnabled false — params may be zero or garbage, must not error.
-		AWGJc:99999,
+		AWGJc:   99999,
 		AWGJmin: -1,
-		AWGH1:0,
+		AWGH1:   0,
 	}
 	assert.NoError(t, iface.validateAWGParams())
 }
@@ -36,11 +36,11 @@ func TestInterface_ValidateAWGParams_Enabled_Valid(t *testing.T) {
 	iface := &Interface{
 		Identifier: "wg0",
 		AWGEnabled: true,
-		AWGJc:4,
-		AWGJmin:70,
-		AWGJmax:600,
-		AWGS1:25, AWGS2:35, AWGS3:10, AWGS4:5,
-		AWGH1:111, AWGH2:222, AWGH3:333, AWGH4:444,
+		AWGJc:      4,
+		AWGJmin:    70,
+		AWGJmax:    600,
+		AWGS1:      25, AWGS2: 35, AWGS3: 10, AWGS4: 5,
+		AWGH1: 111, AWGH2: 222, AWGH3: 333, AWGH4: 444,
 	}
 	assert.NoError(t, iface.validateAWGParams())
 }
@@ -49,11 +49,11 @@ func TestInterface_ValidateAWGParams_JcOutOfRange(t *testing.T) {
 	iface := &Interface{
 		Identifier: "wg0",
 		AWGEnabled: true,
-		AWGJc:99999,
-		AWGJmin:70,
-		AWGJmax:600,
-		AWGS1:25, AWGS2:35, AWGS3:10, AWGS4:5,
-		AWGH1:111, AWGH2:222, AWGH3:333, AWGH4:444,
+		AWGJc:      99999,
+		AWGJmin:    70,
+		AWGJmax:    600,
+		AWGS1:      25, AWGS2: 35, AWGS3: 10, AWGS4: 5,
+		AWGH1: 111, AWGH2: 222, AWGH3: 333, AWGH4: 444,
 	}
 	err := iface.validateAWGParams()
 	assert.Error(t, err)
@@ -64,11 +64,11 @@ func TestInterface_ValidateAWGParams_JmaxNotGreaterThanJmin(t *testing.T) {
 	iface := &Interface{
 		Identifier: "wg0",
 		AWGEnabled: true,
-		AWGJc:4,
-		AWGJmin:600,
-		AWGJmax:70, // < Jmin
-		AWGS1:25, AWGS2:35, AWGS3:10, AWGS4:5,
-		AWGH1:111, AWGH2:222, AWGH3:333, AWGH4:444,
+		AWGJc:      4,
+		AWGJmin:    600,
+		AWGJmax:    70, // < Jmin
+		AWGS1:      25, AWGS2: 35, AWGS3: 10, AWGS4: 5,
+		AWGH1: 111, AWGH2: 222, AWGH3: 333, AWGH4: 444,
 	}
 	err := iface.validateAWGParams()
 	assert.Error(t, err)
@@ -79,12 +79,12 @@ func TestInterface_ValidateAWGParams_DuplicateH(t *testing.T) {
 	iface := &Interface{
 		Identifier: "wg0",
 		AWGEnabled: true,
-		AWGJc:4,
-		AWGJmin:70,
-		AWGJmax:600,
-		AWGS1:25, AWGS2:35, AWGS3:10, AWGS4:5,
+		AWGJc:      4,
+		AWGJmin:    70,
+		AWGJmax:    600,
+		AWGS1:      25, AWGS2: 35, AWGS3: 10, AWGS4: 5,
 		// H1 == H2 — must be unique.
-		AWGH1:111, AWGH2:111, AWGH3:333, AWGH4:444,
+		AWGH1: 111, AWGH2: 111, AWGH3: 333, AWGH4: 444,
 	}
 	err := iface.validateAWGParams()
 	assert.Error(t, err)
@@ -95,12 +95,12 @@ func TestInterface_ValidateAWGParams_HBelowFive(t *testing.T) {
 	iface := &Interface{
 		Identifier: "wg0",
 		AWGEnabled: true,
-		AWGJc:4,
-		AWGJmin:70,
-		AWGJmax:600,
-		AWGS1:25, AWGS2:35, AWGS3:10, AWGS4:5,
+		AWGJc:      4,
+		AWGJmin:    70,
+		AWGJmax:    600,
+		AWGS1:      25, AWGS2: 35, AWGS3: 10, AWGS4: 5,
 		// H1 <5
-		AWGH1:1, AWGH2:222, AWGH3:333, AWGH4:444,
+		AWGH1: 1, AWGH2: 222, AWGH3: 333, AWGH4: 444,
 	}
 	err := iface.validateAWGParams()
 	assert.Error(t, err)
@@ -113,11 +113,11 @@ func TestInterface_Validate_CallsAWGValidation(t *testing.T) {
 	iface := &Interface{
 		Identifier: "wg0",
 		AWGEnabled: true,
-		AWGJc:99999, // bad
-		AWGJmin:70,
-		AWGJmax:600,
-		AWGS1:25, AWGS2:35, AWGS3:10, AWGS4:5,
-		AWGH1:111, AWGH2:222, AWGH3:333, AWGH4:444,
+		AWGJc:      99999, // bad
+		AWGJmin:    70,
+		AWGJmax:    600,
+		AWGS1:      25, AWGS2: 35, AWGS3: 10, AWGS4: 5,
+		AWGH1: 111, AWGH2: 222, AWGH3: 333, AWGH4: 444,
 	}
 	err := iface.Validate()
 	assert.Error(t, err)

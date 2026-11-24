@@ -1,1 +1,24 @@
 graphify-out/graph.json merge=graphify
+
+# Text files are stored with LF and checked out with LF on every platform, Windows included.
+* text=auto eol=lf
+
+# Windows helpers keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files are never converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.gz binary
+*.zip binary
+*.exe binary

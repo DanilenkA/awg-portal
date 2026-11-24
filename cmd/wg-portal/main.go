@@ -54,7 +54,6 @@ func main() {
 
 	wireGuard, err := wireguard.NewControllerManager(cfg)
 	internal.AssertNoError(err)
-	defer lowlevel.StopAllAWGProcesses() // ensure clean shutdown of amneziawg-go processes
 
 	mailer := adapters.NewSmtpMailRepo(cfg.Mail)
 
@@ -73,6 +72,9 @@ func main() {
 	default:
 		internal.AssertNoError(err)
 	}
+
+	// from here on amneziawg-go processes can run: ensure their clean shutdown
+	defer lowlevel.StopAllAWGProcesses()
 
 	queueSize := 100
 	eventBus := evbus.New(queueSize)

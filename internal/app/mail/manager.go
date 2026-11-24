@@ -139,7 +139,6 @@ func (m Manager) sendPeerEmail(
 		if err != nil {
 			return fmt.Errorf("failed to get mail body: %w", err)
 		}
-
 	} else {
 		peerConfig, err := m.configFiles.GetPeerConfig(ctx, peer.Identifier, style)
 		if err != nil {

@@ -21,7 +21,11 @@ func convertRawLdapUser(
 ) (*domain.User, error) {
 	now := time.Now()
 
-	isAdmin, err := internal.LdapIsMemberOf(rawUser[fields.GroupMembership].([][]byte), adminGroupDN)
+	memberOf, ok := rawUser[fields.GroupMembership].([][]byte)
+	if !ok {
+		return nil, fmt.Errorf("group membership attribute %s is missing or not a list", fields.GroupMembership)
+	}
+	isAdmin, err := internal.LdapIsMemberOf(memberOf, adminGroupDN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check admin group: %w", err)
 	}

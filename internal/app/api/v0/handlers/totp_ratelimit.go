@@ -64,7 +64,7 @@ func (rl *totpLoginRateLimit) recordFailure(key string) {
 
 	// keep only failures within the window
 	cutoff := now.Add(-totpRateLimitWindow)
-	kept := e.failures[:0]
+	kept := make([]time.Time, 0, len(e.failures))
 	for _, f := range e.failures {
 		if f.After(cutoff) {
 			kept = append(kept, f)

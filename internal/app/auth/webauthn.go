@@ -240,7 +240,6 @@ func (a *WebAuthnAuthenticator) FinishWebAuthnLogin(
 	sessionDataAsJSON []byte,
 	r *http.Request,
 ) (*domain.User, error) {
-
 	var webAuthnData webauthn.SessionData
 	err := json.Unmarshal(sessionDataAsJSON, &webAuthnData)
 	if err != nil {

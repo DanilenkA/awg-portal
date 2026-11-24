@@ -211,13 +211,14 @@ func (a *TotpAuthenticator) Disable(ctx context.Context, user *domain.User) erro
 // validateTotpWithStep validates the code and returns the matching time-step (for replay protection).
 func validateTotpWithStep(passcode, secret string) (bool, int64, error) {
 	opts := totpValidateOpts()
+	period := int64(opts.Period) //nolint:gosec // G115: the period is the constant 30 of this package
 	now := time.Now().UTC()
-	counter := now.Unix() / int64(opts.Period)
+	counter := now.Unix() / period
 
 	// Check current step and the RFC-allowed skew window (±1).
 	candidates := []int64{counter, counter + 1, counter - 1}
 	for _, c := range candidates {
-		generated, err := totp.GenerateCodeCustom(secret, time.Unix(c*int64(opts.Period), 0).UTC(), opts)
+		generated, err := totp.GenerateCodeCustom(secret, time.Unix(c*period, 0).UTC(), opts)
 		if err != nil {
 			return false, 0, err
 		}

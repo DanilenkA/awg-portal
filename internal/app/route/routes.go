@@ -25,7 +25,7 @@ type InterfaceAndPeerDatabaseRepo interface {
 
 type EventBus interface {
 	// Subscribe subscribes to a topic
-	Subscribe(topic string, fn interface{}) error
+	Subscribe(topic string, fn any) error
 }
 
 type RoutesController interface {
@@ -36,14 +36,6 @@ type RoutesController interface {
 }
 
 // endregion dependencies
-
-type routeRuleInfo struct {
-	ifaceId    domain.InterfaceIdentifier
-	fwMark     uint32
-	table      int
-	family     int
-	hasDefault bool
-}
 
 // Manager is try to mimic wg-quick behaviour (https://git.zx2c4.com/wireguard-tools/tree/src/wg-quick/linux.bash)
 // for default routes.

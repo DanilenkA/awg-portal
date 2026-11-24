@@ -23,7 +23,7 @@ import (
 // region models
 
 const (
-	PfsenseApiStatusOk    = "ok"    // pfSense REST API uses "ok" in response
+	PfsenseApiStatusOk    = "ok" // pfSense REST API uses "ok" in response
 	PfsenseApiStatusError = "error"
 )
 
@@ -37,8 +37,8 @@ const (
 type PfsenseApiResponse[T any] struct {
 	Status string
 	Code   int
-	Data   T                 `json:"data,omitempty"`
-	Error  *PfsenseApiError  `json:"error,omitempty"`
+	Data   T                `json:"data,omitempty"`
+	Error  *PfsenseApiError `json:"error,omitempty"`
 }
 
 type PfsenseApiError struct {
@@ -74,14 +74,8 @@ func (o *PfsenseRequestOptions) GetPath(base string) string {
 	for k, v := range o.Filters {
 		query.Set(k, v)
 	}
-	// Note: PropList may not be supported by pfSense REST API in the same way as Mikrotik
-	// pfSense typically returns all fields by default, but we keep this for potential future use
-	// Verify the correct parameter name in Swagger docs if field selection is needed
-	if len(o.PropList) > 0 {
-		// pfSense might use different parameter name - verify in Swagger docs
-		// For now, we'll skip it as pfSense may return all fields by default
-		// query.Set("fields", strings.Join(o.PropList, ","))
-	}
+	// PropList is not sent: pfSense returns all fields by default, and the parameter name
+	// for field selection is not confirmed. Check the Swagger docs before using it.
 	path.RawQuery = query.Encode()
 	return path.String()
 }
@@ -104,21 +98,18 @@ func NewPfsenseApiClient(coreCfg *config.Config, cfg *config.BackendPfsense) (*P
 		cfg:     cfg,
 	}
 
-	err := c.setup()
-	if err != nil {
-		return nil, err
-	}
+	c.setup()
 
 	c.debugLog("pfSense api client created", "api_url", cfg.ApiUrl)
 
 	return c, nil
 }
 
-func (p *PfsenseApiClient) setup() error {
+func (p *PfsenseApiClient) setup() {
 	p.client = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: !p.cfg.ApiVerifyTls,
+				InsecureSkipVerify: !p.cfg.ApiVerifyTls, //nolint:gosec // G402: certificate validation is switched off only by the operator through api_verify_tls
 			},
 		},
 		Timeout: p.cfg.GetApiTimeout(),
@@ -134,8 +125,6 @@ func (p *PfsenseApiClient) setup() error {
 				},
 			}))
 	}
-
-	return nil
 }
 
 func (p *PfsenseApiClient) debugLog(msg string, args ...any) {
@@ -159,9 +148,9 @@ func (p *PfsenseApiClient) prepareGetRequest(ctx context.Context, fullUrl string
 	}
 	req.Header.Set("Accept", "application/json")
 	if p.cfg.ApiKey != "" {
-		// pfSense REST API API Key authentication (https://pfrest.org/AUTHENTICATION_AND_AUTHORIZATION/)
-		// Uses X-API-Key header for API key authentication
-		req.Header.Set("X-API-Key", p.cfg.ApiKey)
+		// pfSense REST API key authentication (https://pfrest.org/AUTHENTICATION_AND_AUTHORIZATION/)
+		// Uses X-Api-Key header for API key authentication
+		req.Header.Set("X-Api-Key", p.cfg.ApiKey)
 	}
 
 	return req, nil
@@ -174,9 +163,9 @@ func (p *PfsenseApiClient) prepareDeleteRequest(ctx context.Context, fullUrl str
 	}
 	req.Header.Set("Accept", "application/json")
 	if p.cfg.ApiKey != "" {
-		// pfSense REST API API Key authentication (https://pfrest.org/AUTHENTICATION_AND_AUTHORIZATION/)
-		// Uses X-API-Key header for API key authentication
-		req.Header.Set("X-API-Key", p.cfg.ApiKey)
+		// pfSense REST API key authentication (https://pfrest.org/AUTHENTICATION_AND_AUTHORIZATION/)
+		// Uses X-Api-Key header for API key authentication
+		req.Header.Set("X-Api-Key", p.cfg.ApiKey)
 	}
 
 	return req, nil
@@ -201,9 +190,9 @@ func (p *PfsenseApiClient) preparePayloadRequest(
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
 	if p.cfg.ApiKey != "" {
-		// pfSense REST API API Key authentication (https://pfrest.org/AUTHENTICATION_AND_AUTHORIZATION/)
-		// Uses X-API-Key header for API key authentication
-		req.Header.Set("X-API-Key", p.cfg.ApiKey)
+		// pfSense REST API key authentication (https://pfrest.org/AUTHENTICATION_AND_AUTHORIZATION/)
+		// Uses X-Api-Key header for API key authentication
+		req.Header.Set("X-Api-Key", p.cfg.ApiKey)
 	}
 
 	return req, nil
@@ -221,10 +210,17 @@ func errToPfsenseApiResponse[T any](code int, message string, err error) Pfsense
 	}
 }
 
-func parsePfsenseHttpResponse[T any](resp *http.Response, err error) PfsenseApiResponse[T] {
+func parsePfsenseHttpResponse[T any](client *http.Client, req *http.Request) PfsenseApiResponse[T] {
+	resp, err := client.Do(req)
 	if err != nil {
 		return errToPfsenseApiResponse[T](PfsenseApiErrorCodeRequestFailed, "failed to execute request", err)
 	}
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Error("failed to close response body", "error", err)
+		}
+	}()
 
 	// pfSense REST API wraps responses in {code, status, data} or {code, status, error} structure
 	var wrapper struct {
@@ -243,13 +239,6 @@ func parsePfsenseHttpResponse[T any](resp *http.Response, err error) PfsenseApiR
 	if err != nil {
 		return errToPfsenseApiResponse[T](PfsenseApiErrorCodeResponseDecodeFailed, "failed to read response body", err)
 	}
-	
-	// Close the body after reading
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			slog.Error("failed to close response body", "error", err)
-		}
-	}()
 
 	if len(bodyBytes) == 0 {
 		// Empty response for DELETE operations
@@ -273,7 +262,7 @@ func parsePfsenseHttpResponse[T any](resp *http.Response, err error) PfsenseApiR
 			"method", resp.Request.Method,
 			"body_preview", bodyPreview,
 			"error", err)
-		return errToPfsenseApiResponse[T](PfsenseApiErrorCodeResponseDecodeFailed, 
+		return errToPfsenseApiResponse[T](PfsenseApiErrorCodeResponseDecodeFailed,
 			fmt.Sprintf("failed to decode response (status %d, content-type: %s): %v", resp.StatusCode, contentType, err), err)
 	}
 
@@ -328,7 +317,7 @@ func (p *PfsenseApiClient) Query(
 
 	start := time.Now()
 	p.debugLog("executing API query", "url", fullUrl)
-	response := parsePfsenseHttpResponse[[]GenericJsonObject](p.client.Do(req))
+	response := parsePfsenseHttpResponse[[]GenericJsonObject](p.client, req)
 	p.debugLog("retrieved API query result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }
@@ -351,7 +340,7 @@ func (p *PfsenseApiClient) Get(
 
 	start := time.Now()
 	p.debugLog("executing API get", "url", fullUrl)
-	response := parsePfsenseHttpResponse[GenericJsonObject](p.client.Do(req))
+	response := parsePfsenseHttpResponse[GenericJsonObject](p.client, req)
 	p.debugLog("retrieved API get result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }
@@ -374,7 +363,7 @@ func (p *PfsenseApiClient) Create(
 
 	start := time.Now()
 	p.debugLog("executing API post", "url", fullUrl)
-	response := parsePfsenseHttpResponse[GenericJsonObject](p.client.Do(req))
+	response := parsePfsenseHttpResponse[GenericJsonObject](p.client, req)
 	p.debugLog("retrieved API post result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }
@@ -397,7 +386,7 @@ func (p *PfsenseApiClient) Update(
 
 	start := time.Now()
 	p.debugLog("executing API patch", "url", fullUrl)
-	response := parsePfsenseHttpResponse[GenericJsonObject](p.client.Do(req))
+	response := parsePfsenseHttpResponse[GenericJsonObject](p.client, req)
 	p.debugLog("retrieved API patch result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }
@@ -419,10 +408,9 @@ func (p *PfsenseApiClient) Delete(
 
 	start := time.Now()
 	p.debugLog("executing API delete", "url", fullUrl)
-	response := parsePfsenseHttpResponse[EmptyResponse](p.client.Do(req))
+	response := parsePfsenseHttpResponse[EmptyResponse](p.client, req)
 	p.debugLog("retrieved API delete result", "url", fullUrl, "duration", time.Since(start).String())
 	return response
 }
 
 // endregion API-client
-

@@ -77,8 +77,7 @@ func TestPropertySanitizationChangeLoggingCompleteness(t *testing.T) {
 			expectedChanges++
 		}
 
-		var records []map[string]any
-		records = captureWarnLogsInline(func() {
+		records := captureWarnLogsInline(func() {
 			_, _ = parseOauthUserInfo(mapping, adminMapping, raw, "oauth", "test-provider")
 		})
 

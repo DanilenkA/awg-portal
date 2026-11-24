@@ -1,6 +1,7 @@
 package lowlevel
 
 import (
+	"encoding/hex"
 	"errors"
 	"io"
 	"os"
@@ -187,9 +188,8 @@ func TestAWGDeviceFromUAPI_NoSocket(t *testing.T) {
 func TestParseUAPIHexKey(t *testing.T) {
 	// Valid 32-byte key
 	good := "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-	k := parseUAPIHexKey(good)
-	if len(k) != wgtypes.KeyLen {
-		t.Fatalf("valid hex key length = %d, want %d", len(k), wgtypes.KeyLen)
+	if k, want := parseUAPIHexKey(good), mustKeyFromHex(t, good); k != want {
+		t.Fatalf("valid hex key = %v, want %v", k, want)
 	}
 	// Empty / non-hex / wrong length → zero key (no error)
 	for _, bad := range []string{"", "zz", "deadbeef"} {
@@ -215,32 +215,38 @@ func mustKeyFromHex(t *testing.T, hexStr string) wgtypes.Key {
 
 func decodeHex(t *testing.T, s string) ([]byte, error) {
 	t.Helper()
-	const hextable = "0123456789abcdef"
-	if len(s)%2 != 0 {
-		return nil, errors.New("odd length")
-	}
-	out := make([]byte, 0, len(s)/2)
-	for i := 0; i < len(s); i += 2 {
-		hi := strings.IndexByte(hextable, s[i])
-		lo := strings.IndexByte(hextable, s[i+1])
-		if hi < 0 || lo < 0 {
-			return nil, errors.New("non-hex char")
-		}
-		out = append(out, byte(hi)<<4|byte(lo))
-	}
-	return out, nil
+	return hex.DecodeString(s)
 }
 
-// TestBytesIndexByte sanity-checks the local helper.
-func TestBytesIndexByte(t *testing.T) {
-	if got := bytesIndexByte([]byte("foo=bar"), '='); got != 3 {
-		t.Fatalf("got %d, want 3", got)
+// TestIsValidAWGInterfaceName covers the kernel rules and the leading dash.
+func TestIsValidAWGInterfaceName(t *testing.T) {
+	cases := []struct {
+		name  string
+		valid bool
+	}{
+		{"wg0", true},
+		{"awg-1", true},
+		{"abcdefghijklmno", true}, // 15 characters, the kernel limit
+		{"abcdefghijklmnop", false},
+		{"", false},
+		{".", false},
+		{"..", false},
+		{"-version", false},
+		{"a/b", false},
+		{"a:b", false},
+		{"a b", false},
 	}
-	if got := bytesIndexByte([]byte("nope"), '='); got != -1 {
-		t.Fatalf("got %d, want -1", got)
+	for _, c := range cases {
+		if got := IsValidInterfaceName(c.name); got != c.valid {
+			t.Errorf("IsValidInterfaceName(%q) = %v, want %v", c.name, got, c.valid)
+		}
 	}
-	if got := bytesIndexByte(nil, '='); got != -1 {
-		t.Fatalf("got %d, want -1 for nil", got)
+}
+
+// TestStartAWGProcessRejectsInvalidName ensures an invalid name fails before a process is started.
+func TestStartAWGProcessRejectsInvalidName(t *testing.T) {
+	if err := StartAWGProcess("-version"); err == nil {
+		t.Fatal("expected an error for an interface name with a leading dash")
 	}
 }
 

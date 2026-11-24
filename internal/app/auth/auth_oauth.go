@@ -11,7 +11,6 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/DanilenkA/awg-portal/internal"
 	"github.com/DanilenkA/awg-portal/internal/config"
 	"github.com/DanilenkA/awg-portal/internal/domain"
 )
@@ -33,10 +32,9 @@ type PlainOauthAuthenticator struct {
 }
 
 func newPlainOauthAuthenticator(
-	_ context.Context,
 	callbackUrl string,
 	cfg *config.OAuthProvider,
-) (*PlainOauthAuthenticator, error) {
+) *PlainOauthAuthenticator {
 	var provider = &PlainOauthAuthenticator{}
 
 	provider.name = cfg.ProviderName
@@ -63,7 +61,7 @@ func newPlainOauthAuthenticator(
 	provider.allowedDomains = cfg.AllowedDomains
 	provider.allowedUserGroups = cfg.AllowedUserGroups
 
-	return provider, nil
+	return provider
 }
 
 // GetName returns the name of the OAuth authenticator.
@@ -113,12 +111,11 @@ func (p PlainOauthAuthenticator) GetUserInfo(
 	token *oauth2.Token,
 	_ string,
 ) (map[string]any, error) {
-	req, err := http.NewRequest("GET", p.userInfoEndpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.userInfoEndpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user info get request: %w", err)
 	}
 	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
-	req.WithContext(ctx)
 
 	response, err := p.client.Do(req)
 	if err != nil {
@@ -128,7 +125,11 @@ func (p PlainOauthAuthenticator) GetUserInfo(
 		}
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
-	defer internal.LogClose(response.Body)
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			slog.Error("error during Close()", "error", err)
+		}
+	}()
 	contents, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)

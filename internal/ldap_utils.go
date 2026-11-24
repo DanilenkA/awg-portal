@@ -33,12 +33,11 @@ func LdapFindAllUsers(conn *ldap.Conn, baseDn, filter string, fields *config.Lda
 }
 
 func LdapConnect(cfg *config.LdapProvider) (*ldap.Conn, error) {
-	tlsConfig := &tls.Config{InsecureSkipVerify: !cfg.CertValidation}
+	tlsConfig := &tls.Config{InsecureSkipVerify: !cfg.CertValidation} //nolint:gosec // G402: certificate validation is switched off only by the operator through cert_validation
 	if cfg.TlsCertificatePath != "" {
 		certificate, err := os.ReadFile(cfg.TlsCertificatePath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load TLS certificate: %w", err)
-
 		}
 
 		key, err := os.ReadFile(cfg.TlsKeyPath)
@@ -49,7 +48,6 @@ func LdapConnect(cfg *config.LdapProvider) (*ldap.Conn, error) {
 		keyPair, err := tls.X509KeyPair(certificate, key)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate X509 keypair: %w", err)
-
 		}
 		tlsConfig = &tls.Config{Certificates: []tls.Certificate{keyPair}}
 	}

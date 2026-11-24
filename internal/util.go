@@ -40,7 +40,6 @@ func SignalAwareContext(ctx context.Context, sig ...os.Signal) context.Context {
 	if len(sig) == 0 {
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	} else {
-
 		signal.Notify(c, sig...)
 	}
 	signalCtx, cancel := context.WithCancel(ctx)
