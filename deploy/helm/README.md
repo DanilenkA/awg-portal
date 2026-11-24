@@ -43,7 +43,7 @@ The [Values](#values) section lists the parameters that can be configured during
 | workloadType | string | `"Deployment"` | Workload type - `Deployment` or `StatefulSet` |
 | replicas | int | `1` | The replicas for the workload. |
 | strategy | object | `{"type":"RollingUpdate"}` | Update strategy for the workload Valid values are:  `RollingUpdate` or `Recreate` for Deployment,  `RollingUpdate` or `OnDelete` for StatefulSet |
-| image.repository | string | `"ghcr.io/h44z/wg-portal"` | Image repository |
+| image.repository | string | `"ghcr.io/danilenka/awg-portal"` | Image repository |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion |
 | imagePullSecrets | list | `[]` | Image pull secrets |
