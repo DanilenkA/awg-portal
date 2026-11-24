@@ -55,8 +55,8 @@ func (e *MikrotikApiError) String() string {
 type GenericJsonObject map[string]any
 type EmptyResponse struct{}
 
-func (JsonObject GenericJsonObject) GetString(key string) string {
-	if value, ok := JsonObject[key]; ok {
+func (obj GenericJsonObject) GetString(key string) string {
+	if value, ok := obj[key]; ok {
 		if strValue, ok := value.(string); ok {
 			return strValue
 		} else {
@@ -66,8 +66,8 @@ func (JsonObject GenericJsonObject) GetString(key string) string {
 	return ""
 }
 
-func (JsonObject GenericJsonObject) GetInt(key string) int {
-	if value, ok := JsonObject[key]; ok {
+func (obj GenericJsonObject) GetInt(key string) int {
+	if value, ok := obj[key]; ok {
 		if intValue, ok := value.(int); ok {
 			return intValue
 		} else {
@@ -84,8 +84,8 @@ func (JsonObject GenericJsonObject) GetInt(key string) int {
 	return 0
 }
 
-func (JsonObject GenericJsonObject) GetBool(key string) bool {
-	if value, ok := JsonObject[key]; ok {
+func (obj GenericJsonObject) GetBool(key string) bool {
+	if value, ok := obj[key]; ok {
 		if boolValue, ok := value.(bool); ok {
 			return boolValue
 		} else {

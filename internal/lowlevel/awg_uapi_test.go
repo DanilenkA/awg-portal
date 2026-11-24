@@ -1,6 +1,7 @@
 package lowlevel
 
 import (
+	"encoding/hex"
 	"errors"
 	"io"
 	"os"
@@ -187,9 +188,8 @@ func TestAWGDeviceFromUAPI_NoSocket(t *testing.T) {
 func TestParseUAPIHexKey(t *testing.T) {
 	// Valid 32-byte key
 	good := "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-	k := parseUAPIHexKey(good)
-	if len(k) != wgtypes.KeyLen {
-		t.Fatalf("valid hex key length = %d, want %d", len(k), wgtypes.KeyLen)
+	if k, want := parseUAPIHexKey(good), mustKeyFromHex(t, good); k != want {
+		t.Fatalf("valid hex key = %v, want %v", k, want)
 	}
 	// Empty / non-hex / wrong length → zero key (no error)
 	for _, bad := range []string{"", "zz", "deadbeef"} {
@@ -215,20 +215,7 @@ func mustKeyFromHex(t *testing.T, hexStr string) wgtypes.Key {
 
 func decodeHex(t *testing.T, s string) ([]byte, error) {
 	t.Helper()
-	const hextable = "0123456789abcdef"
-	if len(s)%2 != 0 {
-		return nil, errors.New("odd length")
-	}
-	out := make([]byte, 0, len(s)/2)
-	for i := 0; i < len(s); i += 2 {
-		hi := strings.IndexByte(hextable, s[i])
-		lo := strings.IndexByte(hextable, s[i+1])
-		if hi < 0 || lo < 0 {
-			return nil, errors.New("non-hex char")
-		}
-		out = append(out, byte(hi)<<4|byte(lo))
-	}
-	return out, nil
+	return hex.DecodeString(s)
 }
 
 // TestIsValidAWGInterfaceName covers the kernel rules and the leading dash.
