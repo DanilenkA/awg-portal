@@ -2,7 +2,7 @@
 services:
   awg-portal:
     # Тег задаётся переменной AWG_PORTAL_VERSION (по умолчанию latest).
-    # Пример: AWG_PORTAL_VERSION=v2.0.7 docker compose up -d
+    # Пример: AWG_PORTAL_VERSION=latest docker compose up -d
     image: ghcr.io/danilenka/awg-portal:${AWG_PORTAL_VERSION:-latest}
     container_name: awg-portal
     restart: unless-stopped
