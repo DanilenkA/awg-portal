@@ -26,7 +26,7 @@
 
 ## Introduction
 
-**AWG-PORTAL** (v2.0) — это форк [h44z/wg-portal](https://github.com/h44z/wg-portal) с полной поддержкой [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go) — протокола, устойчивого к DPI и блокировкам.
+**AWG-PORTAL** — самостоятельный проект с полной поддержкой [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go), протокола, устойчивого к DPI и блокировкам.
 
 Портал предоставляет веб-интерфейс для управления VPN-серверами на базе **WireGuard** и **AmneziaWG**. Поддерживает создание/удаление пиров, генерацию конфигов, мониторинг трафика, глобальную мультиязычность и REST API.
 
@@ -57,24 +57,6 @@
 * Prometheus-метрики для мониторинга
 * REST API для управления и деплоя клиентов
 * Webhook для кастомных действий
-
-## Отличия от оригинала (h44z/wg-portal)
-
-| Возможность | h44z/wg-portal | AWG-PORTAL |
-|---|---|---|
-| WireGuard | ✅ | ✅ |
-| AmneziaWG (обфускация) | ❌ | ✅ |
-| amneziawg-go | ❌ | ✅ (v2.x) |
-| AWG-параметры в API | ❌ | ✅ |
-| UAPI для AWG | ❌ | ✅ |
-| Статус AWG-пиров (handshake/traffic) | ❌ | ✅ |
-| UI/UX v2 (адаптивный, тёмная тема) | ❌ | ✅ |
-| Мультиязычность (11 языков) | ❌ | ✅ |
-| **TOTP 2FA (двухфакторная аутентификация)** | ❌ | ✅ |
-| Трафик-мониторинг (/traffic dashboard) | ❌ | ✅ |
-| AWG-бейдж в интерфейсе | ❌ | ✅ |
-| SVG-логотип | ❌ | ✅ |
-| PresharedKey/PrivateKey автогенерация в API | ❌ | ✅ |
 
 ## Быстрый старт
 
@@ -213,8 +195,6 @@ sudo bash uninstall.sh --keep-data --keep-user
 
 Все параметры можно задать через переменные окружения — схема именования:
 `WG_PORTAL_<СЕКЦИЯ>_<ПАРАМЕТР>`. Переменные имеют приоритет над YAML-файлом.
-
-Полная документация: [wgportal.org](https://wgportal.org) (upstream v1.x, не всё совместимо).
 
 ## Docker
 
@@ -355,7 +335,6 @@ make build-docker-multiarch
 
 4. **PresharedKey:** При создании пира через REST API без указания
    `PrivateKey` и `PresharedKey` — портал сгенерирует их автоматически.
-   Это исправлено в AWG-PORTAL (в оригинале h44z ключи оставались пустыми).
 
 5. **AmneziaWG (обфускация):** Для работы AWG требуется бинарник
    `amneziawg-go`. В Docker-образ AWG-PORTAL он **встроен** —
@@ -526,9 +505,8 @@ curl -X GET http://localhost:8888/api/v0/peer/config/<peer-id> \
   -H "Cookie: wgPortalSession=<COOKIE>"
 ```
 
-API v0 полностью совместимо с h44z/wg-portal (кроме имени куки — `wgPortalSession`
-вместо `session`). Документация:
-[Swagger: /api/v0/docs/](https://wgportal.org/master/rest-api/)
+API v0 использует cookie `wgPortalSession`. Документация:
+[Swagger: /api/v0/docs/](/api/v0/docs/)
 
 ## Лицензия
 
@@ -543,7 +521,7 @@ MIT License. [MIT](LICENSE.txt)
 
 ### WG-интерфейс создаётся как TUN, а не wireguard
 
-Известный upstream-баг (h44z/wg-portal). Портал создаёт интерфейс как
+Известное ограничение. Портал создаёт интерфейс как
 `tun type tun`, а не `type wireguard`. Симптом: `wg show` падает с
 `Operation not supported`. Workaround:
 
@@ -631,7 +609,3 @@ sudo rm -f data/sqlite.db 2>/dev/null
 ## Лицензия
 
 MIT License. [MIT](LICENSE.txt)
-
-## Благодарности
-
-Огромное спасибо [h44z](https://github.com/h44z) за оригинальный [WireGuard Portal](https://github.com/h44z/wg-portal).

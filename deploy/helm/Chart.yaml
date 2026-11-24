@@ -4,10 +4,9 @@ description: WireGuard Configuration Portal with LDAP, OAuth, OIDC authenticatio
 # Version is set to ensure compatibility with the chart's Ingress resource.
 kubeVersion: ">=1.19.0-0"
 type: application
-home: https://wgportal.org
-icon: https://wgportal.org/latest/assets/images/logo.svg
+home: https://github.com/DanilenkA/awg-portal
 sources:
-  - https://github.com/h44z/wg-portal
+  - https://github.com/DanilenkA/awg-portal
 
 annotations:
   artifacthub.io/category: networking

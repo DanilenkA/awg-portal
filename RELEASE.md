@@ -24,7 +24,6 @@ PR мержится в `main`. Ruleset требует PR, поэтому push в
    `uninstall.sh`, `config.yml.sample`, шесть бинарников, `SHA256SUMS`.
 5. Release: подписанный тег, ретиг `vX.Y.Z` и `latest`, `SHA256SUMS.sig`,
    provenance attestation, GitHub Release.
-6. Chart: `helm package` с версией релиза и push в `oci://ghcr.io/<owner>/charts`.
 
 ## 4. Если релиз не нужен
 

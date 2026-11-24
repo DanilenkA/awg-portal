@@ -457,29 +457,3 @@ jobs:
             release-key.asc
           fail_on_unmatched_files: true
           make_latest: true
-
-  chart:
-    name: Publish the helm chart
-    needs: [preflight, release]
-    if: ${{ needs.preflight.outputs.release == 'true' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
-
-      - name: Package and push the chart
-        env:
-          VERSION: ${{ needs.preflight.outputs.version }}
-        run: |
-          helm package deploy/helm --version "${VERSION#v}" --app-version "${VERSION}" --destination /tmp/chart
-          helm push /tmp/chart/*.tgz "oci://ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts"
