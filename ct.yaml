@@ -3,3 +3,6 @@ remote: origin
 chart-dirs: deploy
 target-branch: main
 validate-maintainers: false
+# The release workflow sets the chart version from VERSION, so a values change
+# does not need a manual Chart.yaml bump in every PR.
+check-version-increment: false

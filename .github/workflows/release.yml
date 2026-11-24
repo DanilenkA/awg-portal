@@ -132,13 +132,12 @@ jobs:
 
       - name: Install git-cliff
         run: |
-          curl -fsSL -o /tmp/git-cliff.tar.gz \
-            https://github.com/orhun/git-cliff/releases/download/v2.14.2/git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz
-          curl -fsSL -o /tmp/git-cliff.tar.gz.sha512 \
-            https://github.com/orhun/git-cliff/releases/download/v2.14.2/git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz.sha512
-          (cd /tmp && sha512sum -c git-cliff.tar.gz.sha512)
+          cd /tmp
+          curl -fsSLO https://github.com/orhun/git-cliff/releases/download/v2.14.2/git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz
+          curl -fsSLO https://github.com/orhun/git-cliff/releases/download/v2.14.2/git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz.sha512
+          sha512sum -c git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz.sha512
           mkdir -p /tmp/git-cliff
-          tar xzf /tmp/git-cliff.tar.gz -C /tmp/git-cliff --strip-components=1
+          tar xzf git-cliff-2.14.2-x86_64-unknown-linux-gnu.tar.gz -C /tmp/git-cliff --strip-components=1
           sudo install /tmp/git-cliff/git-cliff /usr/local/bin/git-cliff
 
       - name: Release consistency
