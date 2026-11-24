@@ -20,7 +20,7 @@ RUN npm run build
 ######
 # Build backend
 ######
-FROM --platform=${BUILDPLATFORM} golang:1.26-alpine AS builder
+FROM --platform=${BUILDPLATFORM} golang:1.27-alpine AS builder
 # Set the working directory
 WORKDIR /build
 # Download dependencies
@@ -50,7 +50,7 @@ COPY --from=builder /build/dist/wg-portal /
 ######
 # Build amneziawg-go
 ######
-FROM --platform=${BUILDPLATFORM} golang:1.26-alpine AS amneziawg
+FROM --platform=${BUILDPLATFORM} golang:1.27-alpine AS amneziawg
 ARG TARGETARCH
 ARG AMNEZIAWG_COMMIT=1cc94272ca8e9e223a5fe76382f5880f09d3c12d
 RUN apk add --no-cache git ca-certificates
