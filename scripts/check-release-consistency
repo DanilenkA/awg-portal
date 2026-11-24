@@ -34,6 +34,12 @@ fi
 if [ -n "${latest}" ]; then
   while IFS= read -r hit; do
     [ -z "${hit}" ] && continue
+    # The chart install smoke test pins a published image tag and helm-docs
+    # mirrors it in the generated README. The release workflow overrides both.
+    case "${hit}" in
+      deploy/helm/Chart.yaml:*appVersion:*) continue ;;
+      deploy/helm/README.md:*) continue ;;
+    esac
     err "stale version ${latest} in ${hit}"
   done < <(git grep -n -F "${latest}" -- \
       README.md docker-compose.yml install.sh uninstall.sh config.yml.sample RELEASE.md \
