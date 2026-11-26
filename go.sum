@@ -217,8 +217,8 @@ github.com/vishvananda/netns v0.0.5 h1:DfiHV+j8bA32MFM7bfEunvT8IAqQ/NzSJHtcmW5zd
 github.com/vishvananda/netns v0.0.5/go.mod h1:SpkAiCQRtJ6TvvxPnOSyH3BMl6unz3xZlaprSwhNNJM=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
-github.com/xhit/go-simple-mail/v2 v2.16.0 h1:ouGy/Ww4kuaqu2E2UrDw7SvLaziWTB60ICLkIkNVccA=
-github.com/xhit/go-simple-mail/v2 v2.16.0/go.mod h1:b7P5ygho6SYE+VIqpxA6QkYfv4teeyG4MKqB3utRu98=
+github.com/xhit/go-simple-mail/v2 v2.17.0 h1:GwLZdu1zgJHYO8nZRiJIkkVU75sg1SZcXuLgMtZxpHU=
+github.com/xhit/go-simple-mail/v2 v2.17.0/go.mod h1:b7P5ygho6SYE+VIqpxA6QkYfv4teeyG4MKqB3utRu98=
 github.com/yeqown/go-qrcode/v2 v2.3.0 h1:MMsNJgZrG95g8SOGGGaGcEZkOt1ByHjeCLSaymGm9aY=
 github.com/yeqown/go-qrcode/v2 v2.3.0/go.mod h1:WBrb4qHlVtggZtquxDyMq+Uv+R4xtUaz4laG2iqG34s=
 github.com/yeqown/go-qrcode/writer/compressed v1.0.2 h1:LgGSU2chM16fyWoXOeXp9eT4v1nxtyxsy0RtxW3/XMc=
