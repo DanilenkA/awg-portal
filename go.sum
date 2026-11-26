@@ -14,8 +14,8 @@ github.com/Azure/go-ntlmssp v0.1.1 h1:l+FM/EEMb0U9QZE7mKNEDw5Mu3mFiaa2GKOoTSsNDP
 github.com/Azure/go-ntlmssp v0.1.1/go.mod h1:NYqdhxd/8aAct/s4qSYZEerdPuH1liG2/X9DiVTbhpk=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0 h1:XRzhVemXdgvJqCH0sFfrBUTnUJSBrBf7++ypk+twtRs=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0/go.mod h1:HKpQxkWaGLJ+D/5H8QRpyQXA1eKjxkFlOMwck5+33Jk=
-github.com/Jipok/wgctrl-go v1.2.0 h1:iASpMg0Urceh/B+ZXUsZcVt8vfsbk7KjpS7wSS9X91I=
-github.com/Jipok/wgctrl-go v1.2.0/go.mod h1:GrJJ7jsDCnIgf2t9mjYNF7KxmOT6codxbglM1XJx1K8=
+github.com/Jipok/wgctrl-go v1.3.1 h1:A68YpxcxpagG4JFw28FUPCEuGt3m+PmRlqPijUzX6Qo=
+github.com/Jipok/wgctrl-go v1.3.1/go.mod h1:GrJJ7jsDCnIgf2t9mjYNF7KxmOT6codxbglM1XJx1K8=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
 github.com/a8m/envsubst v1.4.3 h1:kDF7paGK8QACWYaQo6KtyYBozY2jhQrTuNNuUxQkhJY=
