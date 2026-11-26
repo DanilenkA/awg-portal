@@ -20,7 +20,7 @@ require (
 	github.com/swaggo/swag v1.16.6
 	github.com/vardius/message-bus v1.1.5
 	github.com/vishvananda/netlink v1.3.1
-	github.com/xhit/go-simple-mail/v2 v2.16.0
+	github.com/xhit/go-simple-mail/v2 v2.17.0
 	github.com/yeqown/go-qrcode/v2 v2.3.0
 	github.com/yeqown/go-qrcode/writer/compressed v1.0.2
 	golang.org/x/crypto v0.58.0
